@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import { createPinia } from 'pinia';
 import { nextTick } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App.vue';
@@ -131,6 +132,9 @@ const mountApp = async ({ authenticated = false, order = emptyOrder } = {}) => {
 
     const wrapper = mount(App, {
         attachTo: document.body,
+        global: {
+            plugins: [createPinia()],
+        },
     });
 
     await flushPromises();
