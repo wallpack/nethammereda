@@ -1,0 +1,578 @@
+[
+    {
+        "title":  "Котлета домашняя с жареным картофелем",
+        "raw_text":  "5 суток250 г.392,6 / 19 / 12 / 31,9",
+        "image_url":  "/images/menu/dish-001.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Котлета (По-киевски) с картофельным пюре",
+        "raw_text":  "7 суток260 г390,8 / 17,2 / 22,7 / 29,4",
+        "image_url":  "/images/menu/dish-002.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Плов с курицей",
+        "raw_text":  "7 суток250 г.188 / 7,8 / 7,6 / 22,1",
+        "image_url":  "/images/menu/dish-003.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Макароны с сосиской и кетчупом",
+        "raw_text":  "5 суток250 г.203,1 / 7,3 / 11,9 / 16,7",
+        "image_url":  "/images/menu/dish-004.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Гречка с овощами",
+        "raw_text":  "7 суток250 г.119,1 / 4,1 / 1,5 / 22,3",
+        "image_url":  "/images/menu/dish-005.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Пельмени",
+        "raw_text":  "5 суток220 г.247 / 5 / 15 / 23",
+        "image_url":  "/images/menu/dish-006.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Баветте с курицей и грибами в сливочном соусе",
+        "raw_text":  "5 суток280 г.188 / 7,1 / 6,4 / 25,5",
+        "image_url":  "/images/menu/dish-007.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Поджарка из курицы с зеленой фасолью и лапшой",
+        "raw_text":  "5 суток250 г.207,26 / 11,4 / 6,7 / 25,34",
+        "image_url":  "/images/menu/dish-008.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Тефтели с гречкой",
+        "raw_text":  "7 суток300 г.165,4 / 8,6 / 8,8 / 10,7",
+        "image_url":  "/images/menu/dish-009.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Отбивная из куриной грудки в хрустящей корочке с запеченным картофелем",
+        "raw_text":  "7 суток260 г.209,8 / 6,4 / 11 / 20,6",
+        "image_url":  "/images/menu/dish-010.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Котлета домашняя с картофельным пюре",
+        "raw_text":  "7 суток280 г.251,9 / 11,7 / 10,7 / 27,2",
+        "image_url":  "/images/menu/dish-011.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Биточек куриный с рисом",
+        "raw_text":  "7 суток 280 г.169 / 8,4 / 5,3 / 22",
+        "image_url":  "/images/menu/dish-012.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Вареники с картофелем и сметаной",
+        "raw_text":  "7 суток200 г.243,7 / 4,9 / 12,5 / 27,9",
+        "image_url":  "/images/menu/dish-013.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Гуляш из свинины с картофельным пюре",
+        "raw_text":  "7 суток280 г.153 / 10,5 / 8,5 / 8,6",
+        "image_url":  "/images/menu/dish-014.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Ленивый голубец с картофельным пюре",
+        "raw_text":  "7 суток280 г.137 / 5,6 / 5,8 / 15,6",
+        "image_url":  "/images/menu/dish-015.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Бефстроганов из свинины с картофельным пюре",
+        "raw_text":  "7 суток260 г.203,7 / 11,6 / 10,1 / 16.6",
+        "image_url":  "/images/menu/dish-016.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Макароны с сыром и сосиской",
+        "raw_text":  "7 суток270 г.224 / 7,9 / 14,6 / 15,2",
+        "image_url":  "/images/menu/dish-017.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Каша рисовая (молочная)",
+        "raw_text":  "7 суток230 г.222,3 / 2,8 / 15,5 / 17,9",
+        "image_url":  "/images/menu/dish-018.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Отбивная из куриной грудки с гречкой",
+        "raw_text":  "7 суток280 г.157,8 / 11 / 5,4 / 16,3",
+        "image_url":  "/images/menu/dish-019.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Котлета домашняя с макаронами",
+        "raw_text":  "7 суток280 г.251,9 / 11,7 / 10,7 / 27,2",
+        "image_url":  "/images/menu/dish-020.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Котлета из индейки с грибами с картофельным пюре",
+        "raw_text":  "7 суток280 г.187 / 7,1 / 6,4 / 25,5",
+        "image_url":  "/images/menu/dish-021.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Лазанья домашняя с фаршем",
+        "raw_text":  "7 суток230 г.157,8 / 11 / 5,4 / 16,3",
+        "image_url":  "/images/menu/dish-022.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Котлетка от шефа с картофельным пюре",
+        "raw_text":  "7 суток230 г.141,4/ 6.5/ 8.9 / 8.7",
+        "image_url":  "/images/menu/dish-023.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Сэндвич с курицей и огурцами",
+        "raw_text":  "3 суток240 г.244 / 7 / 10 / 31",
+        "image_url":  "/images/menu/dish-024.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Сэндвич “Классический”",
+        "raw_text":  "3 суток180 г.257 / 9 / 10 / 35",
+        "image_url":  "/images/menu/dish-025.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Расстегай с горбушей",
+        "raw_text":  "3 суток147 г.178 / 9,5 / 10,6 / 11,2",
+        "image_url":  "/images/menu/dish-026.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Бургер (с маринованной капустой и огурцом)",
+        "raw_text":  "7 суток230 г.885 / 9,5 / 10,9 / 18,8",
+        "image_url":  "/images/menu/dish-027.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Хот дог двойной",
+        "raw_text":  "3 суток250 г.264 / 8 / 14 / 27",
+        "image_url":  "/images/menu/dish-028.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Пицца с ветчиной и грибами",
+        "raw_text":  "3 суток190 г.337 / 10,4 / 23,5 / 22,9",
+        "image_url":  "/images/menu/dish-029.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Пицца с колбасой и сыром",
+        "raw_text":  "3 суток210 г.371 / 13,4 / 25,4 / 25,6",
+        "image_url":  "/images/menu/dish-030.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Самса",
+        "raw_text":  "3 суток150 г.368 / 12,5 / 27,2 / 19,3",
+        "image_url":  "/images/menu/dish-031.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Блинчики с ветчиной и сыром",
+        "raw_text":  "7 суток180 г.498,7/10/35,5/34,8",
+        "image_url":  "/images/menu/dish-032.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Блинчики со сгущенным молоком",
+        "raw_text":  "7 суток180 г.226 / 5 / 6 / 38",
+        "image_url":  "/images/menu/dish-033.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Шаурма с сырным соусом (курица и картофель)",
+        "raw_text":  "7 суток210 г.147 / 8 / 11 / 32",
+        "image_url":  "/images/menu/dish-034.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Шаньга наливная с сыром",
+        "raw_text":  "3 суток120 г.297 / 11 / 9,9 / 41",
+        "image_url":  "/images/menu/dish-035.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Хот дог студенческий",
+        "raw_text":  "3 суток180 г.264 / 9 / 14 / 23",
+        "image_url":  "/images/menu/dish-036.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Хот дог с сырным соусом",
+        "raw_text":  "3 суток200 г.252,7 / 8,9 / 13,9 / 23",
+        "image_url":  "/images/menu/dish-037.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Хот дог с корейской морковью",
+        "raw_text":  "3 суток210 г.261 / 9 / 14 / 23",
+        "image_url":  "/images/menu/dish-038.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Хот дог с горчичным соусом",
+        "raw_text":  "3 суток220 г.279,2 / 6,5 / 21,8 / 21",
+        "image_url":  "/images/menu/dish-039.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Сосиска запеченая в тесте",
+        "raw_text":  "3 суток120 г.283 / 9,8 / 15,3 / 27,4",
+        "image_url":  "/images/menu/dish-040.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Сэндвич с копченой курицей ( треугольный)",
+        "raw_text":  "7 суток50 г.208,2 / 8,2 / 11,0 / 19,1",
+        "image_url":  "/images/menu/dish-041.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Шаурма с корейской морковью",
+        "raw_text":  "7 суток120 г.197 / 7 / 9 / 21",
+        "image_url":  "/images/menu/dish-042.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Пирожок с капустой печеный",
+        "raw_text":  "3 суток150 г.232,8 / 7,7 / 7,8 / 33,0",
+        "image_url":  "/images/menu/dish-043.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Булочка сахарная",
+        "raw_text":  "3 суток100 г.325 / 5,9 / 11,7 / 49,6",
+        "image_url":  "/images/menu/dish-044.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Блины",
+        "raw_text":  "7 суток250 г.178 / 5,1 / 3,1 / 32,6",
+        "image_url":  "/images/menu/dish-045.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Курник",
+        "raw_text":  "3 суток170 г.197 / 9,0 / 4,0 / 31,0",
+        "image_url":  "/images/menu/dish-046.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Сэндвич с ветчиной и сыром (треугольный)",
+        "raw_text":  "7 суток150 г.308,7 / 8,2 / 19,5 / 25,1",
+        "image_url":  "/images/menu/dish-047.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Пирожок с картошкой печеный",
+        "raw_text":  "3 суток150 г.207,3 / 4,8 / 8,1 / 28,8",
+        "image_url":  "/images/menu/dish-048.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Бургер (с корейской морковью)",
+        "raw_text":  "7 суток150 г.1114/ 8,0 / 18,0 / 18,0",
+        "image_url":  "/images/menu/dish-049.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Пицца “Мини”",
+        "raw_text":  "3 суток110 г.321 / 8,4 / 19,1 / 29,3",
+        "image_url":  "/images/menu/dish-050.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Шаурма с курицей и капустой",
+        "raw_text":  "7 суток250 г.178 / 5,1 / 3,1 / 32,6",
+        "image_url":  "/images/menu/dish-051.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Шаурма “Русская с горчицей”",
+        "raw_text":  "7 суток120 г.230 / 6 / 15 / 16",
+        "image_url":  "/images/menu/dish-052.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Студенческий",
+        "raw_text":  "Состав: Капуста, ветчина, чеснок, майонез5 суток120 г.33,9 / 1,5 / 1,3 / 4,1",
+        "image_url":  "/images/menu/dish-053.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Овощной с капустой и огурцом",
+        "raw_text":  "Состав: Капуста, огурец св., масло раст., уксус5 суток120 г.33,9 / 1,5 / 1,3 / 4,1",
+        "image_url":  "/images/menu/dish-054.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Цезарь с курицей",
+        "raw_text":  "Состав: Грудка копченая куриная, пекинская капуста, яйцо, сыр, сухари, соус Цезарь5 суток120 г.123,8 / 5,2 / 5,4 / 13,6",
+        "image_url":  "/images/menu/dish-055.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Селедка под шубой",
+        "raw_text":  "Состав: Картофель, филе сельди, морковь, свекла, майонез, лук репчатый5 суток120 г.181 / 5,4 / 14,4 / 7,5",
+        "image_url":  "/images/menu/dish-056.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Свекольный с яйцом",
+        "raw_text":  "Состав: Свекла отварная, яйцо куриное отварное, майонез, сыр5 суток120 г.240,8 / 5,2 / 18,4 / 13,6",
+        "image_url":  "/images/menu/dish-057.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Полянка",
+        "raw_text":  "Состав: Картофель, грибы вешенка, лук репчатый, грудка копченая куриная, сыр, масло растит., майонез5 суток120 г.237 / 3,4 / 21,3 / 8",
+        "image_url":  "/images/menu/dish-058.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Оливье",
+        "raw_text":  "Состав: Картофель, огурцы, морковь, колбаса, яйцо куриное, горошек зеленый5 суток120 г.160 / 4,7 / 12,5 / 6,4",
+        "image_url":  "/images/menu/dish-059.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Мимоза",
+        "raw_text":  "Состав: Картофель отварной, рыба консервированная, морковь отварная, яйцо, майонез5 суток120 г.144,2 / 2,2 / 12,2 / 6,4",
+        "image_url":  "/images/menu/dish-060.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Крабовый",
+        "raw_text":  "Состав: Крабовые палочки, рис, яйцо, кукуруза консервированная, яйцо, майонез5 суток120 г.179,8 / 4,6 / 13,4 / 10,2",
+        "image_url":  "/images/menu/dish-061.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Гнездо глухаря",
+        "raw_text":  "Состав: Куриная грудка копченая, морковь маринованая, грибы жареные, лук жареный, яйцо, огурец, майонез5 суток120 г.228,3 / 5,4 / 18,7 / 9,6",
+        "image_url":  "/images/menu/dish-062.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Восточная сказка",
+        "raw_text":  "Состав: Филе куриное, яичный блин, чеснок, майонез5 суток120г.228,3 / 5,4 / 18,7 / 9,6",
+        "image_url":  "/images/menu/dish-063.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Витаминный с болгарским перцем",
+        "raw_text":  "Состав: Капуста свежая, морковь, перец сладкий свежий, огурец свежий, масло растит., сахар, уксус, соль5 суток120 г.98,3 / 2 / 6,7 / 7,5",
+        "image_url":  "/images/menu/dish-064.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Винегрет",
+        "raw_text":  "Состав: Картофель, свекла, капуста свежая, морковь, огурец конс., горошек зеленый, лук репчатый, масло растительное, соль5 суток120 г.98,3 / 2 / 6,7 / 7,5",
+        "image_url":  "/images/menu/dish-065.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Венеция",
+        "raw_text":  "Состав: Колбаса полукопченая, горошек зеленый, капуста свеж., огурец свеж., майонез, чеснок5 суток120 г.125,5 / 1,8 / 11,15 / 4,49",
+        "image_url":  "/images/menu/dish-066.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Салат с капустой, огурцом и кукурузой",
+        "raw_text":  "Состав: Капуста, огурец св., масло раст., уксус5 суток120 г.33,9 / 1,5 / 1,3 / 4,1",
+        "image_url":  "/images/menu/dish-067.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Суп “Сырный”",
+        "raw_text":  "7 суток250 г.168,2 / 6,5 / 9,8 / 13,5",
+        "image_url":  "/images/menu/dish-068.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Суп “Солянка”",
+        "raw_text":  "7 суток280 г.104,4 / 9,2 / 6,4 / 2,5",
+        "image_url":  "/images/menu/dish-069.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Суп “Куриный”",
+        "raw_text":  "7 суток270 г.85,6 / 4,2 / 4 / 8,2",
+        "image_url":  "/images/menu/dish-070.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Суп “Борщ”",
+        "raw_text":  "7 суток80 г.67 / 2,4 / 4,5 / 4,1",
+        "image_url":  "/images/menu/dish-071.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    },
+    {
+        "title":  "Сэндвич с копченой курицей ( треугольный)",
+        "raw_text":  "7 суток 50 г.7 суток 50 г. 208,2 / 8,2 / 11,0 / 19,1208,2 / 8,2 / 11,0 / 19,1",
+        "image_url":  "/images/menu/dish-072.png",
+        "weight":  null,
+        "calories":  null,
+        "composition":  null
+    }
+]

@@ -1,0 +1,1682 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+.fi-panel-admin.fi-body {
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    background:
+        radial-gradient(1200px 600px at -5% -20%, rgba(59, 130, 246, 0.32), transparent 62%),
+        radial-gradient(1000px 520px at 100% 0%, rgba(34, 197, 94, 0.12), transparent 65%),
+        linear-gradient(135deg, #0a1222 0%, #050913 42%, #081325 100%);
+}
+
+.fi-panel-admin .fi-simple-layout {
+    position: relative;
+    min-height: 100dvh;
+}
+
+.fi-panel-admin .fi-simple-layout::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    background-size: 44px 44px;
+    opacity: 0.18;
+}
+
+.fi-panel-admin .fi-simple-main-ctn {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: 24px 16px;
+}
+
+.fi-panel-admin .fi-simple-main {
+    width: 100%;
+    max-width: 32rem;
+}
+
+.fi-panel-admin .fi-simple-page-content {
+    border-radius: 16px;
+    border: 1px solid #2f3443;
+    background: linear-gradient(180deg, rgba(23, 26, 35, 0.96), rgba(17, 20, 29, 0.96));
+    box-shadow: 0 22px 44px rgba(3, 6, 16, 0.56);
+    padding: 47px 47px 36px;
+}
+
+.fi-panel-admin .fi-simple-header {
+    gap: 16px;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.fi-panel-admin .fi-logo {
+    color: #f2f5fb;
+    font-size: 20px;
+    line-height: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.fi-panel-admin .fi-simple-header-heading {
+    margin: 0;
+    color: #f7f9ff;
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 700;
+    letter-spacing: -0.6px;
+}
+
+.fi-panel-admin .fi-fo-field-wrp {
+    row-gap: 8px;
+}
+
+.fi-panel-admin .fi-fo-field-wrp-label {
+    color: #f4f6fb;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.fi-panel-admin .fi-fo-field-label-required-mark {
+    color: #fb7185;
+    top: -0.28rem;
+}
+
+.fi-panel-admin .fi-input-wrp {
+    border-radius: 8px;
+    border-color: rgba(96, 105, 128, 0.44);
+    background: linear-gradient(90deg, rgba(36, 41, 54, 0.96), rgba(42, 46, 58, 0.96));
+    box-shadow:
+        0 0 0 1px rgba(96, 105, 128, 0.44),
+        0 1px 3px rgba(0, 0, 0, 0.1),
+        0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    min-height: 36px;
+}
+
+.fi-panel-admin .fi-input-wrp:focus-within {
+    box-shadow:
+        0 0 0 1px #60a5fa,
+        0 0 0 4px rgba(96, 165, 250, 0.22),
+        0 1px 3px rgba(0, 0, 0, 0.1),
+        0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.fi-panel-admin .fi-input {
+    color: #f7f9ff;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.fi-panel-admin .fi-input::placeholder {
+    color: #8f97ab;
+}
+
+.fi-panel-admin .fi-icon-btn {
+    border-radius: 8px;
+    color: #9ba3b7;
+}
+
+.fi-panel-admin .fi-icon-btn:hover {
+    color: #f5f7fc;
+}
+
+.fi-panel-admin .fi-fo-checkbox {
+    margin-top: 4px;
+}
+
+.fi-panel-admin .fi-checkbox-input {
+    border-radius: 4px;
+    border-color: rgba(96, 105, 128, 0.44);
+    background: linear-gradient(90deg, rgba(36, 41, 54, 0.96), rgba(42, 46, 58, 0.96));
+    box-shadow:
+        0 0 0 1px rgba(96, 105, 128, 0.44),
+        0 1px 3px rgba(0, 0, 0, 0.1),
+        0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.fi-panel-admin .fi-checkbox-input:checked {
+    background: linear-gradient(180deg, #4f8fff, #3579f3);
+}
+
+.fi-panel-admin .fi-fo-checkbox label,
+.fi-panel-admin .fi-fo-checkbox-label {
+    color: #edf1fa;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.fi-panel-admin .fi-ac {
+    margin-top: 4px;
+}
+
+.fi-panel-admin .fi-btn.fi-ac-btn-action {
+    min-height: 36px;
+    border-radius: 8px;
+    border-color: #2f61b7;
+    background: linear-gradient(135deg, #2f61b7, #2563eb);
+    color: #ffffff;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+.fi-panel-admin .fi-btn.fi-ac-btn-action:hover {
+    filter: brightness(1.04);
+}
+
+.fi-panel-admin .fi-simple-main:has(.nh-admin-login-shell) {
+    display: flex;
+    justify-content: center;
+    justify-self: stretch;
+    width: 100%;
+    max-width: none;
+    margin: 0 auto;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.fi-panel-admin.fi-body:has(.nh-admin-login-shell),
+.fi-panel-admin .fi-simple-layout:has(.nh-admin-login-shell) {
+    overflow-x: clip;
+    overflow-y: visible;
+}
+
+.fi-panel-admin .fi-simple-main-ctn:has(.nh-admin-login-shell) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    width: 100%;
+    min-height: 100vh;
+    padding: 48px;
+    overflow: clip;
+}
+
+.nh-admin-login-shell {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 55%) minmax(390px, 45%);
+    width: min(calc(100% - 64px), 1640px);
+    height: calc(100vh - 96px);
+    max-height: 980px;
+    min-height: min(860px, calc(100vh - 96px));
+    overflow: hidden;
+    border: 1px solid rgba(96, 122, 174, 0.45);
+    border-radius: 28px;
+    background: #070d18;
+    box-shadow:
+        0 34px 110px rgba(0, 0, 0, 0.48),
+        0 2px 0 rgba(255, 255, 255, 0.04) inset;
+    isolation: isolate;
+}
+
+.nh-admin-login-hero {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    padding: 72px 80px;
+    background:
+        radial-gradient(860px 690px at 20% 10%, rgba(47, 83, 151, 0.48), transparent 68%),
+        radial-gradient(640px 520px at 36% 96%, rgba(31, 73, 136, 0.32), transparent 66%),
+        linear-gradient(135deg, #15294d 0%, #0e1c35 54%, #0a1426 100%);
+}
+
+.nh-admin-login-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 72px;
+    border-left: 1px solid rgba(96, 122, 174, 0.24);
+    background:
+        radial-gradient(520px 360px at 42% 4%, rgba(25, 45, 83, 0.2), transparent 70%),
+        linear-gradient(180deg, #090f1b 0%, #060b14 100%);
+}
+
+.nh-admin-login-hero,
+.nh-admin-login-card {
+    grid-row: 1 / -1;
+}
+
+.nh-admin-login-shell > div:not([class]) {
+    display: contents;
+}
+
+.nh-admin-login-brand,
+.nh-admin-login-card__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 15px;
+    width: fit-content;
+    color: #f8fbff;
+}
+
+.nh-admin-login-brand {
+    position: relative;
+    z-index: 3;
+}
+
+.nh-admin-login-brand__icon,
+.nh-admin-login-card__brand-icon {
+    width: 64px;
+    height: auto;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.32));
+}
+
+.nh-admin-login-brand__word,
+.nh-admin-login-card__brand-word {
+    color: #f8fbff;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 760;
+    letter-spacing: -0.06em;
+}
+
+.nh-admin-login-brand__word span,
+.nh-admin-login-card__brand-word span {
+    margin-left: 2px;
+    color: #3476ff;
+    font-size: 18px;
+    font-weight: 720;
+    letter-spacing: -0.04em;
+}
+
+.nh-admin-login-hero__copy {
+    position: relative;
+    z-index: 2;
+    max-width: 760px;
+    margin-top: clamp(76px, 8.4vh, 92px);
+}
+
+.nh-admin-login-hero__copy h1 {
+    max-width: 780px;
+    color: #f6f8ff;
+    font-size: clamp(44px, 2.95vw, 60px);
+    line-height: 1.12;
+    font-weight: 760;
+    letter-spacing: -0.04em;
+    text-shadow: 0 22px 48px rgba(0, 0, 0, 0.34);
+}
+
+.nh-admin-login-hero__copy h1 span {
+    display: block;
+}
+
+.nh-admin-login-hero__copy p {
+    max-width: 620px;
+    margin-top: 28px;
+    color: #d6dce8;
+    font-size: 21px;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
+}
+
+.nh-admin-login-meal {
+    position: absolute;
+    left: 120px;
+    bottom: 64px;
+    z-index: 1;
+    width: min(680px, 78%);
+    max-width: none;
+    pointer-events: none;
+}
+
+.nh-admin-login-meal img {
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    object-fit: contain;
+    filter:
+        drop-shadow(0 42px 54px rgba(0, 0, 0, 0.36))
+        drop-shadow(0 12px 22px rgba(0, 0, 0, 0.24));
+}
+
+.nh-admin-login-card__body {
+    width: min(100%, 460px);
+}
+
+.nh-admin-login-card__brand {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto 76px;
+}
+
+.nh-admin-login-card__brand-icon {
+    width: 78px;
+}
+
+.nh-admin-login-card__brand-word {
+    font-size: 37px;
+}
+
+.nh-admin-login-card__brand-word span {
+    font-size: 19px;
+}
+
+.nh-admin-login-card__header {
+    margin-bottom: 40px;
+}
+
+.nh-admin-login-card__header h2 {
+    color: #f7f9ff;
+    font-size: clamp(28px, 1.7vw, 32px);
+    line-height: 1.2;
+    font-weight: 720;
+    letter-spacing: -0.035em;
+}
+
+.nh-admin-login-card__header p {
+    max-width: 390px;
+    margin-top: 18px;
+    color: #c2cad8;
+    font-size: 16px;
+    line-height: 1.58;
+    letter-spacing: -0.015em;
+}
+
+.nh-admin-login-card .fi-sc-form,
+.nh-admin-login-card form {
+    gap: 24px;
+}
+
+.nh-admin-login-card .fi-fo-field-wrp {
+    row-gap: 11px;
+}
+
+.nh-admin-login-card .fi-input-wrp {
+    display: flex;
+    align-items: stretch;
+    min-height: 56px;
+    overflow: hidden;
+    border-radius: 10px;
+    border-color: rgba(80, 99, 133, 0.72);
+    background: rgba(11, 21, 38, 0.66);
+    box-shadow:
+        0 0 0 1px rgba(80, 99, 133, 0.72),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.nh-admin-login-card .fi-input-wrp:focus-within {
+    box-shadow:
+        0 0 0 1px rgba(72, 113, 255, 0.96),
+        0 0 0 4px rgba(72, 113, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nh-admin-login-card .fi-input-wrp-prefix,
+.nh-admin-login-card .fi-input-wrp-suffix {
+    display: flex;
+    flex: 0 0 56px;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    color: #99a5b8;
+}
+
+.nh-admin-login-card .fi-input-wrp-prefix {
+    order: 2;
+    border-right: 0;
+}
+
+.nh-admin-login-card .fi-input-wrp:has(input.fi-revealable) .fi-input-wrp-prefix {
+    display: none;
+}
+
+.nh-admin-login-card .fi-input-wrp-suffix {
+    border-left: 0;
+}
+
+.nh-admin-login-card .fi-input-wrp-actions {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.nh-admin-login-card .fi-input-wrp-content-ctn {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.nh-admin-login-card .fi-input {
+    height: 100%;
+    padding-inline: 19px 4px;
+    color: #f2f6ff;
+    font-size: 17px;
+    letter-spacing: -0.015em;
+}
+
+.nh-admin-login-card .fi-input.fi-revealable {
+    padding-inline-end: 4px;
+}
+
+.nh-admin-login-card .fi-input::placeholder {
+    color: #8e98aa;
+}
+
+.nh-admin-login-card .fi-input-wrp .fi-icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+    color: #929db0;
+    transition:
+        color 160ms ease,
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.nh-admin-login-card .fi-input-wrp .fi-icon-btn:hover {
+    color: #edf3ff;
+    background: rgba(75, 112, 222, 0.16);
+    transform: translateY(-1px);
+}
+
+.nh-admin-login-card .fi-fo-field-label,
+.nh-admin-login-card .fi-fo-field-label-content,
+.nh-admin-login-card .fi-fo-field-wrp-label {
+    color: #f3f6ff;
+    font-size: 17px;
+    line-height: 1.25;
+    font-weight: 620;
+    letter-spacing: -0.02em;
+}
+
+.nh-admin-login-card .fi-fo-field-label-required-mark {
+    display: none;
+}
+
+.nh-admin-login-card .fi-fo-field-wrp-hint,
+.nh-admin-login-card .fi-fo-field-label-ctn a,
+.nh-admin-login-card .fi-fo-field-wrp-hint a,
+.nh-admin-login__support-link {
+    color: #4d7dff;
+    font-size: 16px;
+    font-weight: 620;
+    text-decoration: none;
+}
+
+.nh-admin-login-card .fi-fo-field-wrp-hint a:hover,
+.nh-admin-login-card .fi-fo-field-label-ctn a:hover,
+.nh-admin-login__support-link:hover {
+    color: #82a2ff;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.nh-admin-login-card .fi-fo-checkbox {
+    align-items: center;
+    margin-top: -2px;
+}
+
+.nh-admin-login-card .fi-checkbox-input {
+    position: relative;
+    display: grid;
+    place-content: center;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition:
+        border-color 160ms ease,
+        background 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+}
+
+.nh-admin-login-card .fi-checkbox-input::after {
+    content: '';
+    width: 6px;
+    height: 11px;
+    margin-top: -1px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    opacity: 0;
+    transform: rotate(45deg) scale(0.65);
+    transition:
+        opacity 150ms ease,
+        transform 150ms ease;
+}
+
+.nh-admin-login-card .fi-checkbox-input:checked {
+    border-color: #4774ff;
+    background: linear-gradient(180deg, #5c87ff, #315ded);
+    box-shadow:
+        0 0 0 1px rgba(71, 116, 255, 0.58),
+        0 0 0 4px rgba(71, 116, 255, 0.13);
+}
+
+.nh-admin-login-card .fi-checkbox-input:checked::after {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+    animation: nh-admin-checkbox-pop 220ms cubic-bezier(0.2, 0.9, 0.2, 1.3);
+}
+
+.nh-admin-login-card .fi-checkbox-input:hover {
+    transform: translateY(-1px);
+    border-color: rgba(122, 146, 203, 0.86);
+}
+
+.nh-admin-login-card .fi-checkbox-input:active {
+    transform: scale(0.94);
+}
+
+.nh-admin-login-card .fi-fo-checkbox label,
+.nh-admin-login-card .fi-fo-checkbox .fi-fo-field-label,
+.nh-admin-login-card .fi-fo-checkbox .fi-fo-field-label-content,
+.nh-admin-login-card .fi-fo-checkbox-label {
+    color: #f3f6ff;
+    font-size: 16px;
+    font-weight: 570;
+    letter-spacing: -0.01em;
+}
+
+.nh-admin-login-card .fi-ac {
+    margin-top: 6px;
+}
+
+.nh-admin-login-card .fi-btn.fi-ac-btn-action {
+    min-height: 56px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #336bff, #2355f0);
+    color: #ffffff;
+    font-size: 17px;
+    font-weight: 660;
+    box-shadow:
+        0 18px 40px rgba(35, 85, 240, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    transition:
+        background 180ms ease,
+        box-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+.nh-admin-login-card .fi-btn.fi-ac-btn-action:hover {
+    background: linear-gradient(180deg, #4f80ff, #2b61ff);
+    box-shadow:
+        0 22px 46px rgba(35, 85, 240, 0.36),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+.nh-admin-login-card__footer {
+    position: absolute;
+    right: clamp(54px, 6vw, 104px);
+    bottom: clamp(42px, 6.2vh, 68px);
+    left: clamp(54px, 6vw, 104px);
+    color: #687285;
+    font-size: 15px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .nh-admin-login-shell {
+        animation: nh-admin-shell-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .nh-admin-login-brand,
+    .nh-admin-login-hero__copy,
+    .nh-admin-login-meal,
+    .nh-admin-login-card__body,
+    .nh-admin-login-card__footer {
+        animation: nh-admin-rise-in 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    .nh-admin-login-hero__copy {
+        animation-delay: 80ms;
+    }
+
+    .nh-admin-login-meal {
+        animation-delay: 150ms;
+    }
+
+    .nh-admin-login-card__body {
+        animation-delay: 120ms;
+    }
+
+    .nh-admin-login-card__footer {
+        animation-delay: 220ms;
+    }
+}
+
+@keyframes nh-admin-shell-in {
+    from {
+        opacity: 0;
+        transform: scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes nh-admin-rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes nh-admin-checkbox-pop {
+    0% {
+        opacity: 0;
+        transform: rotate(45deg) scale(0.45);
+    }
+
+    68% {
+        opacity: 1;
+        transform: rotate(45deg) scale(1.18);
+    }
+
+    100% {
+        opacity: 1;
+        transform: rotate(45deg) scale(1);
+    }
+}
+
+@media (max-width: 1400px) {
+    .fi-panel-admin .fi-simple-main:has(.nh-admin-login-shell) {
+        max-width: calc(100vw - 40px);
+    }
+
+    .fi-panel-admin .fi-simple-main-ctn:has(.nh-admin-login-shell) {
+        padding: 20px;
+    }
+
+    .nh-admin-login-shell {
+        height: min(820px, calc(100dvh - 40px));
+        min-height: min(820px, calc(100dvh - 40px));
+    }
+
+    .nh-admin-login-hero {
+        padding: 42px clamp(42px, 4.4vw, 62px);
+    }
+
+    .nh-admin-login-brand__icon {
+        width: 50px;
+    }
+
+    .nh-admin-login-brand__word {
+        font-size: 27px;
+    }
+
+    .nh-admin-login-hero__copy {
+        margin-top: clamp(50px, 7vh, 82px);
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: clamp(38px, 3.55vw, 48px);
+    }
+
+    .nh-admin-login-hero__copy p {
+        max-width: 510px;
+        margin-top: 20px;
+        font-size: 17px;
+        line-height: 1.5;
+    }
+
+    .nh-admin-login-meal {
+        left: clamp(90px, 8.4vw, 118px);
+        bottom: clamp(34px, 4.7vh, 44px);
+        width: min(560px, calc(100% - 116px));
+    }
+
+    .nh-admin-login-card {
+        padding: 42px clamp(42px, 5vw, 72px);
+    }
+
+    .nh-admin-login-card__body {
+        width: min(100%, 398px);
+    }
+
+    .nh-admin-login-card__brand {
+        margin-bottom: 38px;
+    }
+
+    .nh-admin-login-card__brand-icon {
+        width: 62px;
+    }
+
+    .nh-admin-login-card__brand-word {
+        font-size: 30px;
+    }
+
+    .nh-admin-login-card__header {
+        margin-bottom: 24px;
+    }
+
+    .nh-admin-login-card__header p {
+        margin-top: 14px;
+        font-size: 16px;
+    }
+
+    .nh-admin-login-card .fi-sc-form,
+    .nh-admin-login-card form {
+        gap: 18px;
+    }
+
+    .nh-admin-login-card .fi-fo-field-wrp {
+        row-gap: 8px;
+    }
+
+    .nh-admin-login-card .fi-input-wrp,
+    .nh-admin-login-card .fi-btn.fi-ac-btn-action {
+        min-height: 54px;
+    }
+
+    .nh-admin-login-card .fi-ac {
+        margin-top: 2px;
+    }
+
+    .nh-admin-login-card__footer {
+        bottom: 28px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 980px) {
+    .fi-panel-admin .fi-simple-main:has(.nh-admin-login-shell) {
+        max-width: 100%;
+    }
+
+    .fi-panel-admin .fi-simple-main-ctn:has(.nh-admin-login-shell) {
+        padding: 0;
+        overflow: visible;
+    }
+
+    .nh-admin-login-shell {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+        border-width: 0;
+        border-radius: 0;
+    }
+
+    .nh-admin-login-hero,
+    .nh-admin-login-card {
+        grid-row: auto;
+    }
+
+    .nh-admin-login-hero {
+        min-height: 540px;
+        padding: 34px 24px 0;
+    }
+
+    .nh-admin-login-card {
+        min-height: 560px;
+        padding: 54px 24px 96px;
+        border-top: 1px solid rgba(95, 115, 149, 0.28);
+        border-left: 0;
+    }
+
+    .nh-admin-login-brand__icon {
+        width: 48px;
+    }
+
+    .nh-admin-login-brand__word {
+        font-size: 24px;
+    }
+
+    .nh-admin-login-brand__word span {
+        font-size: 13px;
+    }
+
+    .nh-admin-login-hero__copy {
+        max-width: 620px;
+        margin-top: 54px;
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: clamp(34px, 8.8vw, 48px);
+    }
+
+    .nh-admin-login-hero__copy p {
+        max-width: 520px;
+        margin-top: 22px;
+        font-size: 17px;
+    }
+
+    .nh-admin-login-meal {
+        left: 24px;
+        bottom: 22px;
+        width: min(620px, calc(100vw - 12px));
+        max-width: none;
+    }
+
+    .nh-admin-login-card__body {
+        width: min(100%, 430px);
+    }
+
+    .nh-admin-login-card__brand {
+        margin-bottom: 42px;
+    }
+
+    .nh-admin-login-card__header {
+        margin-bottom: 28px;
+        text-align: left;
+    }
+
+    .nh-admin-login-card__header p {
+        margin-inline: 0;
+    }
+
+    .nh-admin-login-card__footer {
+        right: 24px;
+        bottom: 30px;
+        left: 24px;
+    }
+}
+
+@media (max-width: 520px) {
+    .nh-admin-login-hero {
+        min-height: 500px;
+    }
+
+    .nh-admin-login-hero__copy {
+        margin-top: 48px;
+    }
+
+    .nh-admin-login-meal {
+        left: -18px;
+        bottom: 18px;
+        width: 560px;
+    }
+
+    .nh-admin-login-card {
+        padding-top: 44px;
+    }
+
+    .nh-admin-login-card__brand-icon {
+        width: 58px;
+    }
+
+    .nh-admin-login-card__brand-word {
+        font-size: 28px;
+    }
+
+    .nh-admin-login-card__header h2 {
+        font-size: 24px;
+    }
+
+    .nh-admin-login-card__header p,
+    .nh-admin-login-card .fi-input,
+    .nh-admin-login-card .fi-fo-field-label,
+    .nh-admin-login-card .fi-fo-field-label-content,
+    .nh-admin-login-card .fi-fo-field-wrp-label {
+        font-size: 16px;
+    }
+
+    .nh-admin-login-card .fi-input-wrp,
+    .nh-admin-login-card .fi-btn.fi-ac-btn-action {
+        min-height: 56px;
+    }
+}
+
+/* Admin login composition polish */
+.fi-panel-admin.fi-body {
+    min-height: 100vh;
+    background:
+        radial-gradient(880px 520px at -8% 8%, rgba(37, 99, 235, 0.34), transparent 64%),
+        radial-gradient(760px 520px at 104% 2%, rgba(20, 184, 166, 0.16), transparent 68%),
+        radial-gradient(760px 560px at 78% 112%, rgba(29, 78, 216, 0.2), transparent 72%),
+        linear-gradient(135deg, #020714 0%, #061020 48%, #020610 100%);
+}
+
+.fi-panel-admin .fi-simple-layout::before {
+    background:
+        radial-gradient(680px 440px at 15% 94%, rgba(59, 130, 246, 0.12), transparent 72%),
+        radial-gradient(620px 420px at 92% 12%, rgba(34, 197, 94, 0.08), transparent 74%);
+    opacity: 1;
+}
+
+.fi-panel-admin .fi-simple-main-ctn:has(.nh-admin-login-shell) {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: clamp(24px, 4vh, 48px);
+    overflow-x: clip;
+    overflow-y: auto;
+}
+
+.nh-admin-login-shell {
+    grid-template-columns: minmax(0, 55%) minmax(0, 45%);
+    width: min(1280px, 88vw);
+    height: min(740px, calc(100dvh - 64px));
+    min-height: min(720px, calc(100dvh - 64px));
+    max-height: 740px;
+    border-color: rgba(117, 145, 198, 0.28);
+    border-radius: 24px;
+    background: rgba(4, 10, 20, 0.96);
+    box-shadow:
+        0 34px 96px rgba(0, 0, 0, 0.58),
+        0 12px 36px rgba(2, 8, 23, 0.48),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.nh-admin-login-hero {
+    display: flex;
+    flex-direction: column;
+    padding: clamp(44px, 5vw, 64px) clamp(46px, 5.6vw, 72px);
+    background:
+        radial-gradient(620px 520px at 22% 14%, rgba(59, 130, 246, 0.38), transparent 66%),
+        radial-gradient(520px 440px at 20% 96%, rgba(20, 184, 166, 0.12), transparent 68%),
+        linear-gradient(135deg, #152a4f 0%, #0c1a32 56%, #071121 100%);
+}
+
+.nh-admin-login-hero::before,
+.nh-admin-login-hero::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    border-radius: 999px;
+}
+
+.nh-admin-login-hero::before {
+    right: -180px;
+    bottom: -210px;
+    width: 460px;
+    height: 460px;
+    border: 1px solid rgba(148, 190, 255, 0.16);
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.18), transparent 62%);
+}
+
+.nh-admin-login-hero::after {
+    left: 42%;
+    bottom: 12%;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.12), transparent 70%);
+    filter: blur(2px);
+}
+
+.nh-admin-login-card {
+    gap: 26px;
+    justify-content: center;
+    padding: clamp(48px, 5.6vw, 72px) clamp(44px, 5.2vw, 68px);
+    border-left-color: rgba(117, 145, 198, 0.22);
+    background:
+        radial-gradient(440px 320px at 50% 0%, rgba(37, 99, 235, 0.14), transparent 68%),
+        linear-gradient(180deg, rgba(7, 14, 27, 0.98), rgba(4, 9, 18, 0.98));
+}
+
+.nh-admin-login-card__body {
+    width: min(100%, 382px);
+}
+
+.nh-admin-login-brand__icon {
+    width: 54px;
+}
+
+.nh-admin-login-card__brand-icon {
+    width: 60px;
+}
+
+.nh-admin-login-brand__word {
+    font-size: 29px;
+}
+
+.nh-admin-login-card__brand-word {
+    font-size: 30px;
+}
+
+.nh-admin-login-brand__word span,
+.nh-admin-login-card__brand-word span {
+    color: #4f83ff;
+}
+
+.nh-admin-login-card__brand {
+    margin: 0 auto 44px;
+}
+
+.nh-admin-login-hero__copy {
+    max-width: 520px;
+    margin-top: clamp(56px, 8vh, 78px);
+}
+
+.nh-admin-login-hero__copy h1 {
+    max-width: 540px;
+    font-size: clamp(44px, 3.5vw, 50px);
+    line-height: 1.05;
+    letter-spacing: -0.045em;
+}
+
+.nh-admin-login-hero__copy p {
+    max-width: 450px;
+    margin-top: 20px;
+    color: #c4cfdd;
+    font-size: 17px;
+    line-height: 1.55;
+}
+
+.nh-admin-login-meal {
+    left: clamp(38px, 5.4vw, 70px);
+    bottom: clamp(24px, 4.8vh, 42px);
+    width: min(660px, 91%);
+}
+
+.nh-admin-login-meal img {
+    filter:
+        drop-shadow(0 38px 52px rgba(0, 0, 0, 0.42))
+        drop-shadow(0 14px 24px rgba(0, 0, 0, 0.26));
+}
+
+.nh-admin-login-card__header {
+    margin-bottom: 28px;
+}
+
+.nh-admin-login-card__header h2 {
+    font-size: clamp(27px, 2vw, 31px);
+    line-height: 1.14;
+}
+
+.nh-admin-login-card__header p {
+    max-width: 360px;
+    margin-top: 12px;
+    color: #aeb9ca;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.nh-admin-login-card .fi-sc-form,
+.nh-admin-login-card form {
+    gap: 20px;
+}
+
+.nh-admin-login-card .fi-sc-form > .fi-sc,
+.nh-admin-login-card form > .fi-sc {
+    gap: 16px;
+}
+
+.nh-admin-login-card .fi-fo-field-wrp,
+.nh-admin-login-card .fi-fo-field {
+    row-gap: 8px;
+}
+
+.nh-admin-login-card .fi-fo-field-label,
+.nh-admin-login-card .fi-fo-field-label-content,
+.nh-admin-login-card .fi-fo-field-wrp-label {
+    font-size: 14px;
+    line-height: 1.25;
+    font-weight: 650;
+}
+
+.nh-admin-login-card .fi-input-wrp {
+    min-height: 48px;
+    border-radius: 12px;
+    border-color: rgba(99, 116, 152, 0.54);
+    background: rgba(9, 18, 33, 0.78);
+    box-shadow:
+        0 0 0 1px rgba(99, 116, 152, 0.54),
+        inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.nh-admin-login-card .fi-input-wrp:focus-within {
+    box-shadow:
+        0 0 0 1px rgba(80, 132, 255, 0.98),
+        0 0 0 4px rgba(80, 132, 255, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.nh-admin-login-card .fi-input-wrp-prefix,
+.nh-admin-login-card .fi-input-wrp-suffix {
+    flex: 0 0 48px;
+    width: 48px;
+    color: #9aa8bd;
+}
+
+.nh-admin-login-card .fi-input-wrp-prefix {
+    order: 0;
+    border-right: 1px solid rgba(99, 116, 152, 0.24);
+}
+
+.nh-admin-login-card .fi-input-wrp:has(input.fi-revealable) .fi-input-wrp-prefix {
+    display: flex;
+}
+
+.nh-admin-login-card .fi-input-wrp-suffix {
+    border-left: 1px solid rgba(99, 116, 152, 0.18);
+}
+
+.nh-admin-login-card .fi-input-wrp-content-ctn {
+    flex: 1 1 auto;
+}
+
+.nh-admin-login-card .fi-input {
+    height: 48px;
+    padding-inline: 14px;
+    color: #f5f8ff;
+    font-size: 15px;
+}
+
+.nh-admin-login-card .fi-input.fi-revealable {
+    padding-inline-end: 14px;
+}
+
+.nh-admin-login-card .fi-input::placeholder {
+    color: #7f8ba0;
+}
+
+.nh-admin-login-card .fi-input-wrp .fi-icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+}
+
+.nh-admin-login-card .fi-input-wrp .fi-icon-btn:focus-visible,
+.nh-admin-login__support-link:focus-visible,
+.nh-admin-login-card .fi-checkbox-input:focus-visible {
+    outline: 2px solid rgba(125, 166, 255, 0.96);
+    outline-offset: 3px;
+}
+
+.nh-admin-login-options {
+    margin-top: -4px;
+}
+
+.nh-admin-login-options > .fi-sc {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 16px;
+}
+
+.nh-admin-login-options > .fi-sc > .fi-grid-col {
+    width: auto;
+    min-width: 0;
+}
+
+.nh-admin-login-options > .fi-sc > .fi-grid-col:last-child {
+    margin-left: auto;
+}
+
+.nh-admin-login-remember .fi-fo-field-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nh-admin-login-card .fi-fo-checkbox,
+.nh-admin-login-remember {
+    margin-top: 0;
+}
+
+.nh-admin-login-card .fi-checkbox-input {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.nh-admin-login-card .fi-fo-checkbox label,
+.nh-admin-login-card .fi-fo-checkbox .fi-fo-field-label,
+.nh-admin-login-card .fi-fo-checkbox .fi-fo-field-label-content,
+.nh-admin-login-card .fi-fo-checkbox-label,
+.nh-admin-login-remember .fi-fo-field-label-content {
+    color: #d9e1ee;
+    font-size: 14px;
+    font-weight: 560;
+}
+
+.nh-admin-login-forgot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 28px;
+    white-space: nowrap;
+}
+
+.nh-admin-login-card .fi-fo-field-wrp-hint,
+.nh-admin-login-card .fi-fo-field-label-ctn a,
+.nh-admin-login-card .fi-fo-field-wrp-hint a,
+.nh-admin-login__support-link {
+    color: #77a2ff;
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.nh-admin-login-card .fi-ac {
+    margin-top: 4px;
+}
+
+.nh-admin-login-card .fi-btn.fi-ac-btn-action {
+    min-height: 52px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #4c7dff 0%, #2458ee 100%);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    box-shadow:
+        0 18px 34px rgba(36, 88, 238, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.nh-admin-login-card .fi-btn.fi-ac-btn-action:hover {
+    background: linear-gradient(180deg, #618cff 0%, #2f64ff 100%);
+    box-shadow:
+        0 22px 42px rgba(36, 88, 238, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.nh-admin-login-card .fi-btn.fi-ac-btn-action:focus-visible {
+    outline: 2px solid rgba(154, 184, 255, 0.96);
+    outline-offset: 3px;
+}
+
+.nh-admin-login-card .fi-btn.fi-ac-btn-action:active {
+    transform: translateY(0);
+    box-shadow:
+        0 12px 24px rgba(36, 88, 238, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.nh-admin-login-card__footer {
+    position: static;
+    width: min(100%, 382px);
+    margin: 0 auto;
+    color: #69758a;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+@media (max-width: 1180px) {
+    .nh-admin-login-shell {
+        width: min(1180px, 92vw);
+        height: min(700px, calc(100dvh - 48px));
+        min-height: min(680px, calc(100dvh - 48px));
+    }
+
+    .nh-admin-login-hero {
+        padding: 40px clamp(34px, 4.2vw, 52px);
+    }
+
+    .nh-admin-login-hero__copy {
+        margin-top: clamp(44px, 7vh, 64px);
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: clamp(38px, 4vw, 44px);
+    }
+
+    .nh-admin-login-meal {
+        left: clamp(24px, 4.2vw, 48px);
+        bottom: 28px;
+        width: min(580px, 94%);
+    }
+
+    .nh-admin-login-card {
+        padding: 42px clamp(32px, 4.5vw, 52px);
+    }
+
+    .nh-admin-login-card__brand {
+        margin-bottom: 34px;
+    }
+}
+
+@media (max-width: 900px) {
+    .fi-panel-admin .fi-simple-main-ctn:has(.nh-admin-login-shell) {
+        padding: 24px;
+        overflow-y: auto;
+    }
+
+    .nh-admin-login-shell {
+        grid-template-columns: 1fr;
+        width: min(720px, 100%);
+        height: auto;
+        min-height: auto;
+        max-height: none;
+        overflow: hidden;
+        border-width: 1px;
+        border-radius: 24px;
+    }
+
+    .nh-admin-login-hero {
+        min-height: 390px;
+        padding: 32px 30px 0;
+    }
+
+    .nh-admin-login-card {
+        min-height: auto;
+        padding: 46px 30px 34px;
+        border-top: 1px solid rgba(117, 145, 198, 0.2);
+        border-left: 0;
+    }
+
+    .nh-admin-login-hero__copy {
+        max-width: 540px;
+        margin-top: 44px;
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: clamp(34px, 7vw, 44px);
+    }
+
+    .nh-admin-login-hero__copy p {
+        max-width: 470px;
+    }
+
+    .nh-admin-login-meal {
+        right: -24px;
+        bottom: -10px;
+        left: auto;
+        width: min(520px, 72vw);
+    }
+
+    .nh-admin-login-card__body,
+    .nh-admin-login-card__footer {
+        width: min(100%, 390px);
+    }
+
+    .nh-admin-login-card__header {
+        text-align: left;
+    }
+}
+
+@media (max-width: 520px) {
+    .fi-panel-admin .fi-simple-main-ctn:has(.nh-admin-login-shell) {
+        padding: 12px;
+    }
+
+    .nh-admin-login-shell {
+        width: 100%;
+        border-radius: 20px;
+    }
+
+    .nh-admin-login-hero {
+        min-height: auto;
+        padding: 26px 20px 30px;
+    }
+
+    .nh-admin-login-brand__icon {
+        width: 44px;
+    }
+
+    .nh-admin-login-brand__word {
+        font-size: 23px;
+    }
+
+    .nh-admin-login-hero__copy {
+        margin-top: 38px;
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: 30px;
+        line-height: 1.08;
+    }
+
+    .nh-admin-login-hero__copy p {
+        margin-top: 14px;
+        font-size: 15px;
+        line-height: 1.48;
+    }
+
+    .nh-admin-login-meal {
+        display: none;
+    }
+
+    .nh-admin-login-card {
+        padding: 34px 20px 30px;
+    }
+
+    .nh-admin-login-card__brand {
+        margin-bottom: 28px;
+    }
+
+    .nh-admin-login-card__brand-icon {
+        width: 52px;
+    }
+
+    .nh-admin-login-card__brand-word {
+        font-size: 26px;
+    }
+
+    .nh-admin-login-card__header {
+        margin-bottom: 24px;
+    }
+
+    .nh-admin-login-card__header h2 {
+        font-size: 24px;
+    }
+
+    .nh-admin-login-options > .fi-sc {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .nh-admin-login-options > .fi-sc > .fi-grid-col:last-child {
+        margin-left: auto;
+    }
+
+    .nh-admin-login-card .fi-input-wrp,
+    .nh-admin-login-card .fi-btn.fi-ac-btn-action {
+        min-height: 50px;
+    }
+
+    .nh-admin-login-card .fi-input {
+        height: 50px;
+    }
+}
+
+/* Admin login cleanup: left promo is title + hero image, right side is form only. */
+.nh-admin-login-hero {
+    justify-content: flex-start;
+    padding: clamp(58px, 6vw, 76px) clamp(46px, 5.6vw, 72px);
+}
+
+.nh-admin-login-hero .nh-admin-login-brand,
+.nh-admin-login-hero__copy p,
+.nh-admin-login-card__footer {
+    display: none;
+}
+
+.nh-admin-login-hero__copy {
+    max-width: 520px;
+    margin-top: 0;
+    padding: 12px 0 0;
+}
+
+.nh-admin-login-hero__copy h1 {
+    max-width: 540px;
+    font-size: clamp(44px, 3.55vw, 52px);
+    line-height: 1.06;
+    letter-spacing: -0.047em;
+}
+
+.nh-admin-login-meal {
+    right: clamp(-22px, -1.2vw, -8px);
+    bottom: clamp(22px, 4.2vh, 36px);
+    left: auto;
+    width: min(620px, 86%);
+}
+
+.nh-admin-login-card {
+    gap: 0;
+    padding-block: clamp(52px, 6vw, 76px);
+}
+
+.nh-admin-login-card__body {
+    width: min(100%, 382px);
+}
+
+.nh-admin-login-card__brand {
+    margin-bottom: 38px;
+}
+
+.nh-admin-login-card__header {
+    margin-bottom: 26px;
+}
+
+.nh-admin-login-card .fi-sc-form,
+.nh-admin-login-card form {
+    gap: 18px;
+}
+
+@media (max-width: 1180px) {
+    .nh-admin-login-hero {
+        padding-top: clamp(44px, 5vw, 58px);
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: clamp(39px, 4vw, 46px);
+    }
+
+    .nh-admin-login-meal {
+        right: -18px;
+        bottom: 24px;
+        width: min(540px, 88%);
+    }
+
+    .nh-admin-login-card__brand {
+        margin-bottom: 32px;
+    }
+}
+
+@media (max-width: 900px) {
+    .nh-admin-login-hero {
+        min-height: 340px;
+        padding: 34px 30px 0;
+    }
+
+    .nh-admin-login-hero__copy {
+        max-width: 430px;
+        padding-top: 0;
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: clamp(34px, 6.8vw, 43px);
+        line-height: 1.08;
+    }
+
+    .nh-admin-login-meal {
+        right: -44px;
+        bottom: -18px;
+        width: min(470px, 66vw);
+    }
+
+    .nh-admin-login-card {
+        padding: 42px 30px 38px;
+    }
+
+    .nh-admin-login-card__body {
+        width: min(100%, 390px);
+    }
+}
+
+@media (max-width: 520px) {
+    .nh-admin-login-hero {
+        min-height: auto;
+        padding: 28px 20px 30px;
+    }
+
+    .nh-admin-login-hero__copy {
+        max-width: 330px;
+    }
+
+    .nh-admin-login-hero__copy h1 {
+        font-size: 30px;
+        line-height: 1.08;
+    }
+
+    .nh-admin-login-card {
+        padding: 34px 20px;
+    }
+
+    .nh-admin-login-card__brand {
+        margin-bottom: 26px;
+    }
+}
+.fi-panel-admin .fi-layout {
+    color: #e6edf9;
+}
+
+.fi-panel-admin .fi-topbar {
+    border-bottom: 1px solid rgba(47, 61, 89, 0.8);
+    background: rgba(10, 18, 33, 0.72);
+    backdrop-filter: blur(10px);
+}
+
+.fi-panel-admin .fi-sidebar {
+    border-right: 1px solid rgba(47, 61, 89, 0.8);
+    background: linear-gradient(180deg, rgba(11, 20, 37, 0.95), rgba(8, 15, 28, 0.95));
+}
+
+.fi-panel-admin .fi-main-ctn {
+    background: transparent;
+}
+
+.fi-panel-admin .fi-main,
+.fi-panel-admin .fi-page {
+    color: #e6edf9;
+}
+
+.fi-panel-admin .fi-page-header-heading {
+    color: #f7faff;
+}
+
+.fi-panel-admin .fi-section,
+.fi-panel-admin .fi-ta-ctn,
+.fi-panel-admin .fi-wi-stats-overview-stat,
+.fi-panel-admin .fi-dropdown-panel {
+    border-color: rgba(52, 70, 104, 0.88);
+    background: rgba(16, 27, 47, 0.84);
+    box-shadow: 0 16px 34px rgba(2, 8, 23, 0.45);
+}
+
+.fi-panel-admin .fi-ta-header-toolbar,
+.fi-panel-admin .fi-ta-content {
+    background: transparent;
+}
+
+.fi-panel-admin .fi-wi-stats-overview-stat-label,
+.fi-panel-admin .fi-wi-stats-overview-stat-description {
+    color: #b8c7dd;
+}
+
+.fi-panel-admin .fi-badge {
+    border-color: rgba(59, 130, 246, 0.35);
+    background: rgba(59, 130, 246, 0.16);
+}
+
+.fi-panel-admin .fi-sidebar-item-btn,
+.fi-panel-admin .fi-sidebar-group-button {
+    border-radius: 10px;
+}
+
+.fi-panel-admin .fi-sidebar-item-btn:hover,
+.fi-panel-admin .fi-sidebar-group-button:hover {
+    background: rgba(32, 52, 83, 0.65);
+}
+
+.fi-panel-admin .fi-sidebar-item-active .fi-sidebar-item-btn {
+    background: rgba(47, 97, 183, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+@media (max-width: 640px) {
+    .fi-panel-admin .fi-simple-page-content {
+        padding: 32px 20px 22px;
+    }
+}
+

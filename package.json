@@ -1,0 +1,44 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "^4.0.0",
+        "@vue/test-utils": "^2.4.10",
+        "concurrently": "^9.0.1",
+        "jsdom": "^29.1.1",
+        "laravel-vite-plugin": "^3.1",
+        "tailwindcss": "^4.0.0",
+        "vite": "^8.0.0",
+        "vitest": "^4.1.7"
+    },
+    "dependencies": {
+        "@vitejs/plugin-vue": "^6.0.7",
+        "@vueuse/core": "^14.3.0",
+        "axios": "^1.16.1",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "lucide-vue-next": "^1.0.0",
+        "pinia": "^3.0.4",
+        "reka-ui": "^2.9.7",
+        "shadcn-vue": "^2.7.3",
+        "tailwind-merge": "^3.6.0",
+        "tw-animate-css": "^1.4.0",
+        "vue": "^3.5.34"
+    },
+    "name": "lunch-mvp",
+    "version": "1.0.0",
+    "description": "MVP сервиса корпоративных обедов + личный трекер холодильника: - пользователь заказывает еду на неделю; - админ доводит цикл до `delivered`; - после доставки позиции попадают в личный холодильник; - пользователь отмечает: `Съел 1`, `Съел всё`, `Выбросил`.",
+    "main": "vite.config.js",
+    "directories": {
+        "test": "tests"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}

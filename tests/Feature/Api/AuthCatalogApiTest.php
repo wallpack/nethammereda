@@ -1,0 +1,110 @@
+<?php
+
+namespace Tests\Feature\Api;
+
+use App\Enums\OrderCycleStatus;
+use App\Models\MenuCategory;
+use App\Models\MenuItem;
+use App\Models\OrderCycle;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+class AuthCatalogApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    #[Test]
+    public function current_user_response_includes_id_name_and_email(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Катя Nethammer',
+            'email' => 'katya@example.com',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/me')
+            ->assertOk()
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.name', 'Катя Nethammer')
+            ->assertJsonPath('data.email', 'katya@example.com');
+    }
+
+    #[Test]
+    public function guest_cannot_access_protected_catalog_endpoints(): void
+    {
+        $this->getJson('/api/me')->assertUnauthorized();
+
+        $this->postJson('/api/my-order/items', [
+            'menu_item_id' => 1,
+            'quantity' => 1,
+        ])->assertUnauthorized();
+
+        $this->postJson('/api/my-order/submit')->assertUnauthorized();
+
+        $this->getJson('/api/my-fridge')->assertUnauthorized();
+    }
+
+    #[Test]
+    public function authenticated_user_can_add_menu_item_to_current_order(): void
+    {
+        $user = User::factory()->create();
+        $menuItem = $this->createOrderableMenuItem();
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/my-order/items', [
+            'menu_item_id' => $menuItem->id,
+            'quantity' => 2,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.user_id', $user->id)
+            ->assertJsonPath('data.items.0.menu_item_id', $menuItem->id)
+            ->assertJsonPath('data.items.0.quantity', 2);
+    }
+
+    #[Test]
+    public function logout_revokes_current_bearer_token(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('web-login')->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/auth/logout')
+            ->assertOk()
+            ->assertJsonPath('data.ok', true);
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+        $this->app['auth']->forgetGuards();
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/me')
+            ->assertUnauthorized();
+    }
+
+    private function createOrderableMenuItem(): MenuItem
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Тестовая категория',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+
+        OrderCycle::query()->create([
+            'title' => 'Тестовая неделя',
+            'starts_at' => now()->startOfWeek(),
+            'closes_at' => now()->addDay(),
+            'status' => OrderCycleStatus::Open,
+        ]);
+
+        return MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Тестовое блюдо',
+            'price' => 250,
+            'is_active' => true,
+        ]);
+    }
+}
