@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderItemStatus;
+use App\Enums\OrderStatus;
+use App\Http\Controllers\Api\Concerns\FormatsApiPayloads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMyOrderItemRequest;
 use App\Http\Requests\UpdateMyOrderItemRequest;
@@ -14,6 +16,8 @@ use Illuminate\Http\JsonResponse;
 
 class MyOrderItemController extends Controller
 {
+    use FormatsApiPayloads;
+
     public function store(
         StoreMyOrderItemRequest $request,
         CurrentOrderCycleResolver $resolver,
@@ -37,6 +41,10 @@ class MyOrderItemController extends Controller
         $order = $orderService->getOrCreateOrder($user, $cycle);
         $this->authorize('update', $order);
 
+        if ($order->status !== OrderStatus::Draft) {
+            return $this->submittedOrderCannotBeChangedResponse();
+        }
+
         $quantity = $request->integer('quantity', 1);
 
         $item = OrderItem::query()->firstOrNew([
@@ -57,7 +65,7 @@ class MyOrderItemController extends Controller
         $orderService->recalculate($order);
 
         return response()->json([
-            'data' => $order->fresh(['items.menuItem']),
+            'data' => $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
         ]);
     }
 
@@ -75,6 +83,10 @@ class MyOrderItemController extends Controller
             ], 422);
         }
 
+        if ($orderItem->order->status !== OrderStatus::Draft) {
+            return $this->submittedOrderCannotBeChangedResponse();
+        }
+
         $orderItem->quantity = $request->integer('quantity');
         $orderItem->save();
 
@@ -83,7 +95,7 @@ class MyOrderItemController extends Controller
         $orderService->recalculate($order);
 
         return response()->json([
-            'data' => $order->fresh(['items.menuItem']),
+            'data' => $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
         ]);
     }
 
@@ -98,6 +110,10 @@ class MyOrderItemController extends Controller
             ], 422);
         }
 
+        if ($orderItem->order->status !== OrderStatus::Draft) {
+            return $this->submittedOrderCannotBeChangedResponse();
+        }
+
         $order = $orderItem->order;
         $orderItem->delete();
 
@@ -107,7 +123,7 @@ class MyOrderItemController extends Controller
         }
 
         return response()->json([
-            'data' => $order?->fresh(['items.menuItem']),
+            'data' => $order === null ? null : $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
         ]);
     }
 
@@ -149,5 +165,12 @@ class MyOrderItemController extends Controller
         return response()->json([
             'data' => $orderItem->fresh(),
         ]);
+    }
+
+    private function submittedOrderCannotBeChangedResponse(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Submitted orders cannot be changed.',
+        ], 422);
     }
 }

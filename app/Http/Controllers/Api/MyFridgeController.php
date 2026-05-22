@@ -28,6 +28,14 @@ class MyFridgeController extends Controller
 
         return response()->json([
             'data' => $items,
+            'meta' => [
+                'active_count' => $items->count(),
+                'total_portions' => $items->sum('quantity_remaining'),
+                'expiring_soon_count' => $items
+                    ->filter(fn (FridgeItem $item): bool => $item->expires_at !== null
+                        && $item->expires_at->betweenIncluded(now(), now()->addDay()))
+                    ->count(),
+            ],
         ]);
     }
 
@@ -87,4 +95,3 @@ class MyFridgeController extends Controller
         ]);
     }
 }
-

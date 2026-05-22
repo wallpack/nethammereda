@@ -58,6 +58,23 @@ class FridgeItemFlowTest extends TestCase
     }
 
     #[Test]
+    public function delivered_cycle_syncs_only_submitted_order_items(): void
+    {
+        [$cycle, $submittedItem] = $this->createOrderItemForCycle();
+        $draftItem = $this->createOrderItem($cycle, OrderStatus::Draft);
+
+        $cycle->status = OrderCycleStatus::Delivered;
+        $cycle->save();
+
+        $this->assertDatabaseHas('fridge_items', [
+            'order_item_id' => $submittedItem->id,
+        ]);
+        $this->assertDatabaseMissing('fridge_items', [
+            'order_item_id' => $draftItem->id,
+        ]);
+    }
+
+    #[Test]
     public function user_cannot_modify_foreign_fridge_item(): void
     {
         $owner = User::query()->create([
@@ -103,6 +120,25 @@ class FridgeItemFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.quantity_remaining', 1)
             ->assertJsonPath('data.status', FridgeItemStatus::InFridge->value);
+    }
+
+    #[Test]
+    public function eat_one_on_last_portion_marks_item_as_eaten(): void
+    {
+        $user = $this->createUser();
+        $fridgeItem = $this->createFridgeItem($user, 1);
+
+        Sanctum::actingAs($user);
+
+        $this->patchJson("/api/my-fridge/items/{$fridgeItem->id}/eat-one")
+            ->assertOk()
+            ->assertJsonPath('data.quantity_remaining', 0)
+            ->assertJsonPath('data.status', FridgeItemStatus::Eaten->value);
+
+        $this->assertDatabaseHas('fridge_items', [
+            'id' => $fridgeItem->id,
+            'status' => FridgeItemStatus::Eaten->value,
+        ]);
     }
 
     #[Test]
@@ -178,6 +214,63 @@ class FridgeItemFlowTest extends TestCase
         ]);
     }
 
+    #[Test]
+    public function fridge_expire_command_does_not_touch_eaten_or_discarded_items(): void
+    {
+        $user = $this->createUser();
+
+        $eaten = FridgeItem::query()->create([
+            'user_id' => $user->id,
+            'title_snapshot' => 'Eaten Soup',
+            'quantity_total' => 1,
+            'quantity_remaining' => 0,
+            'status' => FridgeItemStatus::Eaten,
+            'arrived_at' => now()->subDays(4),
+            'expires_at' => now()->subMinute(),
+            'eaten_at' => now()->subDay(),
+        ]);
+
+        $discarded = FridgeItem::query()->create([
+            'user_id' => $user->id,
+            'title_snapshot' => 'Discarded Salad',
+            'quantity_total' => 1,
+            'quantity_remaining' => 0,
+            'status' => FridgeItemStatus::Discarded,
+            'arrived_at' => now()->subDays(4),
+            'expires_at' => now()->subMinute(),
+            'discarded_at' => now()->subDay(),
+        ]);
+
+        $this->artisan('fridge:expire')
+            ->expectsOutput('Expired fridge items: 0')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('fridge_items', [
+            'id' => $eaten->id,
+            'status' => FridgeItemStatus::Eaten->value,
+        ]);
+        $this->assertDatabaseHas('fridge_items', [
+            'id' => $discarded->id,
+            'status' => FridgeItemStatus::Discarded->value,
+        ]);
+    }
+
+    #[Test]
+    public function my_fridge_response_includes_summary_counts(): void
+    {
+        $user = $this->createUser();
+        $this->createFridgeItem($user, 2, now()->addHours(12));
+        $this->createFridgeItem($user, 3, now()->addDays(3));
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/my-fridge')
+            ->assertOk()
+            ->assertJsonPath('meta.active_count', 2)
+            ->assertJsonPath('meta.total_portions', 5)
+            ->assertJsonPath('meta.expiring_soon_count', 1);
+    }
+
     /**
      * @return array{OrderCycle, OrderItem}
      */
@@ -224,6 +317,40 @@ class FridgeItemFlowTest extends TestCase
         return [$cycle, $orderItem->fresh('order')];
     }
 
+    private function createOrderItem(OrderCycle $cycle, OrderStatus $orderStatus): OrderItem
+    {
+        $user = $this->createUser();
+        $menuCategory = MenuCategory::query()->create([
+            'name' => 'Test',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+
+        $menuItem = MenuItem::query()->create([
+            'category_id' => $menuCategory->id,
+            'title' => 'Cutlet',
+            'price' => 250,
+            'is_active' => true,
+        ]);
+
+        $order = Order::query()->create([
+            'user_id' => $user->id,
+            'order_cycle_id' => $cycle->id,
+            'status' => $orderStatus,
+            'total_price' => 500,
+            'submitted_at' => $orderStatus === OrderStatus::Submitted ? now() : null,
+        ]);
+
+        return OrderItem::query()->create([
+            'order_id' => $order->id,
+            'menu_item_id' => $menuItem->id,
+            'title_snapshot' => $menuItem->title,
+            'price_snapshot' => $menuItem->price,
+            'quantity' => 2,
+            'status' => OrderItemStatus::Ordered,
+        ])->fresh('order');
+    }
+
     private function createUser(): User
     {
         return User::query()->create([
@@ -235,7 +362,7 @@ class FridgeItemFlowTest extends TestCase
         ]);
     }
 
-    private function createFridgeItem(User $user, int $quantity): FridgeItem
+    private function createFridgeItem(User $user, int $quantity, mixed $expiresAt = null): FridgeItem
     {
         return FridgeItem::query()->create([
             'user_id' => $user->id,
@@ -244,6 +371,7 @@ class FridgeItemFlowTest extends TestCase
             'quantity_remaining' => $quantity,
             'status' => FridgeItemStatus::InFridge,
             'arrived_at' => now(),
+            'expires_at' => $expiresAt,
         ]);
     }
 }

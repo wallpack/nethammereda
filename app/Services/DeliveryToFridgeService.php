@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\FridgeItemStatus;
 use App\Enums\OrderCycleStatus;
 use App\Enums\OrderItemStatus;
+use App\Enums\OrderStatus;
 use App\Models\FridgeItem;
 use App\Models\OrderCycle;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,10 @@ class DeliveryToFridgeService
             $cycle->loadMissing('orders.items');
 
             foreach ($cycle->orders as $order) {
+                if ($order->status !== OrderStatus::Submitted) {
+                    continue;
+                }
+
                 foreach ($order->items as $item) {
                     if ($item->status === OrderItemStatus::Cancelled) {
                         continue;
