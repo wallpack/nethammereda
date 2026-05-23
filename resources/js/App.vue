@@ -44,6 +44,8 @@ const {
     selectedCategory,
     filteredItems,
     isOpenForOrdering,
+    availabilityLabel,
+    availabilityDescription,
     weeklyDeadlineLabel,
 } = storeToRefs(catalog);
 
@@ -228,6 +230,11 @@ const addItem = async (menuItemId) => {
         return;
     }
 
+    if (!isOpenForOrdering.value) {
+        ui.error = availabilityDescription.value || 'Прием заказов завершен.';
+        return;
+    }
+
     ui.actionLoading = true;
     ui.error = '';
     ui.info = '';
@@ -344,6 +351,8 @@ onMounted(async () => {
             :cycle="cycle"
             :weekly-deadline-label="weeklyDeadlineLabel"
             :is-open-for-ordering="isOpenForOrdering"
+            :availability-label="availabilityLabel"
+            :availability-description="availabilityDescription"
             :is-authenticated="isAuthenticated"
             :total-positions="totalPositions"
             :display-user-name="displayUserName"
@@ -419,7 +428,7 @@ onMounted(async () => {
                             </TabsTrigger>
                         </TabsList>
 
-                        <TabsContent value="order" class="mt-0 flex min-h-0 flex-1 p-0">
+                        <TabsContent value="order" force-mount class="mt-0 flex min-h-0 flex-1 p-0">
                             <OrderPanel
                                 :order="order"
                                 :order-items="orderItems"
@@ -436,7 +445,7 @@ onMounted(async () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="fridge" class="mt-0 min-h-0 flex-1 p-0">
+                        <TabsContent value="fridge" force-mount class="mt-0 min-h-0 flex-1 p-0">
                             <FridgePanel
                                 :fridge-items="fridgeItems"
                                 :fridge-history="fridgeHistory"

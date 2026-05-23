@@ -1,4 +1,5 @@
 <script setup>
+import BrandLogo from '@/components/BrandLogo.vue';
 import WeekStatus from '@/components/WeekStatus.vue';
 import { Bell, ChevronDown, User } from 'lucide-vue-next';
 
@@ -14,6 +15,14 @@ defineProps({
     isOpenForOrdering: {
         type: Boolean,
         default: false,
+    },
+    availabilityLabel: {
+        type: String,
+        required: true,
+    },
+    availabilityDescription: {
+        type: String,
+        default: '',
     },
     isAuthenticated: {
         type: Boolean,
@@ -35,23 +44,16 @@ const emit = defineEmits(['open-auth', 'open-profile']);
 <template>
     <header class="sticky top-0 z-40 border-b border-[#e7ecf6] bg-white/95 shadow-[0_8px_30px_rgba(21,39,75,0.04)] backdrop-blur">
         <div class="header-inner app-header-shell">
-            <div class="flex min-w-0 items-center gap-3">
-                <img
-                    :src="'/assets/branding/nethammer-hammer.svg'"
-                    alt=""
-                    class="h-11 w-[58px] shrink-0 object-contain"
-                    aria-hidden="true"
-                />
-                <div class="leading-none">
-                    <p class="text-[23px] font-bold tracking-[-0.4px] text-[#111827]">nethammer</p>
-                    <p class="mt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#111827]/70">eda.</p>
-                </div>
+            <div class="flex min-w-0 items-center">
+                <BrandLogo />
             </div>
 
             <WeekStatus
                 :cycle="cycle"
                 :weekly-deadline-label="weeklyDeadlineLabel"
                 :is-open-for-ordering="isOpenForOrdering"
+                :availability-label="availabilityLabel"
+                :availability-description="availabilityDescription"
             />
 
             <div class="app-header-actions flex items-center gap-3">

@@ -28,6 +28,8 @@ class FridgeItemResource extends Resource
 
     protected static ?string $pluralModelLabel = 'позиции холодильника';
 
+    protected static bool $hasTitleCaseModelLabel = false;
+
     protected static ?int $navigationSort = 30;
 
     public static function form(Schema $schema): Schema
@@ -56,4 +58,3 @@ class FridgeItemResource extends Resource
         ];
     }
 }
-

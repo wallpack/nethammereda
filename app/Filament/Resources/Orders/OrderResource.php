@@ -17,15 +17,17 @@ class OrderResource extends Resource
 {
     protected static ?string $model = Order::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Заказы';
 
-    protected static ?string $navigationLabel = 'Заказы пользователей';
+    protected static ?string $navigationLabel = 'Заказы';
 
     protected static ?string $modelLabel = 'заказ';
 
     protected static ?string $pluralModelLabel = 'заказы';
+
+    protected static bool $hasTitleCaseModelLabel = false;
 
     protected static ?int $navigationSort = 20;
 

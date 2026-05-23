@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Enums\UserRole;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -30,11 +31,7 @@ class UsersTable
                     ->toggleable(),
                 TextColumn::make('role')
                     ->label('Роль')
-                    ->formatStateUsing(fn (mixed $state): string => match ($state instanceof \BackedEnum ? $state->value : (string) $state) {
-                        'admin' => 'Администратор',
-                        'user' => 'Пользователь',
-                        default => $state,
-                    })
+                    ->formatStateUsing(fn (UserRole $state): string => $state->label())
                     ->badge()
                     ->sortable(),
                 IconColumn::make('is_active')
@@ -59,21 +56,23 @@ class UsersTable
             ->filters([
                 SelectFilter::make('role')
                     ->label('Роль')
-                    ->options([
-                        'admin' => 'Администратор',
-                        'user' => 'Пользователь',
-                    ]),
+                    ->options(UserRole::labels()),
                 TernaryFilter::make('is_active')
                     ->label('Активен'),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->label('Изменить'),
+                DeleteAction::make()
+                    ->label('Удалить'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label('Удалить выбранное'),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('Пользователей пока нет')
+            ->emptyStateDescription('Добавьте сотрудников, чтобы они могли делать заказы.');
     }
 }

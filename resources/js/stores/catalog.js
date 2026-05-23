@@ -9,7 +9,50 @@ export const useCatalogStore = defineStore('catalog', () => {
     const search = ref('');
     const selectedCategory = ref(null);
 
-    const isOpenForOrdering = computed(() => Boolean(cycle.value?.is_open_for_ordering));
+    const isOpenForOrdering = computed(() => Boolean(
+        cycle.value?.can_order
+        ?? cycle.value?.is_orderable
+        ?? cycle.value?.is_open_for_ordering,
+    ));
+
+    const deadlinePassed = computed(() => Boolean(cycle.value?.deadline_passed));
+
+    const availabilityLabel = computed(() => {
+        if (cycle.value?.availability_label) {
+            return cycle.value.availability_label;
+        }
+
+        if (isOpenForOrdering.value) {
+            return 'Заказ открыт';
+        }
+
+        if (cycle.value?.status === 'open' && deadlinePassed.value) {
+            return 'Дедлайн прошел';
+        }
+
+        const labels = {
+            draft: 'Заказ еще не открыт',
+            open: 'Прием заказов завершен',
+            closed: 'Заказ закрыт',
+            sent_to_supplier: 'Отправлен поставщику',
+            delivered: 'Доставлен',
+            archived: 'Архивирован',
+        };
+
+        return labels[cycle.value?.status] ?? 'Недельный цикл не создан';
+    });
+
+    const availabilityDescription = computed(() => {
+        if (cycle.value?.availability_description) {
+            return cycle.value.availability_description;
+        }
+
+        if (isOpenForOrdering.value) {
+            return 'Можно добавлять блюда до дедлайна.';
+        }
+
+        return 'Прием заказов завершен.';
+    });
 
     const weeklyDeadlineLabel = computed(() => {
         if (cycle.value?.closes_at) {
@@ -86,6 +129,9 @@ export const useCatalogStore = defineStore('catalog', () => {
         search,
         selectedCategory,
         isOpenForOrdering,
+        deadlinePassed,
+        availabilityLabel,
+        availabilityDescription,
         weeklyDeadlineLabel,
         filteredItems,
         categoryItemCount,

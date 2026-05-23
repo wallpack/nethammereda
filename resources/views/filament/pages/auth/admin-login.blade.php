@@ -14,10 +14,12 @@
 
     <section class="nh-admin-login-card" aria-labelledby="nh-admin-login-title">
         <div class="nh-admin-login-card__body">
-            <div class="nh-admin-login-card__brand" aria-label="NethammerEda" data-testid="admin-login-logo">
-                <img class="nh-admin-login-card__brand-icon" src="{{ asset('images/brand/nethammer-icon.svg') }}" alt="">
-                <span class="nh-admin-login-card__brand-word">nethammer<span>eda.</span></span>
-            </div>
+            <x-brand.logo
+                class="nh-admin-login-card__brand"
+                icon-class="nh-admin-login-card__brand-icon"
+                word-class="nh-admin-login-card__brand-word"
+                data-testid="admin-login-logo"
+            />
 
             <header class="nh-admin-login-card__header">
                 <h2 id="nh-admin-login-title">Вход в панель управления</h2>

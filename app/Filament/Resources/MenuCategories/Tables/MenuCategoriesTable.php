@@ -37,13 +37,18 @@ class MenuCategoriesTable
                     ->label('Активна'),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->label('Изменить'),
+                DeleteAction::make()
+                    ->label('Удалить'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label('Удалить выбранное'),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('Категорий пока нет')
+            ->emptyStateDescription('Создайте категории, чтобы сгруппировать блюда меню.');
     }
 }

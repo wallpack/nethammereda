@@ -7,7 +7,13 @@ use App\Enums\OrderCycleStatus;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
 use App\Enums\UserRole;
+use App\Filament\Resources\FridgeItems\Pages\CreateFridgeItem;
+use App\Filament\Resources\FridgeItems\Pages\EditFridgeItem;
+use App\Filament\Resources\FridgeItems\Pages\ListFridgeItems;
+use App\Filament\Resources\OrderCycles\Pages\CreateOrderCycle;
+use App\Filament\Resources\OrderCycles\Pages\EditOrderCycle;
 use App\Filament\Resources\OrderCycles\Pages\ListOrderCycles;
+use App\Models\FridgeItem;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Order;
@@ -41,6 +47,81 @@ class OrderCycleResourceTest extends TestCase
     }
 
     #[Test]
+    public function resource_page_titles_are_plain_russian_labels(): void
+    {
+        $this->actingAsAdmin();
+
+        $cycle = $this->createCycle(OrderCycleStatus::Open);
+        $fridgeItem = FridgeItem::query()->create([
+            'user_id' => User::factory()->create()->id,
+            'title_snapshot' => 'Лазанья',
+            'quantity_total' => 1,
+            'quantity_remaining' => 1,
+            'status' => FridgeItemStatus::InFridge,
+            'arrived_at' => now(),
+        ]);
+
+        $listOrderCycles = Livewire::test(ListOrderCycles::class)
+            ->assertSee('Недельные циклы')
+            ->assertDontSee('Недельные Циклы');
+
+        $this->assertSame([], $listOrderCycles->instance()->getBreadcrumbs());
+
+        Livewire::test(CreateOrderCycle::class)
+            ->assertSee('Создание недельного цикла')
+            ->assertDontSee('Создание Недельный Цикл');
+
+        $editOrderCycle = Livewire::test(EditOrderCycle::class, ['record' => $cycle->id])
+            ->assertSee('Редактирование недельного цикла')
+            ->assertDontSee('Редактирование Недельный Цикл');
+
+        $this->assertSame(['Недельные циклы'], array_values($editOrderCycle->instance()->getBreadcrumbs()));
+
+        $listFridgeItems = Livewire::test(ListFridgeItems::class)
+            ->assertSee('Позиции холодильника')
+            ->assertDontSee('Позиции Холодильника');
+
+        $this->assertSame([], $listFridgeItems->instance()->getBreadcrumbs());
+
+        Livewire::test(CreateFridgeItem::class)
+            ->assertSee('Создание позиции холодильника')
+            ->assertDontSee('Создание Позиция Холодильника');
+
+        $editFridgeItem = Livewire::test(EditFridgeItem::class, ['record' => $fridgeItem->id])
+            ->assertSee('Редактирование позиции холодильника')
+            ->assertDontSee('Редактирование Позиция Холодильника');
+
+        $this->assertSame(['Холодильник'], array_values($editFridgeItem->instance()->getBreadcrumbs()));
+    }
+
+    #[Test]
+    public function send_to_supplier_action_is_visible_only_for_closed_cycles(): void
+    {
+        $this->actingAsAdmin();
+
+        $openCycle = $this->createCycle(OrderCycleStatus::Open);
+        $closedCycle = $this->createCycle(OrderCycleStatus::Closed);
+        $sentCycle = $this->createSentToSupplierCycle();
+
+        Livewire::test(ListOrderCycles::class)
+            ->assertActionHidden(TestAction::make('sendToSupplier')->table($openCycle))
+            ->assertActionVisible(TestAction::make('sendToSupplier')->table($closedCycle))
+            ->assertActionHidden(TestAction::make('sendToSupplier')->table($sentCycle));
+    }
+
+    #[Test]
+    public function edit_page_warns_when_open_cycle_deadline_has_passed(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Open);
+        $cycle->forceFill(['closes_at' => now()->subHour()])->save();
+
+        Livewire::test(EditOrderCycle::class, ['record' => $cycle->id])
+            ->assertSee('Цикл открыт, но дедлайн уже прошел')
+            ->assertSee('Пользователи уже не могут добавлять блюда');
+    }
+
+    #[Test]
     public function mark_delivered_table_action_delivers_cycle_and_creates_fridge_items(): void
     {
         $admin = $this->actingAsAdmin();
@@ -71,7 +152,7 @@ class OrderCycleResourceTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($admin);
+        $this->actingAs($admin, 'web');
 
         return $admin;
     }

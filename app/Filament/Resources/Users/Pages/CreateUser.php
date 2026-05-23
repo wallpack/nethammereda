@@ -2,10 +2,17 @@
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Filament\Resources\Concerns\HasCleanResourceBreadcrumbs;
 use App\Filament\Resources\Users\UserResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateUser extends CreateRecord
 {
+    use HasCleanResourceBreadcrumbs;
+
     protected static string $resource = UserResource::class;
+
+    protected static ?string $title = 'Создание пользователя';
+
+    protected static ?string $breadcrumb = 'Создание';
 }

@@ -15,6 +15,14 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    availabilityLabel: {
+        type: String,
+        required: true,
+    },
+    availabilityDescription: {
+        type: String,
+        default: '',
+    },
 });
 </script>
 
@@ -26,7 +34,7 @@ defineProps({
             </span>
             <div>
                 <p class="font-bold leading-5 text-[#111827]">{{ cycle ? cycle.title : 'Недельный цикл не создан' }}</p>
-                <p class="text-[12px] leading-4 text-[#66769f]">Дедлайн заказа: {{ weeklyDeadlineLabel }}</p>
+                <p class="text-[12px] leading-4 text-[#66769f]">{{ availabilityDescription || `Дедлайн заказа: ${weeklyDeadlineLabel}` }}</p>
             </div>
         </div>
 
@@ -36,7 +44,7 @@ defineProps({
             variant="outline"
         >
             <span class="mr-2 h-2 w-2 rounded-full" :class="isOpenForOrdering ? 'bg-emerald-500' : 'bg-red-500'"></span>
-            {{ isOpenForOrdering ? 'Заказ открыт' : 'Заказ закрыт' }}
+            {{ availabilityLabel }}
         </Badge>
     </div>
 </template>

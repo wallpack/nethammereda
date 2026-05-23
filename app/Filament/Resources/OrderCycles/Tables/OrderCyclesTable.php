@@ -32,11 +32,13 @@ class OrderCyclesTable
                     ->label('Статус')
                     ->formatStateUsing(fn (OrderCycleStatus $state): string => $state->label())
                     ->badge()
+                    ->color(fn (OrderCycleStatus $state): string => $state->color())
                     ->sortable(),
                 TextColumn::make('starts_at')
                     ->label('Старт')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('closes_at')
                     ->label('Дедлайн')
                     ->dateTime()
@@ -49,7 +51,8 @@ class OrderCyclesTable
                 TextColumn::make('sentToSupplierBy.name')
                     ->label('Кто отправил')
                     ->placeholder('-')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('delivered_at')
                     ->label('Дата доставки')
                     ->dateTime()
@@ -58,10 +61,12 @@ class OrderCyclesTable
                 TextColumn::make('deliveredBy.name')
                     ->label('Кто отметил доставку')
                     ->placeholder('-')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('orders_count')
                     ->counts('orders')
-                    ->label('Заказов'),
+                    ->label('Заказов')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('supplier_total')
                     ->label('Сумма для поставщика')
                     ->state(fn (OrderCycle $record): string => number_format(
@@ -69,7 +74,8 @@ class OrderCyclesTable
                         2,
                         '.',
                         ' ',
-                    ).' ₽'),
+                    ).' ₽')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -77,7 +83,8 @@ class OrderCyclesTable
                     ->options(OrderCycleStatus::labels()),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label('Изменить'),
                 Action::make('sendToSupplier')
                     ->label('Отправить поставщику')
                     ->icon('heroicon-o-paper-airplane')
@@ -137,13 +144,17 @@ class OrderCyclesTable
                             ['Content-Type' => 'text/csv; charset=UTF-8'],
                         );
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->label('Удалить'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label('Удалить выбранное'),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('Недельных циклов пока нет')
+            ->emptyStateDescription('Создайте цикл, чтобы открыть сбор заказов на неделю.');
     }
 
     private static function escapeCsvCell(string $value): string

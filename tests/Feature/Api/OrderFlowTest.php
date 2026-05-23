@@ -22,22 +22,48 @@ class OrderFlowTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function current_cycle_response_includes_ordering_flags_and_labels(): void
+    public function current_cycle_open_before_deadline_is_orderable(): void
     {
-        $cycle = $this->createCycle(OrderCycleStatus::Open);
+        $cycle = $this->createCycle(OrderCycleStatus::Open, now()->addDay());
 
         $this->getJson('/api/current-cycle')
             ->assertOk()
             ->assertJsonPath('data.id', $cycle->id)
+            ->assertJsonPath('data.status', OrderCycleStatus::Open->value)
+            ->assertJsonPath('data.is_open_status', true)
+            ->assertJsonPath('data.is_orderable', true)
+            ->assertJsonPath('data.can_order', true)
+            ->assertJsonPath('data.deadline_passed', false)
             ->assertJsonPath('data.is_open', true)
             ->assertJsonPath('data.is_closed', false)
             ->assertJsonPath('data.is_delivered', false)
-            ->assertJsonPath('data.status_label', 'Open')
+            ->assertJsonPath('data.status_label', 'Открыт')
+            ->assertJsonPath('data.availability_label', 'Заказ открыт')
             ->assertJsonStructure([
                 'data' => [
                     'deadline_label',
+                    'availability_description',
                 ],
             ]);
+    }
+
+    #[Test]
+    public function current_cycle_open_after_deadline_keeps_open_status_but_is_not_orderable(): void
+    {
+        $cycle = $this->createCycle(OrderCycleStatus::Open, now()->subMinute());
+
+        $this->getJson('/api/current-cycle')
+            ->assertOk()
+            ->assertJsonPath('data.id', $cycle->id)
+            ->assertJsonPath('data.status', OrderCycleStatus::Open->value)
+            ->assertJsonPath('data.is_open_status', true)
+            ->assertJsonPath('data.is_orderable', false)
+            ->assertJsonPath('data.can_order', false)
+            ->assertJsonPath('data.deadline_passed', true)
+            ->assertJsonPath('data.is_open', false)
+            ->assertJsonPath('data.status_label', 'Открыт')
+            ->assertJsonPath('data.availability_label', 'Дедлайн прошел')
+            ->assertJsonPath('data.availability_description', 'Прием заказов завершен.');
     }
 
     #[Test]
@@ -149,7 +175,7 @@ class OrderFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $order->id)
             ->assertJsonPath('data.status', OrderStatus::Submitted->value)
-            ->assertJsonPath('data.status_label', 'Submitted')
+            ->assertJsonPath('data.status_label', 'Отправлен')
             ->assertJsonPath('data.items_count', 1)
             ->assertJsonPath('data.can_submit', false);
 
@@ -298,7 +324,7 @@ class OrderFlowTest extends TestCase
             ->assertJsonPath('data.order.items_count', 1)
             ->assertJsonPath('data.order.total_price', '400.00')
             ->assertJsonPath('data.order.can_submit', true)
-            ->assertJsonPath('data.order.status_label', 'Draft');
+            ->assertJsonPath('data.order.status_label', 'Черновик');
     }
 
     /**
@@ -354,12 +380,12 @@ class OrderFlowTest extends TestCase
         return [$user, $order->fresh(), $orderItem->fresh('order')];
     }
 
-    private function createCycle(OrderCycleStatus $status): OrderCycle
+    private function createCycle(OrderCycleStatus $status, mixed $closesAt = null): OrderCycle
     {
         return OrderCycle::query()->create([
             'title' => 'Test Week',
             'starts_at' => now()->startOfWeek(),
-            'closes_at' => now()->addDay(),
+            'closes_at' => $closesAt ?? now()->addDay(),
             'status' => $status,
         ]);
     }

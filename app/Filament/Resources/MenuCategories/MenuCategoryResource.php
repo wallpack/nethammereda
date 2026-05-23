@@ -18,15 +18,17 @@ class MenuCategoryResource extends Resource
 {
     protected static ?string $model = MenuCategory::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Меню';
 
     protected static ?string $navigationLabel = 'Категории';
 
-    protected static ?string $modelLabel = 'категория меню';
+    protected static ?string $modelLabel = 'категория';
 
-    protected static ?string $pluralModelLabel = 'категории меню';
+    protected static ?string $pluralModelLabel = 'категории';
+
+    protected static bool $hasTitleCaseModelLabel = false;
 
     protected static ?int $navigationSort = 10;
 

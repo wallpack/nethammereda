@@ -23,6 +23,18 @@ enum OrderCycleStatus: string
         };
     }
 
+    public function color(): string
+    {
+        return match ($this) {
+            self::Draft => 'gray',
+            self::Open => 'success',
+            self::Closed => 'warning',
+            self::SentToSupplier => 'info',
+            self::Delivered => 'success',
+            self::Archived => 'gray',
+        };
+    }
+
     public function canTransitionTo(self $status): bool
     {
         if ($status === $this) {

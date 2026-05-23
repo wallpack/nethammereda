@@ -62,13 +62,18 @@ class MenuItemsTable
                     ->label('Активно'),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->label('Изменить'),
+                DeleteAction::make()
+                    ->label('Удалить'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->label('Удалить выбранное'),
                 ]),
-            ]);
+            ])
+            ->emptyStateHeading('Блюд пока нет')
+            ->emptyStateDescription('Добавьте блюда из меню поставщика, чтобы они появились в каталоге.');
     }
 }

@@ -25,10 +25,7 @@ class UserForm
                     ->label('Telegram ID'),
                 Select::make('role')
                     ->label('Роль')
-                    ->options([
-                        UserRole::Admin->value => 'Администратор',
-                        UserRole::User->value => 'Пользователь',
-                    ])
+                    ->options(UserRole::labels())
                     ->required(),
                 Toggle::make('is_active')
                     ->label('Активен')

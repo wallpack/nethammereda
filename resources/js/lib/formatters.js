@@ -70,7 +70,7 @@ export const fridgeStatusLabel = (status) => {
 export const orderStatusLabel = (status) => {
     const labels = {
         draft: 'Черновик',
-        submitted: 'Подтвержден',
+        submitted: 'Отправлен',
         cancelled: 'Отменен',
     };
 

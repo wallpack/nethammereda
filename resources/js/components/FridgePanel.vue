@@ -96,7 +96,7 @@ const emit = defineEmits(['eat-one', 'eat-all', 'discard']);
                         :disabled="actionLoading"
                         @click="emit('eat-all', item.id)"
                     >
-                        Всё
+                        Съел всё
                     </Button>
                     <Button
                         type="button"

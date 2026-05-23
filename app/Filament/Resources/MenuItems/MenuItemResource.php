@@ -18,7 +18,7 @@ class MenuItemResource extends Resource
 {
     protected static ?string $model = MenuItem::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Меню';
 
@@ -27,6 +27,8 @@ class MenuItemResource extends Resource
     protected static ?string $modelLabel = 'блюдо';
 
     protected static ?string $pluralModelLabel = 'блюда';
+
+    protected static bool $hasTitleCaseModelLabel = false;
 
     protected static ?int $navigationSort = 20;
 

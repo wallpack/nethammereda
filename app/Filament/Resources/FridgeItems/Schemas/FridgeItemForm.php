@@ -43,12 +43,7 @@ class FridgeItemForm
                 Select::make('status')
                     ->label('Статус')
                     ->required()
-                    ->options([
-                        FridgeItemStatus::InFridge->value => 'В холодильнике',
-                        FridgeItemStatus::Eaten->value => 'Съедено',
-                        FridgeItemStatus::Discarded->value => 'Выброшено',
-                        FridgeItemStatus::Expired->value => 'Просрочено',
-                    ]),
+                    ->options(FridgeItemStatus::labels()),
                 DateTimePicker::make('arrived_at')
                     ->label('Поступило в холодильник'),
                 DateTimePicker::make('expires_at')
@@ -63,4 +58,3 @@ class FridgeItemForm
             ]);
     }
 }
-

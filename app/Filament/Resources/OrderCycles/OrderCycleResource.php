@@ -18,7 +18,7 @@ class OrderCycleResource extends Resource
 {
     protected static ?string $model = OrderCycle::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Заказы';
 
@@ -27,6 +27,8 @@ class OrderCycleResource extends Resource
     protected static ?string $modelLabel = 'недельный цикл';
 
     protected static ?string $pluralModelLabel = 'недельные циклы';
+
+    protected static bool $hasTitleCaseModelLabel = false;
 
     protected static ?int $navigationSort = 10;
 

@@ -4,9 +4,11 @@ namespace App\Filament\Resources\OrderCycles\Schemas;
 
 use App\Enums\OrderCycleStatus;
 use App\Models\OrderCycle;
+use Carbon\Carbon;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Callout;
 use Filament\Schemas\Schema;
 
 class OrderCycleForm
@@ -22,10 +24,36 @@ class OrderCycleForm
                 DateTimePicker::make('starts_at')
                     ->label('Начало недели')
                     ->required(),
+                DateTimePicker::make('closes_at')
+                    ->label('Дедлайн заказа')
+                    ->default(fn (): string => now()
+                        ->startOfWeek(Carbon::MONDAY)
+                        ->addDays(4)
+                        ->setTime(12, 0)
+                        ->toDateTimeString())
+                    ->required(),
                 Select::make('status')
                     ->label('Статус')
                     ->required()
                     ->options(fn (?OrderCycle $record = null): array => self::statusOptions($record)),
+                Callout::make('Цикл открыт, но дедлайн уже прошел')
+                    ->description('Пользователи уже не могут добавлять блюда. Закройте цикл, чтобы перейти к отправке поставщику.')
+                    ->warning()
+                    ->visible(fn (?OrderCycle $record = null): bool => $record?->status === OrderCycleStatus::Open
+                        && $record->closes_at !== null
+                        && $record->closes_at->isPast()),
+                DateTimePicker::make('sent_to_supplier_at')
+                    ->label('Дата отправки поставщику')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->visible(fn (?OrderCycle $record = null): bool => $record?->sent_to_supplier_at !== null),
+                Select::make('sent_to_supplier_by')
+                    ->label('Кто отправил поставщику')
+                    ->relationship('sentToSupplierBy', 'name')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->placeholder('-')
+                    ->visible(fn (?OrderCycle $record = null): bool => $record?->sent_to_supplier_by !== null),
                 DateTimePicker::make('delivered_at')
                     ->label('Дата доставки')
                     ->disabled()

@@ -2,17 +2,24 @@
 
 namespace App\Filament\Resources\OrderCycles\Pages;
 
+use App\Filament\Resources\Concerns\HasCleanResourceBreadcrumbs;
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
 use Carbon\Carbon;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateOrderCycle extends CreateRecord
 {
+    use HasCleanResourceBreadcrumbs;
+
     protected static string $resource = OrderCycleResource::class;
+
+    protected static ?string $title = 'Создание недельного цикла';
+
+    protected static ?string $breadcrumb = 'Создание';
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['closes_at'] = $this->resolveFridayNoon($data['starts_at'] ?? null);
+        $data['closes_at'] = $data['closes_at'] ?? $this->resolveFridayNoon($data['starts_at'] ?? null);
 
         return $data;
     }

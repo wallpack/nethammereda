@@ -83,7 +83,7 @@ const emit = defineEmits(['toggle-favorite', 'add-item', 'change-quantity']);
                         v-if="!orderItem"
                         type="button"
                         size="sm"
-                        :disabled="isAuthenticated && (!isOpenForOrdering || actionLoading)"
+                        :disabled="!isOpenForOrdering || actionLoading"
                         class="h-10 rounded-[8px] border-0 bg-[#0f52ff] px-4 text-[13px] font-bold text-white shadow-[0_10px_20px_rgba(15,82,255,0.22)] hover:bg-[#0648ec]"
                         @click="emit('add-item', item.id)"
                     >

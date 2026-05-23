@@ -30,11 +30,7 @@ class OrderForm
                     ->preload(),
                 Select::make('status')
                     ->label('Статус заказа')
-                    ->options([
-                        OrderStatus::Draft->value => 'Черновик',
-                        OrderStatus::Submitted->value => 'Подтвержден',
-                        OrderStatus::Cancelled->value => 'Отменен',
-                    ])
+                    ->options(OrderStatus::labels())
                     ->required(),
                 TextInput::make('total_price')
                     ->label('Итоговая сумма')
@@ -64,13 +60,7 @@ class OrderForm
                             ->minValue(1),
                         Select::make('status')
                             ->label('Статус позиции')
-                            ->options([
-                                OrderItemStatus::Ordered->value => 'Заказано',
-                                OrderItemStatus::Arrived->value => 'Доставлено',
-                                OrderItemStatus::Received->value => 'Получено',
-                                OrderItemStatus::Eaten->value => 'Съедено',
-                                OrderItemStatus::Cancelled->value => 'Отменено',
-                            ])
+                            ->options(OrderItemStatus::labels())
                             ->required(),
                     ])
                     ->columns(4),
