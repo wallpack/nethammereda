@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
+use App\Exceptions\OrderCannotBeSubmittedException;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderCycle;
@@ -89,6 +90,36 @@ class OrderService
 
             $this->markAsDraft($order);
             $this->recalculate($order);
+
+            return $order->fresh(['cycle', 'items.menuItem']);
+        });
+    }
+
+    public function submit(Order $order): Order
+    {
+        return DB::transaction(function () use ($order): Order {
+            $order->refresh();
+
+            if ($order->isSubmitted()) {
+                return $order->fresh(['cycle', 'items.menuItem']);
+            }
+
+            if (! $order->isDraft()) {
+                throw OrderCannotBeSubmittedException::forNonDraftOrder();
+            }
+
+            $hasItems = $order->items()
+                ->where('status', '!=', OrderItemStatus::Cancelled->value)
+                ->exists();
+
+            if (! $hasItems) {
+                throw OrderCannotBeSubmittedException::forEmptyOrder();
+            }
+
+            $this->recalculate($order);
+            $order->status = OrderStatus::Submitted;
+            $order->submitted_at = now();
+            $order->save();
 
             return $order->fresh(['cycle', 'items.menuItem']);
         });

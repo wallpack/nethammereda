@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\OrderStatus;
 use App\Http\Controllers\Api\Concerns\FormatsApiPayloads;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
@@ -60,31 +59,10 @@ class MyOrderController extends Controller
         $order = $orderService->getOrCreateOrder($user, $cycle);
         $this->authorize('update', $order);
 
-        if ($order->status === OrderStatus::Submitted) {
-            return response()->json([
-                'data' => $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
-            ]);
-        }
-
-        if ($order->status !== OrderStatus::Draft) {
-            return response()->json([
-                'message' => 'This order cannot be submitted.',
-            ], 422);
-        }
-
-        if ($order->items()->count() === 0) {
-            return response()->json([
-                'message' => 'Нельзя отправить пустой заказ.',
-            ], 422);
-        }
-
-        $orderService->recalculate($order);
-        $order->status = OrderStatus::Submitted;
-        $order->submitted_at = now();
-        $order->save();
+        $order = $orderService->submit($order);
 
         return response()->json([
-            'data' => $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
+            'data' => $this->orderPayload($order),
         ]);
     }
 }

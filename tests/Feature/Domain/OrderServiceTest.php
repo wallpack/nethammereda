@@ -5,6 +5,7 @@ namespace Tests\Feature\Domain;
 use App\Enums\OrderCycleStatus;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
+use App\Exceptions\OrderCannotBeSubmittedException;
 use App\Exceptions\SubmittedOrderCannotBeChangedException;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
@@ -105,6 +106,55 @@ class OrderServiceTest extends TestCase
         ]);
     }
 
+    #[Test]
+    public function non_empty_draft_order_can_be_submitted_through_order_service(): void
+    {
+        [$order] = $this->createDraftOrderWithItem(quantity: 2, price: 125);
+
+        $submitted = app(OrderService::class)->submit($order);
+
+        $this->assertSame(OrderStatus::Submitted, $submitted->status);
+        $this->assertNotNull($submitted->submitted_at);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Submitted->value,
+            'total_price' => 250,
+        ]);
+    }
+
+    #[Test]
+    public function repeated_submit_keeps_existing_submitted_timestamp_through_order_service(): void
+    {
+        [$order] = $this->createSubmittedOrder();
+        $submittedAt = $order->submitted_at;
+
+        $this->travel(10)->minutes();
+
+        $submitted = app(OrderService::class)->submit($order);
+
+        $this->assertSame(OrderStatus::Submitted, $submitted->status);
+        $this->assertSame(
+            $submittedAt?->toDateTimeString(),
+            $submitted->submitted_at?->toDateTimeString(),
+        );
+    }
+
+    #[Test]
+    public function empty_draft_order_cannot_be_submitted_through_order_service(): void
+    {
+        [$order] = $this->createDraftOrder();
+
+        try {
+            app(OrderService::class)->submit($order);
+
+            $this->fail('Empty draft order was submitted through the order service.');
+        } catch (OrderCannotBeSubmittedException) {
+            $order->refresh();
+            $this->assertSame(OrderStatus::Draft, $order->status);
+            $this->assertNull($order->submitted_at);
+        }
+    }
+
     /**
      * @return array{Order, OrderItem, MenuItem}
      */
@@ -160,6 +210,31 @@ class OrderServiceTest extends TestCase
         ]);
 
         return [$order->fresh(), $this->createMenuItem('Draft Dish')];
+    }
+
+    /**
+     * @return array{Order, OrderItem}
+     */
+    private function createDraftOrderWithItem(int $quantity = 1, int $price = 100): array
+    {
+        [$order, $menuItem] = $this->createDraftOrder();
+        $menuItem->price = $price;
+        $menuItem->save();
+
+        $orderItem = OrderItem::query()->create([
+            'order_id' => $order->id,
+            'menu_item_id' => $menuItem->id,
+            'title_snapshot' => $menuItem->title,
+            'price_snapshot' => $menuItem->price,
+            'quantity' => $quantity,
+            'status' => OrderItemStatus::Ordered,
+        ]);
+
+        $order->forceFill([
+            'total_price' => $quantity * $price,
+        ])->save();
+
+        return [$order->fresh(), $orderItem->fresh('order')];
     }
 
     private function createMenuItem(string $title): MenuItem
