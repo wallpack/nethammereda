@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderItemStatus;
-use App\Enums\OrderStatus;
 use App\Http\Controllers\Api\Concerns\FormatsApiPayloads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMyOrderItemRequest;
@@ -41,31 +40,11 @@ class MyOrderItemController extends Controller
         $order = $orderService->getOrCreateOrder($user, $cycle);
         $this->authorize('update', $order);
 
-        if ($order->status !== OrderStatus::Draft) {
-            return $this->submittedOrderCannotBeChangedResponse();
-        }
-
         $quantity = $request->integer('quantity', 1);
-
-        $item = OrderItem::query()->firstOrNew([
-            'order_id' => $order->id,
-            'menu_item_id' => $menuItem->id,
-        ]);
-
-        $item->fill([
-            'title_snapshot' => $menuItem->title,
-            'price_snapshot' => $menuItem->price,
-            'status' => OrderItemStatus::Ordered,
-        ]);
-
-        $item->quantity = $item->exists ? $item->quantity + $quantity : $quantity;
-        $item->save();
-
-        $orderService->markAsDraft($order);
-        $orderService->recalculate($order);
+        $order = $orderService->addItemForUser($order, $menuItem, $quantity);
 
         return response()->json([
-            'data' => $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
+            'data' => $this->orderPayload($order),
         ]);
     }
 
@@ -83,19 +62,10 @@ class MyOrderItemController extends Controller
             ], 422);
         }
 
-        if ($orderItem->order->status !== OrderStatus::Draft) {
-            return $this->submittedOrderCannotBeChangedResponse();
-        }
-
-        $orderItem->quantity = $request->integer('quantity');
-        $orderItem->save();
-
-        $order = $orderItem->order;
-        $orderService->markAsDraft($order);
-        $orderService->recalculate($order);
+        $order = $orderService->updateItemQuantityForUser($orderItem, $request->integer('quantity'));
 
         return response()->json([
-            'data' => $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
+            'data' => $this->orderPayload($order),
         ]);
     }
 
@@ -110,20 +80,10 @@ class MyOrderItemController extends Controller
             ], 422);
         }
 
-        if ($orderItem->order->status !== OrderStatus::Draft) {
-            return $this->submittedOrderCannotBeChangedResponse();
-        }
-
-        $order = $orderItem->order;
-        $orderItem->delete();
-
-        if ($order !== null) {
-            $orderService->markAsDraft($order);
-            $orderService->recalculate($order);
-        }
+        $order = $orderService->deleteItemForUser($orderItem);
 
         return response()->json([
-            'data' => $order === null ? null : $this->orderPayload($order->fresh(['cycle', 'items.menuItem'])),
+            'data' => $order === null ? null : $this->orderPayload($order),
         ]);
     }
 
@@ -167,10 +127,4 @@ class MyOrderItemController extends Controller
         ]);
     }
 
-    private function submittedOrderCannotBeChangedResponse(): JsonResponse
-    {
-        return response()->json([
-            'message' => 'Submitted orders cannot be changed.',
-        ], 422);
-    }
 }

@@ -215,18 +215,25 @@ class OrderFlowTest extends TestCase
     {
         [$user, $order] = $this->createSubmittedOrderItem();
         $menuItem = $this->createMenuItem(title: 'Soup', price: 180);
+        $submittedAt = $order->submitted_at;
 
         Sanctum::actingAs($user);
 
         $this->postJson('/api/my-order/items', [
             'menu_item_id' => $menuItem->id,
             'quantity' => 1,
-        ])->assertUnprocessable();
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Submitted orders cannot be changed.');
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
             'status' => OrderStatus::Submitted->value,
         ]);
+        $this->assertSame(
+            $submittedAt?->toDateTimeString(),
+            $order->fresh()->submitted_at?->toDateTimeString(),
+        );
         $this->assertDatabaseMissing('order_items', [
             'order_id' => $order->id,
             'menu_item_id' => $menuItem->id,
@@ -236,33 +243,46 @@ class OrderFlowTest extends TestCase
     #[Test]
     public function user_cannot_update_submitted_order_item(): void
     {
-        [$user, , $orderItem] = $this->createSubmittedOrderItem();
+        [$user, $order, $orderItem] = $this->createSubmittedOrderItem();
+        $submittedAt = $order->submitted_at;
 
         Sanctum::actingAs($user);
 
         $this->patchJson("/api/my-order/items/{$orderItem->id}", [
             'quantity' => 3,
-        ])->assertUnprocessable();
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Submitted orders cannot be changed.');
 
         $this->assertDatabaseHas('order_items', [
             'id' => $orderItem->id,
             'quantity' => 1,
         ]);
+        $this->assertSame(
+            $submittedAt?->toDateTimeString(),
+            $order->fresh()->submitted_at?->toDateTimeString(),
+        );
     }
 
     #[Test]
     public function user_cannot_delete_submitted_order_item(): void
     {
-        [$user, , $orderItem] = $this->createSubmittedOrderItem();
+        [$user, $order, $orderItem] = $this->createSubmittedOrderItem();
+        $submittedAt = $order->submitted_at;
 
         Sanctum::actingAs($user);
 
         $this->deleteJson("/api/my-order/items/{$orderItem->id}")
-            ->assertUnprocessable();
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Submitted orders cannot be changed.');
 
         $this->assertDatabaseHas('order_items', [
             'id' => $orderItem->id,
         ]);
+        $this->assertSame(
+            $submittedAt?->toDateTimeString(),
+            $order->fresh()->submitted_at?->toDateTimeString(),
+        );
     }
 
     #[Test]

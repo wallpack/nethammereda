@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use App\Exceptions\OrderCannotBeChangedByUserException;
+use App\Exceptions\SubmittedOrderCannotBeChangedException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -43,6 +45,34 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === OrderStatus::Draft;
+    }
+
+    public function isSubmitted(): bool
+    {
+        return $this->status === OrderStatus::Submitted;
+    }
+
+    public function canBeChangedByUser(): bool
+    {
+        return $this->isDraft();
+    }
+
+    public function ensureCanBeChangedByUser(): void
+    {
+        if ($this->canBeChangedByUser()) {
+            return;
+        }
+
+        if ($this->isSubmitted()) {
+            throw SubmittedOrderCannotBeChangedException::forOrder($this);
+        }
+
+        throw OrderCannotBeChangedByUserException::forNonDraftOrder();
     }
 
     public function recalculateTotal(): void
