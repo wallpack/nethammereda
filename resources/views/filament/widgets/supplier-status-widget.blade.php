@@ -26,7 +26,7 @@
                 <dd>{{ $sentBy }}</dd>
             </div>
             <div>
-                <dt>Строк в snapshot</dt>
+                <dt>Строк в снимке</dt>
                 <dd>{{ $rowsCount }}</dd>
             </div>
             <div>
@@ -42,6 +42,10 @@
         <div class="nh-admin-dashboard-card__footer">
             <x-filament::button tag="a" :href="$cycleUrl" color="gray" outlined icon="heroicon-m-arrow-top-right-on-square">
                 Перейти к циклам
+            </x-filament::button>
+
+            <x-filament::button tag="a" :href="$lastExportUrl ?? $historyUrl" color="gray" outlined icon="heroicon-m-paper-airplane">
+                Открыть историю отправок
             </x-filament::button>
         </div>
     </section>

@@ -91,7 +91,7 @@ class OrderCyclesTable
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Отправить поставщику')
-                    ->modalDescription('Будет создан snapshot итогового заказа и цикл получит статус «Отправлен поставщику». CSV можно скачать отдельным действием.')
+                    ->modalDescription('Будет создан снимок итогового заказа и цикл получит статус «Отправлен поставщику». CSV можно скачать отдельным действием.')
                     ->modalSubmitActionLabel('Отправить')
                     ->visible(fn (OrderCycle $record): bool => $record->status === OrderCycleStatus::Closed)
                     ->action(function (OrderCycle $record): void {

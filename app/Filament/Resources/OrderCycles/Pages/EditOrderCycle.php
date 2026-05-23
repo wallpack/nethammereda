@@ -5,7 +5,9 @@ namespace App\Filament\Resources\OrderCycles\Pages;
 use App\Filament\Resources\Concerns\HasCleanResourceBreadcrumbs;
 use App\Filament\Resources\OrderCycles\Actions\MarkOrderCycleDeliveredAction;
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
+use App\Filament\Resources\SupplierOrderExports\SupplierOrderExportResource;
 use Carbon\Carbon;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -22,6 +24,18 @@ class EditOrderCycle extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('supplierExports')
+                ->label('Отправки поставщику')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('gray')
+                ->url(fn (): string => SupplierOrderExportResource::getUrl('index', [
+                    'filters' => [
+                        'order_cycle_id' => [
+                            'value' => $this->getRecord()->getKey(),
+                        ],
+                    ],
+                ]))
+                ->visible(fn (): bool => $this->getRecord()->supplierOrderExports()->exists()),
             MarkOrderCycleDeliveredAction::make(),
             DeleteAction::make()
                 ->label('Удалить'),

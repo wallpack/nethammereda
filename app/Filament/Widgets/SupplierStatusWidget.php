@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Enums\OrderCycleStatus;
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
+use App\Filament\Resources\SupplierOrderExports\SupplierOrderExportResource;
 use App\Filament\Support\AdminDashboard;
 use App\Models\SupplierOrderExport;
 use Filament\Widgets\Widget;
@@ -42,6 +43,8 @@ class SupplierStatusWidget extends Widget
             'totalPrice' => AdminDashboard::money($export?->total_price),
             'deliveryPending' => $cycle?->status === OrderCycleStatus::SentToSupplier,
             'cycleUrl' => $cycle ? OrderCycleResource::getUrl('edit', ['record' => $cycle]) : OrderCycleResource::getUrl('index'),
+            'historyUrl' => SupplierOrderExportResource::getUrl('index'),
+            'lastExportUrl' => $export ? SupplierOrderExportResource::getUrl('view', ['record' => $export]) : null,
         ];
     }
 }

@@ -110,6 +110,38 @@ class SupplierOrderSendWorkflowTest extends TestCase
     }
 
     #[Test]
+    public function supplier_order_snapshot_excludes_cancelled_orders_and_cancelled_items(): void
+    {
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $admin = User::factory()->create();
+        $this->createOrderItem($cycle, OrderStatus::Submitted, title: 'Cutlet', quantity: 2, price: 150);
+        $this->createOrderItem($cycle, OrderStatus::Cancelled, title: 'Cancelled Order Soup', quantity: 3, price: 120);
+        $this->createOrderItem(
+            $cycle,
+            OrderStatus::Submitted,
+            OrderItemStatus::Cancelled,
+            title: 'Cancelled Item Salad',
+            quantity: 4,
+            price: 90,
+        );
+
+        $export = app(SupplierOrderExportService::class)->sendToSupplier($cycle, $admin);
+
+        $this->assertEquals([
+            [
+                'title' => 'Cutlet',
+                'quantity' => 2,
+                'total_price' => 300.0,
+            ],
+        ], $export->snapshot_json['rows']);
+        $this->assertEquals([
+            'rows_count' => 1,
+            'total_quantity' => 2,
+            'total_price' => 300.0,
+        ], $export->snapshot_json['totals']);
+    }
+
+    #[Test]
     public function sent_timestamp_is_not_overwritten_without_repeat_action(): void
     {
         $cycle = $this->createCycle(OrderCycleStatus::Closed);

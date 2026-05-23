@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
+use App\Filament\Resources\SupplierOrderExports\SupplierOrderExportResource;
 use App\Filament\Support\AdminDashboard;
 use App\Models\OrderCycle;
 use App\Models\SupplierOrderExport;
@@ -40,7 +41,7 @@ class RecentAdminActivityWidget extends Widget
                 'description' => "{$export->rows_count} строк, {$export->total_quantity} порций, ".AdminDashboard::money($export->total_price),
                 'actor' => $export->exportedBy?->name ?? 'Администратор не указан',
                 'happened_at' => $export->exported_at,
-                'url' => $export->orderCycle ? OrderCycleResource::getUrl('edit', ['record' => $export->orderCycle]) : null,
+                'url' => SupplierOrderExportResource::getUrl('view', ['record' => $export]),
             ]);
 
         $deliveries = OrderCycle::query()

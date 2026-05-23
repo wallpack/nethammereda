@@ -109,4 +109,40 @@ class SupplierOrderExportService
         return (float) $this->rowsForCycle($cycle)
             ->sum(fn (OrderItem $row): float => (float) $row->total_sum);
     }
+
+    public function csvForExport(SupplierOrderExport $export): string
+    {
+        $handle = fopen('php://temp', 'wb+');
+
+        if ($handle === false) {
+            return '';
+        }
+
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, ['Блюдо', 'Категория', 'Количество', 'Цена', 'Сумма', 'Комментарий'], ';');
+
+        foreach ($export->snapshotRows() as $row) {
+            fputcsv($handle, [
+                $this->escapeCsvCell($row['title']),
+                $this->escapeCsvCell((string) ($row['category'] ?? '')),
+                $row['quantity'],
+                number_format($row['unit_price'], 2, '.', ''),
+                number_format($row['total_price'], 2, '.', ''),
+                $this->escapeCsvCell((string) ($row['comment'] ?? '')),
+            ], ';');
+        }
+
+        rewind($handle);
+        $contents = stream_get_contents($handle);
+        fclose($handle);
+
+        return $contents === false ? '' : $contents;
+    }
+
+    private function escapeCsvCell(string $value): string
+    {
+        return preg_match('/^[=+\-@]/', ltrim($value)) === 1
+            ? "'{$value}"
+            : $value;
+    }
 }

@@ -72,6 +72,28 @@ class SupplierOrderExportServiceTest extends TestCase
         $this->assertEquals(100.0, $service->totalForCycle($cycle));
     }
 
+    #[Test]
+    public function supplier_order_csv_is_built_from_stored_snapshot_and_escapes_formula_cells(): void
+    {
+        $cycle = $this->createCycle();
+        $orderItem = $this->createOrderItem($cycle, OrderStatus::Submitted, title: '=Formula Soup', quantity: 2, price: 120);
+        $export = app(SupplierOrderExportService::class)->sendToSupplier($cycle, User::factory()->create());
+
+        $orderItem->forceFill([
+            'title_snapshot' => 'Changed Soup',
+            'quantity' => 9,
+            'price_snapshot' => 999,
+        ])->save();
+
+        $csv = app(SupplierOrderExportService::class)->csvForExport($export->fresh());
+
+        $this->assertStringContainsString("'=Formula Soup", $csv);
+        $this->assertStringContainsString('2', $csv);
+        $this->assertStringContainsString('240.00', $csv);
+        $this->assertStringNotContainsString('Changed Soup', $csv);
+        $this->assertStringNotContainsString('8991.00', $csv);
+    }
+
     private function createCycle(): OrderCycle
     {
         return OrderCycle::query()->create([

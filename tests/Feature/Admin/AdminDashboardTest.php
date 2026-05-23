@@ -61,7 +61,7 @@ class AdminDashboardTest extends TestCase
         Livewire::test(SupplierStatusWidget::class)
             ->assertSee('Доставка ожидает отметки')
             ->assertSee('После фактической доставки нажмите')
-            ->assertSee('Строк в snapshot')
+            ->assertSee('Строк в снимке')
             ->assertSee('1');
     }
 
