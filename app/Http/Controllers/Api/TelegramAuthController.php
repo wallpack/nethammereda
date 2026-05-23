@@ -46,14 +46,24 @@ class TelegramAuthController extends Controller
             $name = $telegramUser['username'] ?? "telegram_{$telegramId}";
         }
 
-        $user = User::query()->updateOrCreate(
-            ['telegram_id' => $telegramId],
-            [
+        $user = User::query()->where('telegram_id', $telegramId)->first();
+
+        if ($user !== null && ! $user->is_active) {
+            return response()->json([
+                'message' => 'Пользователь деактивирован.',
+            ], 403);
+        }
+
+        if ($user === null) {
+            $user = User::query()->create([
+                'telegram_id' => $telegramId,
                 'name' => $name,
                 'is_active' => true,
                 'role' => UserRole::User,
-            ],
-        );
+            ]);
+        } else {
+            $user->update(['name' => $name]);
+        }
 
         $user->tokens()->where('name', 'telegram-webapp')->delete();
         $token = $user->createToken('telegram-webapp')->plainTextToken;

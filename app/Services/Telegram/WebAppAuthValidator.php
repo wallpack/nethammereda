@@ -35,9 +35,16 @@ class WebAppAuthValidator
             return null;
         }
 
-        $maxAge = (int) config('services.telegram.webapp_auth_ttl', 86400);
-        $authDate = isset($payload['auth_date']) ? (int) $payload['auth_date'] : 0;
-        if ($authDate > 0 && (time() - $authDate) > $maxAge) {
+        $authDateValue = $payload['auth_date'] ?? null;
+        if (! is_string($authDateValue) || ! ctype_digit($authDateValue)) {
+            return null;
+        }
+
+        $authDate = (int) $authDateValue;
+        $now = time();
+        $maxAge = max(1, (int) config('services.telegram.webapp_auth_ttl', 86400));
+
+        if ($authDate <= 0 || $authDate > ($now + 30) || ($now - $authDate) > $maxAge) {
             return null;
         }
 

@@ -14,11 +14,12 @@ class FridgeSummaryFormatter
     public function formatActive(Collection $items): string
     {
         if ($items->isEmpty()) {
-            return 'Ваш холодильник пока пуст.';
+            return 'В холодильнике пока ничего нет.';
         }
 
         $lines = $items
-            ->map(fn (FridgeItem $item) => "- {$item->title_snapshot} (остаток: {$item->quantity_remaining}/{$item->quantity_total})")
+            ->map(fn (FridgeItem $item) => "- {$item->title_snapshot}: осталось порций {$item->quantity_remaining}; ".
+                "Годен до: {$this->expiryLabel($item)}; Статус: {$item->status->label()}.")
             ->all();
 
         return implode("\n", $lines);
@@ -30,24 +31,31 @@ class FridgeSummaryFormatter
     public function formatHistory(Collection $items): string
     {
         if ($items->isEmpty()) {
-            return 'История пока пустая.';
+            return 'Истории пока нет.';
         }
 
         $lines = $items
-            ->map(fn (FridgeItem $item) => "- {$item->title_snapshot} ({$this->statusLabel($item->status)})")
+            ->map(fn (FridgeItem $item) => "- {$item->title_snapshot}: {$item->status->label()}; ".
+                "дата: {$this->actionDateLabel($item)}.")
             ->all();
 
         return implode("\n", $lines);
     }
 
-    private function statusLabel(FridgeItemStatus $status): string
+    private function expiryLabel(FridgeItem $item): string
     {
-        return match ($status) {
-            FridgeItemStatus::InFridge => 'в холодильнике',
-            FridgeItemStatus::Eaten => 'съедено',
-            FridgeItemStatus::Discarded => 'выброшено',
-            FridgeItemStatus::Expired => 'просрочено',
+        return $item->expires_at?->format('d.m.Y H:i') ?? 'не указан';
+    }
+
+    private function actionDateLabel(FridgeItem $item): string
+    {
+        $date = match ($item->status) {
+            FridgeItemStatus::Eaten => $item->eaten_at,
+            FridgeItemStatus::Discarded => $item->discarded_at,
+            FridgeItemStatus::Expired => $item->expires_at ?? $item->updated_at,
+            FridgeItemStatus::InFridge => $item->updated_at,
         };
+
+        return $date?->format('d.m.Y H:i') ?? 'не указана';
     }
 }
-

@@ -17,11 +17,10 @@ class VerifyTelegramWebhookSecret
     {
         $expected = (string) config('services.telegram.webhook_secret');
 
-        if ($expected !== '') {
-            $provided = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
+        abort_if($expected === '', 503, 'Telegram webhook secret is not configured');
 
-            abort_unless(hash_equals($expected, $provided), 403, 'Invalid Telegram webhook secret');
-        }
+        $provided = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
+        abort_unless(hash_equals($expected, $provided), 403, 'Invalid Telegram webhook secret');
 
         return $next($request);
     }

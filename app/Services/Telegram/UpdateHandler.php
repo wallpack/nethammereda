@@ -3,7 +3,6 @@
 namespace App\Services\Telegram;
 
 use App\Enums\FridgeItemStatus;
-use App\Enums\UserRole;
 use App\Models\FridgeItem;
 use App\Models\Order;
 use App\Models\OrderCycle;
@@ -18,6 +17,7 @@ class UpdateHandler
 {
     public function __construct(
         private readonly BotClient $botClient,
+        private readonly KeyboardBuilder $keyboardBuilder,
         private readonly CurrentOrderCycleResolver $resolver,
         private readonly OrderSummaryFormatter $summaryFormatter,
         private readonly FridgeSummaryFormatter $fridgeSummaryFormatter,
@@ -49,11 +49,6 @@ class UpdateHandler
             return;
         }
 
-        $user = $this->resolveTelegramUser($from);
-        if ($user === null) {
-            return;
-        }
-
         $command = $this->extractCommand($text, $message);
         $aliasCommand = $this->extractAliasCommand($text);
 
@@ -61,25 +56,14 @@ class UpdateHandler
             $command = $aliasCommand;
         }
 
-        if ($command !== '') {
-            Log::info('Telegram command received', [
-                'telegram_id' => $user->telegram_id,
-                'chat_id' => $chatId,
-                'command' => $command,
-            ]);
+        if ($command === '/start') {
+            $this->handleStartCommand($chatId, $this->findTelegramUser($from));
+
+            return;
         }
 
-        if ($command === '/start') {
-            $this->botClient->sendMessage(
-                $chatId,
-                "Привет! Это бот корпоративных обедов.\n\n".
-                "Команды:\n".
-                "/menu — открыть каталог\n".
-                "/my_order — мой текущий заказ\n".
-                "/status — статус текущей недели\n".
-                "/fridge — мой холодильник\n".
-                "/history — история холодильника",
-            );
+        if ($command === '/help') {
+            $this->handleHelpCommand($chatId);
 
             return;
         }
@@ -90,14 +74,29 @@ class UpdateHandler
             return;
         }
 
-        if ($command === '/my_order') {
-            $this->handleMyOrderCommand($chatId, $user);
+        if ($command === '/status') {
+            $this->handleStatusCommand($chatId);
 
             return;
         }
 
-        if ($command === '/status') {
-            $this->handleStatusCommand($chatId);
+        $user = $this->findTelegramUser($from);
+        if ($user === null) {
+            $this->sendLoginRequired($chatId);
+
+            return;
+        }
+
+        if ($command !== '') {
+            Log::info('Telegram command received', [
+                'telegram_id' => $user->telegram_id,
+                'chat_id' => $chatId,
+                'command' => $command,
+            ]);
+        }
+
+        if (in_array($command, ['/order', '/my_order'], true)) {
+            $this->handleMyOrderCommand($chatId, $user);
 
             return;
         }
@@ -117,7 +116,7 @@ class UpdateHandler
         if ($command !== '') {
             $this->botClient->sendMessage(
                 $chatId,
-                'Неизвестная команда. Используйте /menu, /my_order, /status, /fridge или /history.',
+                'Неизвестная команда. Используйте /menu, /order (/my_order), /status, /fridge, /history или /help.',
             );
         }
     }
@@ -137,9 +136,9 @@ class UpdateHandler
             return;
         }
 
-        $user = $this->resolveTelegramUser($from);
+        $user = $this->findTelegramUser($from);
         if ($user === null) {
-            $this->botClient->answerCallbackQuery($callbackId, 'Пользователь не найден.');
+            $this->botClient->answerCallbackQuery($callbackId, 'Сначала войдите через каталог.');
 
             return;
         }
@@ -160,7 +159,13 @@ class UpdateHandler
             ->first();
 
         if ($fridgeItem === null) {
-            $this->botClient->answerCallbackQuery($callbackId, 'Позиция не найдена.');
+            $this->botClient->answerCallbackQuery($callbackId, 'Эта позиция недоступна.');
+
+            return;
+        }
+
+        if ($fridgeItem->status !== FridgeItemStatus::InFridge || $fridgeItem->quantity_remaining <= 0) {
+            $this->botClient->answerCallbackQuery($callbackId, 'Эту позицию уже нельзя изменить.');
 
             return;
         }
@@ -192,19 +197,42 @@ class UpdateHandler
 
     private function handleMenuCommand(int|string $chatId): void
     {
-        $webappUrl = (string) config('services.telegram.webapp_url');
+        $cycleSummary = $this->menuCycleSummary();
+        $webappUrl = trim((string) config('services.telegram.webapp_url'));
+        $secureWebAppUrl = $this->keyboardBuilder->secureWebAppUrl();
 
-        if ($webappUrl === '') {
-            $this->botClient->sendMessage($chatId, 'Не настроен TELEGRAM_WEBAPP_URL в .env');
+        if ($secureWebAppUrl !== null) {
+            $this->botClient->sendMessage(
+                $chatId,
+                "{$cycleSummary}\n\nОткройте каталог кнопкой ниже.\n".
+                "Если кнопка не открылась, используйте ссылку: {$secureWebAppUrl}",
+                [
+                    'inline_keyboard' => [
+                        [
+                            [
+                                'text' => 'Открыть каталог',
+                                'web_app' => ['url' => $secureWebAppUrl],
+                            ],
+                        ],
+                        [
+                            [
+                                'text' => 'Открыть ссылкой',
+                                'url' => $secureWebAppUrl,
+                            ],
+                        ],
+                    ],
+                ],
+            );
 
             return;
         }
 
-        if (! str_starts_with($webappUrl, 'https://')) {
+        if (filter_var($webappUrl, FILTER_VALIDATE_URL) !== false
+            && in_array(parse_url($webappUrl, PHP_URL_SCHEME), ['http', 'https'], true)) {
             $this->botClient->sendMessage(
                 $chatId,
-                "Каталог: {$webappUrl}\n\n".
-                'Для кнопки WebApp нужен HTTPS URL. Для локальной разработки используйте ссылку напрямую.',
+                "{$cycleSummary}\n\nКаталог: {$webappUrl}\n\n".
+                'Откройте ссылку напрямую. Кнопка внутри Telegram доступна только для защищенного HTTPS-адреса.',
             );
 
             return;
@@ -212,24 +240,65 @@ class UpdateHandler
 
         $this->botClient->sendMessage(
             $chatId,
-            "Откройте каталог кнопкой ниже.\n\n".
-            "Если WebApp не открылся, используйте прямую ссылку: {$webappUrl}",
-            [
-                'inline_keyboard' => [
-                    [
-                        [
-                            'text' => 'Открыть каталог',
-                            'web_app' => ['url' => $webappUrl],
-                        ],
-                    ],
-                    [
-                        [
-                            'text' => 'Открыть ссылкой',
-                            'url' => $webappUrl,
-                        ],
-                    ],
-                ],
-            ],
+            "{$cycleSummary}\n\nКаталог пока нельзя открыть из Telegram. Попробуйте позже.",
+        );
+    }
+
+    private function menuCycleSummary(): string
+    {
+        $cycle = $this->resolver->resolve();
+
+        if ($cycle === null) {
+            return 'Сейчас нет активной недели заказа.';
+        }
+
+        $state = match ($cycle->status->value) {
+            'open' => $cycle->isOpenForOrdering() ? 'Заказ открыт.' : 'Прием заказов завершен.',
+            'closed' => 'Прием заказов завершен.',
+            'sent_to_supplier' => 'Заказ отправлен поставщику. Ожидается доставка.',
+            'delivered' => 'Доставка отмечена, проверьте холодильник.',
+            default => $this->cycleStatusLabel($cycle).'.',
+        };
+
+        return "Неделя: {$cycle->title}\n{$state}\nДедлайн: {$cycle->closes_at->format('d.m.Y H:i')}";
+    }
+
+    private function handleStartCommand(int|string $chatId, ?User $user): void
+    {
+        $text = "NethammerEda: бот корпоративных обедов.\n\n".
+            "Здесь можно открыть каталог, посмотреть заказ и проверить холодильник.";
+
+        if ($user === null) {
+            $text .= "\n\nЧтобы увидеть личные данные, откройте каталог и войдите через Telegram. ".
+                'Если у вас уже есть рабочий аккаунт, попросите администратора привязать Telegram.';
+        }
+
+        $this->botClient->sendMessage($chatId, $text, $this->keyboardBuilder->navigation());
+    }
+
+    private function handleHelpCommand(int|string $chatId): void
+    {
+        $this->botClient->sendMessage(
+            $chatId,
+            "Как пользоваться NethammerEda:\n\n".
+            "/menu: открыть каталог и выбрать блюда.\n".
+            "/order: посмотреть текущий заказ. Команда /my_order тоже работает.\n".
+            "/fridge: открыть холодильник с доставленной едой и отметить, что вы съели или выбросили.\n".
+            "/history: посмотреть съеденные, выброшенные и просроченные позиции.\n\n".
+            "Открывайте каталог кнопкой ниже: внутри можно войти через Telegram и оформить заказ.\n\n".
+            "Если заказ не отображается, проверьте, что вы вошли через Telegram в каталоге, ".
+            'или попросите администратора привязать ваш аккаунт.',
+            $this->keyboardBuilder->navigation(),
+        );
+    }
+
+    private function sendLoginRequired(int|string $chatId): void
+    {
+        $this->botClient->sendMessage(
+            $chatId,
+            "Чтобы увидеть свой заказ и холодильник, откройте каталог и войдите через Telegram.\n".
+            'Если у вас уже есть рабочий аккаунт, попросите администратора привязать Telegram.',
+            $this->keyboardBuilder->navigation(),
         );
     }
 
@@ -237,7 +306,11 @@ class UpdateHandler
     {
         $cycle = $this->resolver->resolve();
         if ($cycle === null) {
-            $this->botClient->sendMessage($chatId, 'Сейчас нет активной недели заказа.');
+            $this->botClient->sendMessage(
+                $chatId,
+                'Сейчас нет активной недели заказа.',
+                $this->keyboardBuilder->navigation(),
+            );
 
             return;
         }
@@ -249,14 +322,24 @@ class UpdateHandler
             ->first();
 
         if ($order === null) {
-            $this->botClient->sendMessage($chatId, "У вас пока нет заказа на неделю «{$cycle->title}».");
+            $this->botClient->sendMessage(
+                $chatId,
+                "У вас пока нет заказа на неделю «{$cycle->title}».\n".
+                'Откройте каталог, чтобы выбрать блюда.',
+                $this->keyboardBuilder->webAppAction('Открыть каталог')
+                    ?? $this->keyboardBuilder->navigation(),
+            );
 
             return;
         }
 
         $this->botClient->sendMessage(
             $chatId,
-            "Неделя: {$cycle->title}\n".$this->summaryFormatter->format($order),
+            "Неделя: {$cycle->title}\n".
+            "Статус: {$this->orderStatusLabel($order, $cycle)}\n\n".
+            $this->summaryFormatter->format($order),
+            $this->keyboardBuilder->webAppAction('Открыть мой заказ')
+                ?? $this->keyboardBuilder->navigation(),
         );
     }
 
@@ -264,16 +347,32 @@ class UpdateHandler
     {
         $cycle = $this->resolver->resolve();
         if ($cycle === null) {
-            $this->botClient->sendMessage($chatId, 'Сейчас нет активной недели заказа.');
+            $this->botClient->sendMessage(
+                $chatId,
+                'Сейчас нет активной недели заказа.',
+                $this->keyboardBuilder->navigation(),
+            );
 
             return;
         }
 
+        [$status, $availability] = match ($cycle->status->value) {
+            'open' => $cycle->isOpenForOrdering()
+                ? ['Заказ открыт', 'Заказывать еще можно.']
+                : ['Прием заказов завершен', 'Дедлайн прошел, заказывать уже нельзя.'],
+            'closed' => ['Прием заказов завершен', 'Цикл закрыт, заказывать уже нельзя.'],
+            'sent_to_supplier' => ['Заказ отправлен поставщику', 'Заказывать уже нельзя.'],
+            'delivered' => ['Доставка отмечена, проверьте холодильник', 'Заказывать уже нельзя.'],
+            default => [$this->cycleStatusLabel($cycle), 'Заказывать сейчас нельзя.'],
+        };
+
         $this->botClient->sendMessage(
             $chatId,
             "Текущая неделя: {$cycle->title}\n".
-            "Статус: {$this->cycleStatusLabel($cycle)}\n".
-            "Дедлайн: {$cycle->closes_at->format('d.m.Y H:i')}",
+            "Статус: {$status}\n".
+            "Дедлайн: {$cycle->closes_at->format('d.m.Y H:i')}\n".
+            $availability,
+            $this->keyboardBuilder->navigation(),
         );
     }
 
@@ -288,12 +387,19 @@ class UpdateHandler
             ->limit(20)
             ->get();
 
-        $this->botClient->sendMessage($chatId, "Ваш холодильник:\n".$this->fridgeSummaryFormatter->formatActive($items));
+        $this->botClient->sendMessage(
+            $chatId,
+            "Ваш холодильник:\n".$this->fridgeSummaryFormatter->formatActive($items),
+            $this->keyboardBuilder->navigation(),
+        );
 
         foreach ($items as $item) {
             $this->botClient->sendMessage(
                 $chatId,
-                "{$item->title_snapshot}\nОстаток: {$item->quantity_remaining}/{$item->quantity_total}",
+                "{$item->title_snapshot}\n".
+                "Осталось порций: {$item->quantity_remaining}\n".
+                'Годен до: '.($item->expires_at?->format('d.m.Y H:i') ?? 'не указан')."\n".
+                "Статус: {$item->status->label()}",
                 [
                     'inline_keyboard' => [
                         [
@@ -332,13 +438,17 @@ class UpdateHandler
             ->limit(20)
             ->get();
 
-        $this->botClient->sendMessage($chatId, "История холодильника:\n".$this->fridgeSummaryFormatter->formatHistory($items));
+        $this->botClient->sendMessage(
+            $chatId,
+            "История холодильника:\n".$this->fridgeSummaryFormatter->formatHistory($items),
+            $this->keyboardBuilder->navigation(),
+        );
     }
 
     /**
      * @param  array<string, mixed>  $from
      */
-    private function resolveTelegramUser(array $from): ?User
+    private function findTelegramUser(array $from): ?User
     {
         $telegramId = (string) ($from['id'] ?? '');
 
@@ -346,23 +456,10 @@ class UpdateHandler
             return null;
         }
 
-        $name = trim(implode(' ', array_filter([
-            $from['first_name'] ?? null,
-            $from['last_name'] ?? null,
-        ])));
-
-        if ($name === '') {
-            $name = $from['username'] ?? "telegram_{$telegramId}";
-        }
-
-        return User::query()->updateOrCreate(
-            ['telegram_id' => $telegramId],
-            [
-                'name' => $name,
-                'is_active' => true,
-                'role' => UserRole::User,
-            ],
-        );
+        return User::query()
+            ->where('telegram_id', $telegramId)
+            ->where('is_active', true)
+            ->first();
     }
 
     /**
@@ -409,11 +506,12 @@ class UpdateHandler
         $normalized = mb_strtolower(trim($text));
 
         return match ($normalized) {
-            'меню', 'каталог', 'menu' => '/menu',
-            'мой заказ', 'заказ', 'my order' => '/my_order',
+            'меню', 'каталог', 'открыть каталог', 'menu' => '/menu',
+            'мой заказ', 'заказ', 'my order' => '/order',
             'статус', 'status' => '/status',
             'холодильник', 'fridge' => '/fridge',
             'история', 'history' => '/history',
+            'помощь', 'help' => '/help',
             default => null,
         };
     }
@@ -431,6 +529,16 @@ class UpdateHandler
         };
     }
 
+    private function orderStatusLabel(Order $order, OrderCycle $cycle): string
+    {
+        return match ($cycle->status->value) {
+            'closed' => 'Закрыт',
+            'sent_to_supplier' => 'Отправлен поставщику',
+            'delivered' => 'Доставлен',
+            default => $order->status->label(),
+        };
+    }
+
     private function fridgeStatusLabel(FridgeItemStatus $status): string
     {
         return match ($status) {
@@ -441,4 +549,3 @@ class UpdateHandler
         };
     }
 }
-

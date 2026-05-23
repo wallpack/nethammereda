@@ -7,6 +7,7 @@ use App\Services\FridgeItemService;
 use App\Services\FridgeSummaryFormatter;
 use App\Services\OrderSummaryFormatter;
 use App\Services\Telegram\BotClient;
+use App\Services\Telegram\KeyboardBuilder;
 use App\Services\Telegram\UpdateHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -43,6 +44,7 @@ class UpdateHandlerTest extends TestCase
 
         $handler = new UpdateHandler(
             $bot,
+            app(KeyboardBuilder::class),
             $resolver,
             $formatter,
             $fridgeSummaryFormatter,
@@ -98,6 +100,7 @@ class UpdateHandlerTest extends TestCase
 
         $handler = new UpdateHandler(
             $bot,
+            app(KeyboardBuilder::class),
             $resolver,
             $formatter,
             $fridgeSummaryFormatter,
@@ -120,4 +123,3 @@ class UpdateHandlerTest extends TestCase
         $this->assertNull($message['reply_markup']);
     }
 }
-

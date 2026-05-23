@@ -75,6 +75,9 @@ TELEGRAM_WEBAPP_AUTH_TTL=86400
 TELEGRAM_VERIFY_SSL=false
 ```
 
+- Для webhook задайте `TELEGRAM_WEBHOOK_SECRET`: без него `/api/telegram/webhook` намеренно отвечает `503`.
+- При локальной работе через `php artisan telegram:poll` обновления забираются напрямую у Telegram по bot token, webhook secret для этого режима не нужен.
+
 ## Важно про белый экран
 - Telegram WebApp должен открываться по публичному HTTPS.
 - Если туннель умер, поднимите новый и обновите `TELEGRAM_WEBAPP_URL`.

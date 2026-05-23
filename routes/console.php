@@ -46,6 +46,12 @@ Artisan::command('telegram:webhook:set {url}', function (string $url) {
         return 1;
     }
 
+    if ($secret === '') {
+        $this->warn('TELEGRAM_WEBHOOK_SECRET не задан. Webhook не будет установлен.');
+
+        return 1;
+    }
+
     if (! str_starts_with($url, 'https://')) {
         $this->warn('Telegram webhook принимает только публичный HTTPS URL.');
 
