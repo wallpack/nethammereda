@@ -26,6 +26,18 @@ class OrderCycleForm
                     ->label('Статус')
                     ->required()
                     ->options(fn (?OrderCycle $record = null): array => self::statusOptions($record)),
+                DateTimePicker::make('delivered_at')
+                    ->label('Дата доставки')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->visible(fn (?OrderCycle $record = null): bool => $record?->delivered_at !== null),
+                Select::make('delivered_by')
+                    ->label('Кто отметил доставку')
+                    ->relationship('deliveredBy', 'name')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->placeholder('-')
+                    ->visible(fn (?OrderCycle $record = null): bool => $record?->delivered_by !== null),
             ]);
     }
 
@@ -46,6 +58,10 @@ class OrderCycleForm
 
         foreach (OrderCycleStatus::cases() as $status) {
             if ($current === OrderCycleStatus::Closed && $status === OrderCycleStatus::SentToSupplier) {
+                continue;
+            }
+
+            if ($current === OrderCycleStatus::SentToSupplier && $status === OrderCycleStatus::Delivered) {
                 continue;
             }
 

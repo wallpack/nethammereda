@@ -20,6 +20,8 @@ class OrderCycle extends Model
         'status',
         'sent_to_supplier_at',
         'sent_to_supplier_by',
+        'delivered_at',
+        'delivered_by',
     ];
 
     protected function casts(): array
@@ -29,6 +31,7 @@ class OrderCycle extends Model
             'closes_at' => 'datetime',
             'status' => OrderCycleStatus::class,
             'sent_to_supplier_at' => 'datetime',
+            'delivered_at' => 'datetime',
         ];
     }
 
@@ -45,6 +48,11 @@ class OrderCycle extends Model
     public function sentToSupplierBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sent_to_supplier_by');
+    }
+
+    public function deliveredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'delivered_by');
     }
 
     public function canTransitionTo(OrderCycleStatus $status): bool

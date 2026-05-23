@@ -14,6 +14,7 @@ use App\Models\Order;
 use App\Models\OrderCycle;
 use App\Models\OrderItem;
 use App\Models\User;
+use App\Services\DeliveryToFridgeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\Test;
@@ -41,18 +42,15 @@ class FridgeItemFlowTest extends TestCase
     }
 
     #[Test]
-    public function repeated_delivered_transition_does_not_create_duplicates(): void
+    public function repeated_delivered_sync_does_not_create_duplicates(): void
     {
         [$cycle] = $this->createOrderItemForCycle();
 
         $cycle->status = OrderCycleStatus::Delivered;
         $cycle->save();
 
-        $cycle->status = OrderCycleStatus::Closed;
-        $cycle->save();
-
-        $cycle->status = OrderCycleStatus::Delivered;
-        $cycle->save();
+        $cycle->fresh()->save();
+        app(DeliveryToFridgeService::class)->syncFromDeliveredCycle($cycle->fresh());
 
         $this->assertSame(1, FridgeItem::query()->count());
     }
@@ -294,7 +292,7 @@ class FridgeItemFlowTest extends TestCase
             'title' => 'Неделя 01.01.2026',
             'starts_at' => now()->startOfWeek(),
             'closes_at' => now()->startOfWeek()->addDays(4)->setTime(12, 0),
-            'status' => OrderCycleStatus::Open,
+            'status' => OrderCycleStatus::SentToSupplier,
         ]);
 
         $order = Order::query()->create([

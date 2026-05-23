@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\OrderCycles\Pages;
 
+use App\Filament\Resources\OrderCycles\Actions\MarkOrderCycleDeliveredAction;
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
 use Carbon\Carbon;
 use Filament\Actions\DeleteAction;
@@ -14,6 +15,7 @@ class EditOrderCycle extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            MarkOrderCycleDeliveredAction::make(),
             DeleteAction::make(),
         ];
     }

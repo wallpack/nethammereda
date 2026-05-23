@@ -4,6 +4,7 @@ namespace App\Filament\Resources\OrderCycles\Tables;
 
 use App\Enums\OrderCycleStatus;
 use App\Exceptions\SupplierOrderCannotBeSentException;
+use App\Filament\Resources\OrderCycles\Actions\MarkOrderCycleDeliveredAction;
 use App\Models\OrderCycle;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
@@ -47,6 +48,15 @@ class OrderCyclesTable
                     ->sortable(),
                 TextColumn::make('sentToSupplierBy.name')
                     ->label('Кто отправил')
+                    ->placeholder('-')
+                    ->sortable(),
+                TextColumn::make('delivered_at')
+                    ->label('Дата доставки')
+                    ->dateTime()
+                    ->placeholder('Не отмечена')
+                    ->sortable(),
+                TextColumn::make('deliveredBy.name')
+                    ->label('Кто отметил доставку')
                     ->placeholder('-')
                     ->sortable(),
                 TextColumn::make('orders_count')
@@ -100,6 +110,7 @@ class OrderCyclesTable
                             ->success()
                             ->send();
                     }),
+                MarkOrderCycleDeliveredAction::make(),
                 Action::make('exportCsv')
                     ->label('Экспорт CSV')
                     ->icon('heroicon-o-arrow-down-tray')
