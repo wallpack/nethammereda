@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\OrderCycles\Schemas;
 
 use App\Enums\OrderCycleStatus;
+use App\Models\OrderCycle;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -24,15 +25,50 @@ class OrderCycleForm
                 Select::make('status')
                     ->label('Статус')
                     ->required()
-                    ->options([
-                        OrderCycleStatus::Draft->value => 'Черновик',
-                        OrderCycleStatus::Open->value => 'Открыт',
-                        OrderCycleStatus::Closed->value => 'Закрыт',
-                        OrderCycleStatus::SentToSupplier->value => 'Отправлен поставщику',
-                        OrderCycleStatus::Delivered->value => 'Доставлен',
-                        OrderCycleStatus::Archived->value => 'Архив',
-                    ]),
+                    ->options(fn (?OrderCycle $record = null): array => self::statusOptions($record)),
             ]);
     }
-}
 
+    /**
+     * @return array<string, string>
+     */
+    private static function statusOptions(?OrderCycle $record): array
+    {
+        if (! $record?->exists) {
+            return self::labelsFor([
+                OrderCycleStatus::Draft,
+                OrderCycleStatus::Open,
+            ]);
+        }
+
+        $current = $record->status;
+        $statuses = [$current->value => $current];
+
+        foreach (OrderCycleStatus::cases() as $status) {
+            if ($current === OrderCycleStatus::Closed && $status === OrderCycleStatus::SentToSupplier) {
+                continue;
+            }
+
+            if ($current->canTransitionTo($status)) {
+                $statuses[$status->value] = $status;
+            }
+        }
+
+        return self::labelsFor(array_values($statuses));
+    }
+
+    /**
+     * @param  array<int, OrderCycleStatus>  $statuses
+     * @return array<string, string>
+     */
+    private static function labelsFor(array $statuses): array
+    {
+        $labels = [];
+
+        foreach ($statuses as $status) {
+            $labels[$status->value] = $status->label();
+        }
+
+        return $labels;
+    }
+}

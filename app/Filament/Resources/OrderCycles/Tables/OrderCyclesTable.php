@@ -2,13 +2,17 @@
 
 namespace App\Filament\Resources\OrderCycles\Tables;
 
+use App\Enums\OrderCycleStatus;
+use App\Exceptions\SupplierOrderCannotBeSentException;
 use App\Models\OrderCycle;
+use App\Models\User;
 use App\Services\SupplierOrderExportService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -25,15 +29,7 @@ class OrderCyclesTable
                     ->sortable(),
                 TextColumn::make('status')
                     ->label('Статус')
-                    ->formatStateUsing(fn (mixed $state): string => match ($state instanceof \BackedEnum ? $state->value : (string) $state) {
-                        'draft' => 'Черновик',
-                        'open' => 'Открыт',
-                        'closed' => 'Закрыт',
-                        'sent_to_supplier' => 'Отправлен поставщику',
-                        'delivered' => 'Доставлен',
-                        'archived' => 'Архив',
-                        default => $state,
-                    })
+                    ->formatStateUsing(fn (OrderCycleStatus $state): string => $state->label())
                     ->badge()
                     ->sortable(),
                 TextColumn::make('starts_at')
@@ -43,6 +39,15 @@ class OrderCyclesTable
                 TextColumn::make('closes_at')
                     ->label('Дедлайн')
                     ->dateTime()
+                    ->sortable(),
+                TextColumn::make('sent_to_supplier_at')
+                    ->label('Дата отправки')
+                    ->dateTime()
+                    ->placeholder('Не отправлен')
+                    ->sortable(),
+                TextColumn::make('sentToSupplierBy.name')
+                    ->label('Кто отправил')
+                    ->placeholder('-')
                     ->sortable(),
                 TextColumn::make('orders_count')
                     ->counts('orders')
@@ -59,17 +64,42 @@ class OrderCyclesTable
             ->filters([
                 SelectFilter::make('status')
                     ->label('Статус')
-                    ->options([
-                        'draft' => 'Черновик',
-                        'open' => 'Открыт',
-                        'closed' => 'Закрыт',
-                        'sent_to_supplier' => 'Отправлен поставщику',
-                        'delivered' => 'Доставлен',
-                        'archived' => 'Архив',
-                    ]),
+                    ->options(OrderCycleStatus::labels()),
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('sendToSupplier')
+                    ->label('Отправить поставщику')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Отправить поставщику')
+                    ->modalDescription('Будет создан snapshot итогового заказа и цикл получит статус «Отправлен поставщику». CSV можно скачать отдельным действием.')
+                    ->modalSubmitActionLabel('Отправить')
+                    ->visible(fn (OrderCycle $record): bool => $record->status === OrderCycleStatus::Closed)
+                    ->action(function (OrderCycle $record): void {
+                        try {
+                            $user = auth()->user();
+                            $export = app(SupplierOrderExportService::class)->sendToSupplier(
+                                $record,
+                                $user instanceof User ? $user : null,
+                            );
+                        } catch (SupplierOrderCannotBeSentException $exception) {
+                            Notification::make()
+                                ->title('Не удалось отправить поставщику')
+                                ->body($exception->getMessage())
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->title('Отправлен поставщику')
+                            ->body("Зафиксировано строк: {$export->rows_count}, порций: {$export->total_quantity}.")
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('exportCsv')
                     ->label('Экспорт CSV')
                     ->icon('heroicon-o-arrow-down-tray')
@@ -85,7 +115,7 @@ class OrderCyclesTable
                                 fputcsv($handle, ['Блюдо', 'Количество', 'Сумма'], ';');
                                 foreach ($rows as $row) {
                                     fputcsv($handle, [
-                                        $row->title_snapshot,
+                                        self::escapeCsvCell((string) $row->title_snapshot),
                                         (int) $row->quantity_sum,
                                         number_format((float) $row->total_sum, 2, '.', ''),
                                     ], ';');
@@ -103,5 +133,12 @@ class OrderCyclesTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    private static function escapeCsvCell(string $value): string
+    {
+        return preg_match('/^[=+\-@]/', ltrim($value)) === 1
+            ? "'{$value}"
+            : $value;
     }
 }
