@@ -23,6 +23,8 @@ class MenuItem extends Model
         'carbs',
         'price',
         'image_url',
+        'external_id',
+        'supplier_code',
         'is_active',
     ];
 

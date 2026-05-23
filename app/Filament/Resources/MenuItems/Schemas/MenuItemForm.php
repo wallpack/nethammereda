@@ -58,6 +58,12 @@ class MenuItemForm
                     ->label('Ссылка на изображение')
                     ->url()
                     ->maxLength(500),
+                TextInput::make('external_id')
+                    ->label('Внешний ID')
+                    ->maxLength(255),
+                TextInput::make('supplier_code')
+                    ->label('Код поставщика')
+                    ->maxLength(255),
                 Toggle::make('is_active')
                     ->label('Активно')
                     ->default(true),

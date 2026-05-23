@@ -49,6 +49,14 @@ class MenuItemsTable
                     ->label('У, г')
                     ->numeric(decimalPlaces: 1)
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('external_id')
+                    ->label('Внешний ID')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('supplier_code')
+                    ->label('Код поставщика')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_active')
                     ->label('Активно')
                     ->boolean()
