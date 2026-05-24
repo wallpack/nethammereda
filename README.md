@@ -45,9 +45,11 @@ copy .env.example .env
 php artisan key:generate
 ```
 
-3. БД и сиды:
+3. БД и безопасные демо-данные:
 ```bash
-php artisan migrate:fresh --seed
+php artisan migrate
+php artisan demo:reset
+php artisan storage:link
 ```
 
 4. Сборка фронта:
@@ -65,6 +67,26 @@ php artisan telegram:poll
 ## Демо-доступы
 - Admin: `admin@lunch.local` / `password`
 - User: `user@lunch.local` / `password`
+
+## Безопасная подготовка demo data
+
+Команда `php artisan db:seed` больше не является destructive reset и не удаляет существующие заказы, холодильник, циклы или меню. Для явной подготовки локального демо используйте:
+
+```bash
+php artisan demo:reset
+php artisan storage:link
+php artisan serve
+```
+
+`php artisan demo:reset` предупреждает об удалении demo data и требует подтверждение. В автоматизированном локальном/testing запуске можно передать `--force`. В окружениях, отличных от `local` и `testing`, destructive reset заблокирован, пока явно не задано `DEMO_RESET_ALLOWED=true`.
+
+Настройки текущего demo-cycle:
+
+```env
+LUNCH_BUSINESS_TIMEZONE=Asia/Yekaterinburg
+LUNCH_ORDER_DEADLINE_TIME=17:00
+DEMO_RESET_ALLOWED=false
+```
 
 ## Telegram env
 ```env
@@ -91,5 +113,6 @@ ssh -R 80:127.0.0.1:8000 nokey@localhost.run
 php artisan route:list
 php artisan telegram:webhook:info
 php artisan telegram:webhook:clear
+php artisan demo:reset
 php artisan test
 ```
