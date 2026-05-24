@@ -532,26 +532,31 @@ onMounted(async () => {
                     @change-quantity="changeQuantity"
                 />
 
-                <Card v-if="isAuthenticated" class="catalog-order-panel hidden min-h-0 overflow-y-auto rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm xl:sticky xl:top-24 xl:block xl:h-[calc(100dvh-7rem)] xl:max-h-[calc(100dvh-7rem)] xl:overscroll-contain">
+                <Card
+                    v-if="isAuthenticated"
+                    data-testid="desktop-order-panel"
+                    aria-label="Панель заказа"
+                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm xl:sticky xl:top-24 xl:block xl:h-[calc(100dvh-7rem)] xl:max-h-[calc(100dvh-7rem)]"
+                >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
                         <Tabs v-model="activeSidebarTab" class="flex h-full min-h-0 w-full flex-col">
-                            <TabsList :aria-busy="loading" class="grid h-14 w-full shrink-0 grid-cols-3 rounded-none border-b border-slate-200 bg-white p-1">
-                                <TabsTrigger value="order" class="gap-1 rounded-lg px-1 text-xs font-medium text-slate-500 data-active:bg-slate-100 data-active:text-slate-950 data-active:shadow-none">
+                            <TabsList :aria-busy="loading" class="mx-3 mt-3 grid h-12 shrink-0 grid-cols-3 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                                <TabsTrigger value="order" class="gap-1 rounded-xl px-1 text-xs font-medium text-slate-500 data-active:bg-white data-active:text-slate-950 data-active:shadow-sm">
                                     Заказ
                                     <Skeleton v-if="loading" class="size-5 rounded-full bg-slate-100" />
                                     <Badge v-else class="rounded-full bg-blue-700 px-2 text-xs font-medium tabular-nums text-white">{{ totalPositions }}</Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="fridge" class="gap-1 rounded-lg px-1 text-xs font-medium text-slate-500 data-active:bg-slate-100 data-active:text-slate-950 data-active:shadow-none">
+                                <TabsTrigger value="fridge" class="gap-1 rounded-xl px-1 text-xs font-medium text-slate-500 data-active:bg-white data-active:text-slate-950 data-active:shadow-sm">
                                     Холодильник
                                     <Skeleton v-if="loading" class="size-5 rounded-full bg-slate-100" />
                                     <Badge v-else class="rounded-full bg-slate-200 px-2 text-xs font-medium tabular-nums text-slate-700">{{ activeFridgeItemsCount }}</Badge>
                                 </TabsTrigger>
-                                <TabsTrigger value="history" class="rounded-lg px-1 text-xs font-medium text-slate-500 data-active:bg-slate-100 data-active:text-slate-950 data-active:shadow-none">
+                                <TabsTrigger value="history" class="rounded-xl px-1 text-xs font-medium text-slate-500 data-active:bg-white data-active:text-slate-950 data-active:shadow-sm">
                                     История
                                 </TabsTrigger>
                             </TabsList>
 
-                            <TabsContent value="order" class="mt-0 flex min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
+                            <TabsContent value="order" class="mt-0 flex min-h-0 flex-1 overflow-hidden p-0">
                                 <OrderPanel
                                     :order="order"
                                     :order-items="orderItems"
@@ -570,7 +575,7 @@ onMounted(async () => {
                                 />
                             </TabsContent>
 
-                            <TabsContent value="fridge" class="mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
+                            <TabsContent value="fridge" class="mt-0 flex min-h-0 flex-1 overflow-hidden p-0">
                                 <FridgePanel
                                     :fridge-items="fridgeItems"
                                     :fridge-loading="loading || fridgeLoading"
@@ -582,7 +587,7 @@ onMounted(async () => {
                                     @discard="discardFromFridge"
                                 />
                             </TabsContent>
-                            <TabsContent value="history" class="mt-0 min-h-0 flex-1 overflow-y-auto overscroll-contain p-0">
+                            <TabsContent value="history" class="mt-0 flex min-h-0 flex-1 overflow-hidden p-0">
                                 <HistoryPanel
                                     :fridge-history="fridgeHistory"
                                     :fridge-loading="loading || fridgeLoading"

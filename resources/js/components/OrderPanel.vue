@@ -100,10 +100,10 @@ watch(() => props.menuItemsById, () => {
 </script>
 
 <template>
-    <div class="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-5" :aria-busy="loading || actionLoading">
-        <div v-if="showHeading" class="flex shrink-0 items-center justify-between gap-2">
-            <div>
-                <h2 class="text-lg font-semibold text-slate-950">Мой заказ</h2>
+    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 sm:px-5 sm:pt-5" :aria-busy="loading || actionLoading">
+        <div v-if="showHeading" class="flex shrink-0 items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h2 class="text-balance text-lg font-semibold text-slate-950">Мой заказ</h2>
                 <Skeleton v-if="loading" class="mt-2 h-4 w-20 rounded-md bg-slate-100" />
                 <p v-else class="mt-0.5 text-sm text-slate-500">
                     <span class="tabular-nums">{{ totalPositions }}</span> {{ positionsLabel }}
@@ -113,7 +113,7 @@ watch(() => props.menuItemsById, () => {
             <Badge
                 v-else
                 variant="outline"
-                class="rounded-lg text-xs font-medium"
+                class="shrink-0 rounded-lg text-xs font-medium"
                 :class="isSubmittedOrder ? 'border-blue-100 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'"
             >
                 {{ orderStatusLabel(order?.status ?? 'draft') }}
@@ -136,7 +136,7 @@ watch(() => props.menuItemsById, () => {
             :class="isSubmittedOrder ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-amber-100 bg-amber-50 text-amber-900'"
             role="status"
         >
-            <AlertDescription class="space-y-3 text-sm">
+            <AlertDescription class="text-sm">
                 <span class="flex items-start gap-2">
                     <CheckCircle2 v-if="isSubmittedOrder" aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-blue-700" />
                     <span>
@@ -146,46 +146,35 @@ watch(() => props.menuItemsById, () => {
                         </span>
                     </span>
                 </span>
-                <Button
-                    v-if="canReopenOrder"
-                    type="button"
-                    variant="outline"
-                    class="h-10 rounded-xl border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
-                    :disabled="actionLoading"
-                    @click="emit('reopen-order')"
-                >
-                    <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
-                    Редактировать заказ
-                </Button>
             </AlertDescription>
         </Alert>
 
-        <div v-if="loading" class="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto">
+        <div v-if="loading" class="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-4 pr-1">
             <div
                 v-for="skeleton in orderSkeletonRows"
                 :key="`order-skeleton-${skeleton}`"
-                class="space-y-2 rounded-xl border border-slate-200 bg-white p-3"
+                class="space-y-2 rounded-2xl border border-slate-200 bg-white p-3"
             >
+                <Skeleton class="h-16 w-full rounded-xl bg-slate-100" />
                 <Skeleton class="h-5 w-3/4 rounded-md bg-slate-100" />
                 <Skeleton class="h-4 w-1/2 rounded-md bg-slate-100" />
-                <Skeleton class="h-9 w-24 rounded-md bg-slate-100" />
             </div>
         </div>
 
         <div
             v-else-if="!order || orderItems.length === 0"
-            class="mt-5 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center"
+            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Вы ещё ничего не добавили</p>
-            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Откройте каталог, чтобы выбрать блюда.</p>
+            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Откройте каталог и добавьте блюда в заказ.</p>
         </div>
 
-        <div v-else class="mt-4 min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto pr-1">
+        <div v-else class="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-4 pr-1">
             <article
                 v-for="item in orderItems"
                 :key="item.id"
-                class="relative grid grid-cols-[64px_minmax(0,1fr)] gap-3 py-3 first:pt-0 last:pb-0"
+                class="relative grid grid-cols-[64px_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-200 bg-white p-3"
             >
                 <img
                     v-if="orderItemImage(item)"
@@ -200,13 +189,13 @@ watch(() => props.menuItemsById, () => {
                     <UtensilsCrossed aria-hidden="true" class="size-5" />
                 </div>
 
-                <div class="min-w-0" :class="canEditOrder ? 'pr-7' : ''">
+                <div class="min-w-0" :class="canEditOrder ? 'pr-8' : ''">
                     <Button
                         v-if="canEditOrder"
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        class="absolute right-0 top-0 size-9 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-700"
+                        class="absolute right-2 top-2 size-9 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-700"
                         :disabled="actionLoading"
                         :aria-label="`Удалить блюдо: ${item.title_snapshot}`"
                         @click="emit('change-quantity', item, 0)"
@@ -214,7 +203,7 @@ watch(() => props.menuItemsById, () => {
                         <X aria-hidden="true" class="size-4" />
                     </Button>
 
-                    <p class="line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{{ item.title_snapshot }}</p>
+                    <p class="line-clamp-2 break-words text-sm font-semibold leading-5 text-slate-900">{{ item.title_snapshot }}</p>
                     <p class="mt-1 text-xs font-medium tabular-nums text-slate-500">
                         {{ orderItemWeight(item) || 'Порция' }}
                     </p>
@@ -222,12 +211,12 @@ watch(() => props.menuItemsById, () => {
                     <div class="mt-2 flex items-center justify-between gap-3">
                         <p class="text-base font-semibold tabular-nums text-slate-950">{{ orderItemTotal(item) }}</p>
 
-                        <div v-if="canEditOrder" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white p-0.5">
+                        <div v-if="canEditOrder" class="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-slate-50 p-0.5">
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-9 rounded-lg text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                                class="size-9 rounded-lg text-blue-700 hover:bg-white hover:text-blue-700"
                                 :disabled="actionLoading"
                                 :aria-label="`Уменьшить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity - 1)"
@@ -239,7 +228,7 @@ watch(() => props.menuItemsById, () => {
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-9 rounded-lg text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                                class="size-9 rounded-lg text-blue-700 hover:bg-white hover:text-blue-700"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity + 1)"
@@ -247,33 +236,53 @@ watch(() => props.menuItemsById, () => {
                                 <Plus aria-hidden="true" class="size-4" />
                             </Button>
                         </div>
-                        <span v-else class="text-sm font-medium tabular-nums text-slate-500">{{ item.quantity }} шт.</span>
+                        <span v-else class="rounded-lg bg-slate-50 px-2 py-1 text-sm font-medium tabular-nums text-slate-600">{{ item.quantity }} шт.</span>
                     </div>
                 </div>
             </article>
         </div>
 
-        <div v-if="loading" class="mt-5 shrink-0 border-t border-slate-200 pt-4">
-            <Skeleton class="h-7 w-full rounded-md bg-slate-100" />
-        </div>
-
-        <div v-else class="mt-5 shrink-0 rounded-xl bg-slate-50 px-4 py-3">
-            <div class="flex items-center justify-between">
-                <p class="text-sm font-medium text-slate-600">Итого</p>
-                <strong class="text-xl font-semibold tabular-nums text-slate-950">{{ formatPrice(order?.total_price ?? 0) }}</strong>
-            </div>
-        </div>
-
-        <Button
-            v-if="!loading && canEditOrder"
-            type="button"
-            class="mt-4 h-12 w-full rounded-xl bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
-            :disabled="!orderItems.length || actionLoading"
-            @click="emit('submit-order')"
+        <div
+            data-testid="order-panel-footer"
+            class="safe-cart-footer sticky bottom-0 z-10 -mx-4 mt-auto shrink-0 border-t border-slate-200 bg-white px-4 pb-4 pt-3 sm:-mx-5 sm:px-5"
         >
-            <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
-            {{ orderItems.length ? 'Оформить заказ' : 'Добавьте блюда' }}
-        </Button>
+            <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
+            <template v-else>
+                <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div class="flex items-center justify-between gap-4">
+                        <p class="text-sm font-medium text-slate-600">Итого</p>
+                        <strong class="text-xl font-semibold tabular-nums text-slate-950">{{ formatPrice(order?.total_price ?? 0) }}</strong>
+                    </div>
+                </div>
 
+                <Button
+                    v-if="canEditOrder"
+                    type="button"
+                    class="mt-3 h-12 w-full rounded-xl bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
+                    :disabled="!orderItems.length || actionLoading"
+                    :title="!orderItems.length ? 'Добавьте блюда из каталога' : undefined"
+                    @click="emit('submit-order')"
+                >
+                    <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
+                    {{ orderItems.length ? 'Оформить заказ' : 'Добавьте блюда' }}
+                </Button>
+
+                <Button
+                    v-else-if="canReopenOrder"
+                    type="button"
+                    variant="outline"
+                    class="mt-3 h-12 w-full rounded-xl border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
+                    :disabled="actionLoading"
+                    @click="emit('reopen-order')"
+                >
+                    <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
+                    Редактировать заказ
+                </Button>
+
+                <p v-else class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-pretty text-sm leading-5 text-slate-600">
+                    {{ orderStatusLabel(order?.status ?? 'draft') }}
+                </p>
+            </template>
+        </div>
     </div>
 </template>

@@ -52,26 +52,31 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
 <template>
     <Card class="menu-card overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-slate-300 hover:shadow-md">
         <CardContent class="flex h-full flex-col p-0">
-            <div class="relative p-2.5 pb-0 sm:p-3 sm:pb-0">
-                <div class="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-inset ring-slate-100">
+            <div class="relative p-2 pb-0 sm:p-2.5 sm:pb-0">
+                <div
+                    data-testid="menu-item-image-area"
+                    class="relative aspect-[5/4] overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-inset ring-slate-100"
+                >
                     <img
                         v-if="showImage"
                         :src="imageSrc"
                         :alt="item.title"
-                        class="size-full object-contain p-3 sm:p-4"
+                        class="size-full object-contain p-2.5 sm:p-3"
                         loading="lazy"
                         decoding="async"
                         @error="imageFailed = true"
                     />
                     <div v-else class="flex size-full flex-col items-center justify-center gap-2 px-4 text-center text-slate-400">
-                        <ImageIcon aria-hidden="true" class="size-7" />
-                        <span class="text-sm font-medium">Фото блюда появится скоро</span>
+                        <span class="grid size-12 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-400">
+                            <ImageIcon aria-hidden="true" class="size-6" />
+                        </span>
+                        <span class="text-pretty text-sm font-medium">Фото блюда появится скоро</span>
                     </div>
                 </div>
 
                 <button
                     type="button"
-                    class="absolute right-5 top-5 inline-flex size-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white/95 text-slate-500 shadow-sm transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98]"
+                    class="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-500 shadow-sm transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98]"
                     :class="isFavorite ? 'border-rose-200 bg-rose-50 text-rose-600' : ''"
                     :aria-label="isFavorite ? `Убрать из избранного: ${item.title}` : `Добавить в избранное: ${item.title}`"
                     :aria-pressed="isFavorite"
@@ -81,14 +86,14 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
                 </button>
             </div>
 
-            <div class="flex flex-1 flex-col px-5 pb-5 pt-4">
+            <div class="flex flex-1 flex-col px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5">
                 <div class="flex min-w-0 items-center gap-2 text-xs font-medium text-slate-500">
                     <span class="truncate">{{ item.category?.name || 'Меню' }}</span>
                     <span v-if="item.weight" aria-hidden="true" class="shrink-0 text-slate-300">•</span>
                     <span v-if="item.weight" class="shrink-0 tabular-nums">{{ item.weight }}</span>
                 </div>
 
-                <h3 class="mt-2.5 line-clamp-2 text-balance text-lg font-semibold leading-6 text-slate-950">
+                <h3 class="mt-2 line-clamp-2 break-words text-balance text-lg font-semibold leading-6 text-slate-950">
                     {{ item.title }}
                 </h3>
                 <p v-if="item.description" class="mt-1.5 line-clamp-2 text-pretty text-sm leading-5 text-slate-500">
@@ -107,7 +112,7 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
                         size="sm"
                         :disabled="controlsDisabled"
                         :title="controlsDisabled ? disabledReason : undefined"
-                        class="h-11 rounded-xl border border-blue-100 bg-blue-50 px-4 text-sm font-semibold text-blue-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-100 active:scale-[0.98] disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
+                        class="h-11 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
                         @click="emit('add-item', item.id)"
                     >
                         <Plus aria-hidden="true" class="size-4" />

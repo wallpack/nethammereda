@@ -726,6 +726,22 @@ describe('catalog auth UX', () => {
         expect(image?.getAttribute('src')).toBe('/storage/menu-items/manual/11/soup.png');
     });
 
+    it('keeps menu photography in a dedicated calm media area', async () => {
+        await mountApp({
+            menuItems: [{
+                ...menuItem,
+                image_display_url: '/storage/menu-items/manual/11/soup.png',
+            }],
+        });
+
+        const imageArea = document.querySelector('[data-testid="menu-item-image-area"]');
+        const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
+
+        expect(imageArea).toBeTruthy();
+        expect(imageArea?.className).toContain('aspect-[5/4]');
+        expect(image?.className).toContain('object-contain');
+    });
+
     it('uses image_display_url for order panel thumbnails', async () => {
         await mountApp({
             authenticated: true,
@@ -741,6 +757,33 @@ describe('catalog auth UX', () => {
         const image = orderPanel?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(image?.getAttribute('src')).toBe('/storage/menu-items/manual/11/soup.png');
+    });
+
+    it('exposes the desktop order area as a cart panel', async () => {
+        await mountApp({
+            authenticated: true,
+            order: orderWithItem,
+        });
+
+        const panel = document.querySelector('[data-testid="desktop-order-panel"]');
+
+        expect(panel).toBeTruthy();
+        expect(panel?.getAttribute('aria-label')).toBe('Панель заказа');
+        expect(panel?.className).toContain('xl:sticky');
+    });
+
+    it('keeps the order total and submit action in a sticky footer', async () => {
+        await mountApp({
+            authenticated: true,
+            order: orderWithItem,
+        });
+
+        const footer = document.querySelector('[data-testid="order-panel-footer"]');
+
+        expect(footer).toBeTruthy();
+        expect(footer?.className).toContain('sticky');
+        expect(footer?.textContent).toContain('Итого');
+        expect(footer?.textContent).toContain('Оформить заказ');
     });
 
     it('sends fridge PATCH actions and reloads fridge data', async () => {
@@ -768,7 +811,7 @@ describe('catalog auth UX', () => {
         });
 
         await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
-        await click(buttonByText('Выбросил'));
+        await click(buttonByText('Выбросить'));
 
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/discard`)).toBe(false);
         expect(document.body.textContent).toContain('Выбросить блюдо?');

@@ -88,6 +88,7 @@
     html,
     body {
         min-height: 100%;
+        overflow-x: clip;
     }
 
     body {
@@ -120,15 +121,19 @@
 .dishes-grid {
     display: grid;
     min-width: 0;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17.5rem), 1fr));
     gap: 1rem;
 }
 
 .menu-card {
-    min-height: 420px;
+    min-height: 410px;
 }
 
 .safe-panel-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-cart-footer {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
@@ -157,7 +162,6 @@
     }
 
     .dishes-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1.25rem;
     }
 }
@@ -173,10 +177,6 @@
 @media (min-width: 1280px) {
     .catalog-layout--auth {
         grid-template-columns: 220px minmax(0, 1fr) 360px;
-    }
-
-    .catalog-layout--guest .dishes-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .catalog-order-panel {
@@ -200,6 +200,6 @@
     }
 
     .dishes-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
     }
 }

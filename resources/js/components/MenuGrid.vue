@@ -130,7 +130,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                 <Skeleton v-else class="mt-2 h-4 w-44 rounded-md bg-slate-100" />
             </div>
 
-            <div class="flex flex-col gap-2 sm:flex-row lg:max-w-xl lg:flex-1 lg:justify-end">
+            <div class="flex flex-col gap-2 sm:flex-row lg:max-w-2xl lg:flex-1 lg:justify-end">
                 <label class="relative min-w-0 flex-1 lg:max-w-sm">
                     <span class="sr-only">Найти блюдо</span>
                     <Search aria-hidden="true" class="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
@@ -139,7 +139,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                         v-model="searchModel"
                         type="search"
                         placeholder="Название или состав"
-                        class="h-12 rounded-xl border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                        class="h-12 rounded-2xl border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                     />
                 </label>
 
@@ -147,7 +147,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     v-if="isAuthenticated"
                     type="button"
                     variant="outline"
-                    class="h-12 rounded-xl border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
+                    class="h-12 rounded-2xl border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
                     :class="favoritesOnly ? 'border-blue-200 bg-blue-50 text-blue-700' : ''"
                     :aria-pressed="favoritesOnly"
                     @click="emit('toggle-favorites-filter')"
@@ -166,8 +166,8 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                 class="overflow-hidden rounded-3xl border-slate-200 bg-white shadow-sm"
             >
                 <CardContent class="space-y-3 p-0">
-                    <div class="p-2.5 pb-0 sm:p-3 sm:pb-0">
-                        <Skeleton class="aspect-[4/3] w-full rounded-2xl bg-slate-100" />
+                    <div class="p-2 pb-0 sm:p-2.5 sm:pb-0">
+                        <Skeleton class="aspect-[5/4] w-full rounded-2xl bg-slate-100" />
                     </div>
                     <div class="space-y-3 px-5 pb-5 pt-1">
                         <Skeleton class="h-4 w-20 rounded-md bg-slate-100" />
@@ -182,7 +182,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
             </Card>
         </div>
 
-        <Card v-else-if="filteredItems.length === 0" class="rounded-2xl border-slate-200 bg-white shadow-sm">
+        <Card v-else-if="filteredItems.length === 0" class="rounded-3xl border-slate-200 bg-white shadow-sm">
             <CardContent class="flex flex-col items-center px-5 py-12 text-center">
                 <Search aria-hidden="true" class="size-7 text-slate-300" />
                 <p class="mt-4 text-balance text-lg font-semibold text-slate-900">{{ emptyTitle }}</p>

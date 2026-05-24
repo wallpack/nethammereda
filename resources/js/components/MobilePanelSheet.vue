@@ -51,9 +51,9 @@ const updateOpen = (open) => {
             />
             <DialogContent
                 :data-testid="testId"
-                class="safe-panel-bottom fixed inset-x-0 bottom-0 z-50 flex max-h-[min(88dvh,760px)] flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white text-slate-900 shadow-xl outline-none xl:hidden"
+                class="safe-panel-bottom fixed inset-x-0 bottom-0 z-50 flex max-h-[calc(100dvh-0.75rem)] flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white text-slate-900 shadow-xl outline-none xl:hidden"
             >
-                <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 pb-4 pt-5">
+                <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-4 pb-4 pt-5 sm:px-5">
                     <div class="min-w-0">
                         <DialogTitle class="text-balance text-lg font-semibold text-slate-950">
                             {{ title }}
@@ -75,7 +75,7 @@ const updateOpen = (open) => {
                     </DialogClose>
                 </div>
 
-                <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
                     <slot />
                 </div>
             </DialogContent>

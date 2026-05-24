@@ -125,7 +125,7 @@ const deadlineLabel = computed(() => props.cycle ? props.weeklyDeadlineLabel : '
     <section
         v-if="loading"
         data-testid="week-status-loading"
-        class="week-status grid gap-5 rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7 sm:py-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-center"
+        class="week-status grid gap-4 rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center"
         aria-busy="true"
         aria-label="Загрузка недельного цикла"
     >
@@ -134,12 +134,12 @@ const deadlineLabel = computed(() => props.cycle ? props.weeklyDeadlineLabel : '
             <Skeleton class="h-8 w-72 max-w-full bg-slate-100" />
             <Skeleton class="h-5 w-full max-w-md bg-slate-100" />
         </div>
-        <Skeleton class="h-28 rounded-2xl bg-slate-100" />
+        <Skeleton class="h-24 rounded-2xl bg-slate-100" />
     </section>
 
     <section
         v-else
-        class="week-status grid gap-6 rounded-3xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7 sm:py-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-center"
+        class="week-status grid gap-4 rounded-3xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center"
         aria-label="Текущий недельный цикл"
     >
         <div class="min-w-0">
@@ -147,17 +147,20 @@ const deadlineLabel = computed(() => props.cycle ? props.weeklyDeadlineLabel : '
                 <CalendarDays aria-hidden="true" class="size-4 text-blue-700" />
                 {{ cycle ? cycle.title : 'Текущая неделя' }}
             </p>
-            <h1 class="mt-2 text-balance text-2xl font-semibold leading-tight text-slate-950 sm:text-3xl">
+            <h1 class="mt-2 text-balance text-xl font-semibold leading-tight text-slate-950 sm:text-2xl">
                 {{ title }}
             </h1>
-            <p class="mt-2 max-w-[65ch] text-pretty text-sm leading-6 text-slate-600 sm:text-base">
+            <p class="mt-2 max-w-[65ch] text-pretty text-sm leading-6 text-slate-600">
                 {{ description }}
             </p>
         </div>
 
-        <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
-            <p class="text-xs font-medium text-slate-500">Дедлайн заказа</p>
-            <p class="mt-1.5 text-lg font-semibold tabular-nums text-slate-950">{{ deadlineLabel }}</p>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+            <p class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <Clock3 aria-hidden="true" class="size-3.5 text-slate-400" />
+                Дедлайн заказа
+            </p>
+            <p class="mt-1.5 text-xl font-semibold tabular-nums text-slate-950">{{ deadlineLabel }}</p>
             <Badge
                 variant="outline"
                 class="mt-3 inline-flex h-7 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium"
