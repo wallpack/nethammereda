@@ -58,6 +58,17 @@ class MenuItemForm
                     ->label('Ссылка на изображение')
                     ->url()
                     ->maxLength(500),
+                TextInput::make('image_path')
+                    ->label('Локальный путь к картинке')
+                    ->maxLength(500),
+                Select::make('image_source')
+                    ->label('Источник картинки')
+                    ->options([
+                        'manual' => 'manual',
+                        'supplier' => 'supplier',
+                        'external' => 'external',
+                    ])
+                    ->native(false),
                 TextInput::make('external_id')
                     ->label('Внешний ID')
                     ->maxLength(255),

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -63,9 +63,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order']);
+const failedOrderImages = ref(new Set());
 
 const isSubmittedOrder = computed(() => props.order?.status === 'submitted');
-const orderItemImage = (orderItem) => props.menuItemsById.get(orderItem.menu_item_id)?.image_url ?? null;
+const orderItemImage = (orderItem) => {
+    if (failedOrderImages.value.has(orderItem.menu_item_id)) {
+        return null;
+    }
+
+    const menuItem = props.menuItemsById.get(orderItem.menu_item_id);
+
+    return menuItem?.image_display_url || menuItem?.image_url || null;
+};
+const markOrderItemImageFailed = (orderItem) => {
+    failedOrderImages.value = new Set([...failedOrderImages.value, orderItem.menu_item_id]);
+};
 const orderItemWeight = (orderItem) => props.menuItemsById.get(orderItem.menu_item_id)?.weight ?? null;
 const orderItemTotal = (orderItem) => formatPrice(Number(orderItem.price_snapshot) * Number(orderItem.quantity));
 const positionsLabel = computed(() => {
@@ -80,6 +92,10 @@ const positionsLabel = computed(() => {
     }
 
     return 'позиций';
+});
+
+watch(() => props.menuItemsById, () => {
+    failedOrderImages.value = new Set();
 });
 </script>
 
@@ -178,6 +194,7 @@ const positionsLabel = computed(() => {
                     class="size-16 rounded-xl border border-slate-100 bg-slate-50 object-contain p-1"
                     loading="lazy"
                     decoding="async"
+                    @error="markOrderItemImageFailed(item)"
                 />
                 <div v-else class="grid size-16 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
                     <UtensilsCrossed aria-hidden="true" class="size-5" />

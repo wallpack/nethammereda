@@ -39,12 +39,13 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle-favorite', 'add-item', 'change-quantity']);
 const imageFailed = ref(false);
+const imageSrc = computed(() => props.item.image_display_url || props.item.image_url);
 
-watch(() => props.item.image_url, () => {
+watch(imageSrc, () => {
     imageFailed.value = false;
 });
 
-const showImage = computed(() => Boolean(props.item.image_url) && !imageFailed.value);
+const showImage = computed(() => Boolean(imageSrc.value) && !imageFailed.value);
 const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoading || props.item.is_active === false);
 </script>
 
@@ -55,7 +56,7 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
                 <div class="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-inset ring-slate-100">
                     <img
                         v-if="showImage"
-                        :src="item.image_url"
+                        :src="imageSrc"
                         :alt="item.title"
                         class="size-full object-contain p-3 sm:p-4"
                         loading="lazy"

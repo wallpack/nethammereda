@@ -46,6 +46,7 @@ const menuItem = {
     carbs: 16,
     price: '250.00',
     image_url: null,
+    image_display_url: null,
     is_active: true,
 };
 
@@ -709,6 +710,37 @@ describe('catalog auth UX', () => {
         await nextTick();
 
         expect(document.body.textContent).toContain('Фото блюда появится скоро');
+    });
+
+    it('renders menu cards from image_display_url before supplier image_url', async () => {
+        await mountApp({
+            menuItems: [{
+                ...menuItem,
+                image_display_url: '/storage/menu-items/manual/11/soup.png',
+                image_url: 'https://example.com/supplier-soup.png',
+            }],
+        });
+
+        const image = document.querySelector(`img[alt="${menuItem.title}"]`);
+
+        expect(image?.getAttribute('src')).toBe('/storage/menu-items/manual/11/soup.png');
+    });
+
+    it('uses image_display_url for order panel thumbnails', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [{
+                ...menuItem,
+                image_display_url: '/storage/menu-items/manual/11/soup.png',
+                image_url: 'https://example.com/supplier-soup.png',
+            }],
+            order: orderWithItem,
+        });
+
+        const orderPanel = document.querySelector('.catalog-order-panel');
+        const image = orderPanel?.querySelector(`img[alt="${menuItem.title}"]`);
+
+        expect(image?.getAttribute('src')).toBe('/storage/menu-items/manual/11/soup.png');
     });
 
     it('sends fridge PATCH actions and reloads fridge data', async () => {

@@ -67,6 +67,50 @@ class AuthCatalogApiTest extends TestCase
     }
 
     #[Test]
+    public function catalog_api_returns_safe_image_display_url(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Супы',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Суп Борщ',
+            'price' => 210,
+            'image_path' => 'menu-items/manual/1/sup-borshch.png',
+            'image_url' => 'https://example.test/supplier-borscht.png',
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/menu/items')
+            ->assertOk()
+            ->assertJsonPath('data.0.image_display_url', url('/storage/menu-items/manual/1/sup-borshch.png'));
+    }
+
+    #[Test]
+    public function catalog_api_does_not_expose_javascript_image_url_as_display_url(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Супы',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Суп Борщ',
+            'price' => 210,
+            'image_url' => 'javascript:alert(1)',
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/menu/items')
+            ->assertOk()
+            ->assertJsonPath('data.0.image_url', 'javascript:alert(1)')
+            ->assertJsonPath('data.0.image_display_url', null);
+    }
+
+    #[Test]
     public function logout_revokes_current_bearer_token(): void
     {
         $user = User::factory()->create();

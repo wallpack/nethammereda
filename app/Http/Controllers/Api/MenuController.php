@@ -52,6 +52,7 @@ class MenuController extends Controller
                 'carbs',
                 'price',
                 'image_url',
+                'image_path',
             ]),
         ]);
     }

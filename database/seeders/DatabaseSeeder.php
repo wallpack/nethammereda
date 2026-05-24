@@ -27,9 +27,9 @@ class DatabaseSeeder extends Seeder
      */
     private const CATEGORY_RANGES = [
         ['name' => 'Вторые блюда', 'sort_order' => 10, 'start' => 0, 'end' => 22, 'price_min' => 240, 'price_max' => 380],
-        ['name' => 'Выпечка', 'sort_order' => 20, 'start' => 23, 'end' => 52, 'price_min' => 120, 'price_max' => 280],
-        ['name' => 'Салаты', 'sort_order' => 30, 'start' => 53, 'end' => 67, 'price_min' => 140, 'price_max' => 290],
-        ['name' => 'Супы', 'sort_order' => 40, 'start' => 68, 'end' => 71, 'price_min' => 170, 'price_max' => 260],
+        ['name' => 'Выпечка', 'sort_order' => 20, 'start' => 23, 'end' => 51, 'price_min' => 120, 'price_max' => 280],
+        ['name' => 'Салаты', 'sort_order' => 30, 'start' => 52, 'end' => 66, 'price_min' => 140, 'price_max' => 290],
+        ['name' => 'Супы', 'sort_order' => 40, 'start' => 67, 'end' => 70, 'price_min' => 170, 'price_max' => 260],
     ];
 
     public function run(): void
@@ -271,4 +271,3 @@ class DatabaseSeeder extends Seeder
         return (float) ($bucket * $step);
     }
 }
-

@@ -57,6 +57,13 @@ class MenuItemsTable
                     ->label('Код поставщика')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('image_source')
+                    ->label('Источник картинки')
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('image_path')
+                    ->label('Локальная картинка')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_active')
                     ->label('Активно')
                     ->boolean()
