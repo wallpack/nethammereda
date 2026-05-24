@@ -2,7 +2,6 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { nextTick } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
-import { useUiStore } from '@/stores/ui';
 import App from './App.vue';
 
 const user = {
@@ -27,6 +26,12 @@ const category = {
     sort_order: 10,
 };
 
+const secondCategory = {
+    id: 2,
+    name: 'Горячее',
+    sort_order: 20,
+};
+
 const menuItem = {
     id: 11,
     category_id: category.id,
@@ -42,6 +47,17 @@ const menuItem = {
     price: '250.00',
     image_url: null,
     is_active: true,
+};
+
+const secondMenuItem = {
+    ...menuItem,
+    id: 12,
+    category_id: secondCategory.id,
+    category: secondCategory,
+    title: 'Котлета с пюре',
+    description: 'Сытное горячее блюдо',
+    composition: 'Говядина, картофель',
+    price: '340.00',
 };
 
 const emptyOrder = {
@@ -74,6 +90,14 @@ const fridgeItem = {
     quantity_total: 2,
     quantity_remaining: 2,
     status: 'in_fridge',
+    expires_at: '2026-05-26T09:30:00.000000Z',
+};
+
+const fridgeHistoryItem = {
+    ...fridgeItem,
+    id: 32,
+    quantity_remaining: 0,
+    status: 'eaten',
 };
 
 const jsonResponse = (payload, status = 200) => Promise.resolve({
@@ -84,10 +108,14 @@ const jsonResponse = (payload, status = 200) => Promise.resolve({
 
 const createFetchMock = ({
     authenticated = false,
+    authenticatedUser = user,
     order = emptyOrder,
     currentCycle = cycle,
     fridgeItems = [],
+    fridgeHistory = [],
     fridgePatchStatus = 200,
+    menuItems = [menuItem],
+    menuCategories = [category],
 } = {}) => {
     let currentOrder = order;
     let currentFridgeItems = [...fridgeItems];
@@ -98,7 +126,7 @@ const createFetchMock = ({
 
         if (path === '/me') {
             return authenticated
-                ? jsonResponse({ data: user })
+                ? jsonResponse({ data: authenticatedUser })
                 : jsonResponse({ message: 'Unauthenticated.' }, 401);
         }
 
@@ -107,11 +135,11 @@ const createFetchMock = ({
         }
 
         if (path === '/menu/categories') {
-            return jsonResponse({ data: [category] });
+            return jsonResponse({ data: menuCategories });
         }
 
         if (path === '/menu/items') {
-            return jsonResponse({ data: [menuItem] });
+            return jsonResponse({ data: menuItems });
         }
 
         if (path === '/my-order' && method === 'GET') {
@@ -128,7 +156,7 @@ const createFetchMock = ({
         }
 
         if (path === '/my-fridge/history') {
-            return jsonResponse({ data: [] });
+            return jsonResponse({ data: fridgeHistory });
         }
 
         if (path === `/my-fridge/items/${fridgeItem.id}/eat-one` && method === 'PATCH') {
@@ -208,6 +236,92 @@ const patchedTo = (fetchMock, path) => {
 };
 
 describe('catalog auth UX', () => {
+    it('shows loading surfaces before catalog requests settle without false empty states', async () => {
+        global.fetch = vi.fn(() => new Promise(() => {}));
+
+        const wrapper = mount(App, {
+            attachTo: document.body,
+            global: {
+                plugins: [createPinia()],
+            },
+        });
+
+        await nextTick();
+
+        expect(document.querySelector('[data-testid="week-status-loading"]')).toBeTruthy();
+        expect(document.body.textContent).not.toContain('Недельный цикл не создан');
+        expect(document.body.textContent).not.toContain('Ничего не найдено');
+        expect(document.body.textContent).not.toContain('0 блюд');
+
+        wrapper.unmount();
+    });
+
+    it('does not flash a guest login action while a saved session is resolving', async () => {
+        localStorage.setItem('lunch_mvp_token', 'test-token');
+        global.fetch = vi.fn(() => new Promise(() => {}));
+
+        const wrapper = mount(App, {
+            attachTo: document.body,
+            global: {
+                plugins: [createPinia()],
+            },
+        });
+
+        await nextTick();
+
+        expect(document.querySelector('[data-testid="header-auth-loading"]')).toBeTruthy();
+        expect(buttonByText('Войти')).toBeFalsy();
+
+        wrapper.unmount();
+    });
+
+    it('does not show stale order totals or read-only copy while protected data is loading', async () => {
+        localStorage.setItem('lunch_mvp_token', 'test-token');
+        global.fetch = vi.fn((input) => {
+            const path = String(input).replace('/api', '');
+
+            if (path === '/me') {
+                return jsonResponse({ data: user });
+            }
+
+            return new Promise(() => {});
+        });
+
+        const wrapper = mount(App, {
+            attachTo: document.body,
+            global: {
+                plugins: [createPinia()],
+            },
+        });
+
+        await flushPromises();
+
+        expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
+        expect(document.body.textContent).not.toContain('Прием заказов завершен.');
+        expect(document.body.textContent).not.toContain('0 позиций');
+        expect(document.body.textContent).not.toContain('0 ₽');
+        expect(document.querySelector('.catalog-order-panel')?.textContent).not.toMatch(/Заказ\s*0/);
+        expect(document.querySelector('.catalog-order-panel')?.textContent).not.toMatch(/Холодильник\s*0/);
+
+        wrapper.unmount();
+    });
+
+    it('shows a true empty-menu state only after catalog loading completes', async () => {
+        await mountApp({ menuItems: [], menuCategories: [] });
+
+        expect(document.body.textContent).toContain('Меню на эту неделю пока пусто');
+        expect(document.body.textContent).not.toContain('Ничего не найдено');
+    });
+
+    it('shows no-cycle guidance only after a loaded response has no cycle', async () => {
+        await mountApp({ currentCycle: null, menuItems: [], menuCategories: [] });
+
+        const weekStatusText = document.querySelector('.week-status')?.textContent ?? '';
+        expect(document.querySelector('.week-status h1')?.textContent).toContain('Недельный цикл не создан');
+        expect(weekStatusText).toContain('Меню появится после создания цикла администратором.');
+        expect(weekStatusText.match(/Недельный цикл не создан/g)).toHaveLength(1);
+    });
+
     it('renders guest header with a single login action and no old guest copy', async () => {
         await mountApp();
 
@@ -267,7 +381,7 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain(user.name);
         expect(buttonByText('Войти')).toBeFalsy();
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
-        expect(document.body.textContent).toContain('Ваш заказ');
+        expect(document.body.textContent).toContain('Мой заказ');
     });
 
     it('opens profile modal with account actions', async () => {
@@ -278,8 +392,59 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain(user.name);
         expect(document.body.textContent).toContain(user.email);
         expect(document.body.textContent).toContain('Избранное');
-        expect(document.body.textContent).toContain('Мои заказы');
+        expect(document.body.textContent).toContain('Мой заказ');
+        expect(document.body.textContent).toContain('Холодильник');
+        expect(document.body.textContent).toContain('История питания');
+        expect(document.body.textContent).not.toContain('Настройки');
         expect(buttonByText('Выйти')).toBeTruthy();
+    });
+
+    it('handles a long user name in the header and profile surface', async () => {
+        const longName = 'Очень длинное имя сотрудника отдела разработки корпоративных сервисов';
+
+        await mountApp({
+            authenticated: true,
+            authenticatedUser: { ...user, name: longName },
+        });
+
+        const profileTrigger = document.querySelector('[aria-label^="Открыть профиль:"]');
+        expect(profileTrigger?.getAttribute('title')).toBe(longName);
+
+        await click(profileTrigger);
+        expect(document.querySelector('[data-testid="profile-name"]')?.textContent).toContain(longName);
+    });
+
+    it('opens favorites from profile and explains an empty favorite collection', async () => {
+        await mountApp({ authenticated: true });
+
+        await click(buttonByText(user.name));
+        await click(document.querySelector('[data-testid="profile-favorites-action"]'));
+
+        expect(buttonByText('Избранное')?.getAttribute('aria-pressed')).toBe('true');
+        expect(document.body.textContent).toContain('В избранном пока ничего нет.');
+        expect(document.body.textContent).toContain('Нажимайте сердечко на блюдах, чтобы сохранить их здесь.');
+    });
+
+    it('opens order, fridge and history sheets from profile actions', async () => {
+        await mountApp({
+            authenticated: true,
+            fridgeHistory: [fridgeHistoryItem],
+        });
+
+        await click(buttonByText(user.name));
+        await click(document.querySelector('[data-testid="profile-order-action"]'));
+        expect(document.querySelector('[data-testid="mobile-order-panel"]')).toBeTruthy();
+
+        await click(document.querySelector('[aria-label="Закрыть мой заказ"]'));
+        await click(document.querySelector('[aria-label^="Открыть профиль:"]'));
+        await click(document.querySelector('[data-testid="profile-fridge-action"]'));
+        expect(document.querySelector('[data-testid="mobile-fridge-panel"]')).toBeTruthy();
+
+        await click(document.querySelector('[aria-label="Закрыть холодильник"]'));
+        await click(document.querySelector('[aria-label^="Открыть профиль:"]'));
+        await click(document.querySelector('[data-testid="profile-history-action"]'));
+        expect(document.querySelector('[data-testid="mobile-history-panel"]')).toBeTruthy();
+        expect(document.body.textContent).toContain(fridgeHistoryItem.title_snapshot);
     });
 
     it('logs out from profile and returns catalog to guest state', async () => {
@@ -300,7 +465,46 @@ describe('catalog auth UX', () => {
         await click(buttonByText('Добавить'));
 
         expect(postedTo(fetchMock, '/my-order/items')).toBe(true);
-        expect(document.body.textContent).toContain('1 товаров');
+        expect(document.body.textContent).toContain('1 позиция');
+    });
+
+    it('filters dishes by search and category selection', async () => {
+        await mountApp({
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+        });
+
+        expect(document.body.textContent).toContain(menuItem.title);
+        expect(document.body.textContent).toContain(secondMenuItem.title);
+
+        const searchInput = document.querySelector('#menu-search');
+        searchInput.value = 'котлета';
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        await nextTick();
+
+        expect(document.body.textContent).not.toContain(menuItem.title);
+        expect(document.body.textContent).toContain(secondMenuItem.title);
+
+        searchInput.value = '';
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        await click(buttonByText(secondCategory.name));
+
+        expect(document.body.textContent).not.toContain(menuItem.title);
+        expect(document.body.textContent).toContain(secondMenuItem.title);
+    });
+
+    it('filters the catalog to locally selected favorites', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+        });
+
+        await click(document.querySelector(`[aria-label="Добавить в избранное: ${menuItem.title}"]`));
+        await click(buttonByText('Избранное'));
+
+        expect(document.body.textContent).toContain(menuItem.title);
+        expect(document.body.textContent).not.toContain(secondMenuItem.title);
     });
 
     it('shows the catalog as orderable when the cycle can accept orders', async () => {
@@ -329,14 +533,113 @@ describe('catalog auth UX', () => {
         expect(buttonByText('Добавить')?.disabled).toBe(true);
     });
 
+    it('shows delivery guidance when a cycle is delivered', async () => {
+        await mountApp({
+            authenticated: true,
+            currentCycle: {
+                ...cycle,
+                status: 'delivered',
+                is_open_for_ordering: false,
+                can_order: false,
+                availability_label: 'Доставлен',
+                availability_description: 'Доставка отмечена, блюда попали в холодильники.',
+            },
+        });
+
+        const weekStatusText = document.querySelector('.week-status')?.textContent ?? '';
+        expect(document.querySelector('.week-status h1')?.textContent).toContain('Доставка отмечена');
+        expect(weekStatusText).toContain('Проверьте холодильник.');
+        expect(weekStatusText.match(/Доставка отмечена/g)).toHaveLength(1);
+        expect(weekStatusText).toContain('Доставлен');
+    });
+
+    it('keeps a submitted order visually read-only even while the cycle remains open', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+            order: {
+                ...orderWithItem,
+                status: 'submitted',
+            },
+        });
+
+        expect(document.body.textContent).toContain('Заказ отправлен и больше не редактируется');
+        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
+        expect(buttonByText('Добавить')?.disabled).toBe(true);
+
+        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
+        const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
+        expect(mobileOrderText).toContain('Заказ отправлен. Изменения больше недоступны.');
+        expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
+    });
+
+    it('opens mobile order, fridge and history sheets from bottom navigation', async () => {
+        await mountApp({ authenticated: true });
+
+        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
+        expect(document.querySelector('[data-testid="mobile-order-panel"]')).toBeTruthy();
+
+        await click(document.querySelector('[aria-label="Закрыть мой заказ"]'));
+        await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
+        expect(document.querySelector('[data-testid="mobile-fridge-panel"]')).toBeTruthy();
+
+        await click(document.querySelector('[aria-label="Закрыть холодильник"]'));
+        await click(document.querySelector('[aria-label="Открыть раздел: История"]'));
+        expect(document.querySelector('[data-testid="mobile-history-panel"]')).toBeTruthy();
+    });
+
+    it('closes an open mobile sheet after switching to a desktop viewport', async () => {
+        let desktop = false;
+        let listener = null;
+
+        vi.spyOn(window, 'matchMedia').mockImplementation(() => ({
+            get matches() {
+                return desktop;
+            },
+            addEventListener: (event, callback) => {
+                if (event === 'change') {
+                    listener = callback;
+                }
+            },
+            removeEventListener: vi.fn(),
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        }));
+
+        await mountApp({ authenticated: true });
+        await click(document.querySelector('[aria-label="Открыть мой заказ"]'));
+        expect(document.querySelector('[data-testid="mobile-order-panel"]')).toBeTruthy();
+
+        desktop = true;
+        listener?.({ matches: true });
+        await nextTick();
+
+        expect(document.querySelector('[data-testid="mobile-order-panel"]')?.dataset.state).toBe('closed');
+    });
+
+    it('falls back to a placeholder if a menu image cannot be loaded', async () => {
+        await mountApp({
+            menuItems: [{ ...menuItem, image_url: 'https://example.com/broken-image.jpg' }],
+        });
+
+        const image = document.querySelector(`img[alt="${menuItem.title}"]`);
+        expect(image).toBeTruthy();
+        await image.dispatchEvent(new Event('error'));
+        await nextTick();
+
+        expect(document.body.textContent).toContain('Фото блюда появится скоро');
+    });
+
     it('sends fridge PATCH actions and reloads fridge data', async () => {
         const { fetchMock } = await mountApp({
             authenticated: true,
             fridgeItems: [fridgeItem],
         });
 
-        useUiStore().activeSidebarTab = 'fridge';
-        await nextTick();
+        await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
+        expect(document.body.textContent).toContain('Годен до');
         await click(buttonByText('Съел 1'));
 
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/eat-one`)).toBe(true);
@@ -353,10 +656,13 @@ describe('catalog auth UX', () => {
             fridgeItems: [fridgeItem],
         });
 
-        useUiStore().activeSidebarTab = 'fridge';
-        await nextTick();
+        await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
         await click(buttonByText('Выбросил'));
 
+        expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/discard`)).toBe(false);
+        expect(document.body.textContent).toContain('Выбросить блюдо?');
+
+        await click(buttonByText('Подтвердить выброс'));
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/discard`)).toBe(true);
         expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/my-fridge')).length).toBeGreaterThan(2);
     });
@@ -368,8 +674,7 @@ describe('catalog auth UX', () => {
             fridgePatchStatus: 403,
         });
 
-        useUiStore().activeSidebarTab = 'fridge';
-        await nextTick();
+        await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
         await click(buttonByText('Съел 1'));
 
         expect(document.body.textContent).toContain('Не удалось обновить холодильник.');

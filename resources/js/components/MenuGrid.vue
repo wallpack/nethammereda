@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import MenuItemCard from '@/components/MenuItemCard.vue';
-import { Search, SlidersHorizontal } from 'lucide-vue-next';
+import { Heart, Search, X } from 'lucide-vue-next';
 
 const props = defineProps({
     loading: {
@@ -32,15 +32,31 @@ const props = defineProps({
         type: Set,
         default: () => new Set(),
     },
+    favoritesOnly: {
+        type: Boolean,
+        default: false,
+    },
+    favoritesCount: {
+        type: Number,
+        default: 0,
+    },
     isAuthenticated: {
         type: Boolean,
         default: false,
     },
-    isOpenForOrdering: {
+    canEditOrder: {
         type: Boolean,
         default: false,
     },
+    disabledReason: {
+        type: String,
+        default: '',
+    },
     actionLoading: {
+        type: Boolean,
+        default: false,
+    },
+    hasActiveFilters: {
         type: Boolean,
         default: false,
     },
@@ -49,6 +65,8 @@ const props = defineProps({
 const emit = defineEmits([
     'update:search',
     'toggle-favorite',
+    'toggle-favorites-filter',
+    'clear-filters',
     'add-item',
     'change-quantity',
 ]);
@@ -58,90 +76,147 @@ const searchModel = computed({
     set: (value) => emit('update:search', value),
 });
 
+const resultsLabel = computed(() => {
+    const count = props.filteredItems.length;
+    const ending = count % 10 === 1 && count % 100 !== 11
+        ? 'блюдо'
+        : ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100) ? 'блюда' : 'блюд');
+
+    return `${count} ${ending}`;
+});
+
+const emptyTitle = computed(() => {
+    if (props.favoritesOnly && props.favoritesCount === 0) {
+        return 'В избранном пока ничего нет.';
+    }
+
+    if (!props.hasActiveFilters) {
+        return 'Меню на эту неделю пока пусто';
+    }
+
+    return 'Ничего не найдено';
+});
+
+const emptyDescription = computed(() => {
+    if (props.favoritesOnly && props.favoritesCount === 0) {
+        return 'Нажимайте сердечко на блюдах, чтобы сохранить их здесь.';
+    }
+
+    if (!props.hasActiveFilters) {
+        return 'Блюда появятся здесь после публикации меню.';
+    }
+
+    return 'Измените поиск или выберите другую категорию.';
+});
+
+const clearFiltersLabel = computed(() => props.favoritesOnly && props.favoritesCount === 0
+    ? 'Показать всё меню'
+    : 'Сбросить фильтры');
+
 const orderItemFor = (menuItemId) => props.orderItemByMenuItem.get(menuItemId) ?? null;
 const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
 </script>
 
 <template>
-    <Card class="overflow-visible border-0 bg-transparent text-slate-900 shadow-none">
-        <div class="mb-6 flex flex-col gap-5 2xl:flex-row 2xl:items-end 2xl:justify-between">
+    <section class="min-w-0" aria-labelledby="menu-heading">
+        <div class="mb-5 flex flex-col gap-4 sm:mb-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-                <h1 class="text-[30px] font-bold leading-tight tracking-[-0.4px] text-[#111827] md:text-[32px]">
-                    Каталог блюд
-                </h1>
-                <p class="mt-1.5 text-[16px] font-medium text-[#66769f]">
-                    {{ filteredItems.length }} блюд на ваш выбор
+                <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold text-slate-950 outline-none sm:text-3xl">
+                    Меню недели
+                </h2>
+                <p v-if="!loading" class="mt-1 text-pretty text-sm text-slate-500">
+                    {{ resultsLabel }} для вашего выбора
                 </p>
+                <Skeleton v-else class="mt-2 h-4 w-44 rounded-md bg-slate-100" />
             </div>
 
-            <div class="flex w-full flex-col gap-3 sm:flex-row 2xl:max-w-[560px]">
-                <div class="relative min-w-0 flex-1">
-                    <Search class="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[#7080a3]" />
+            <div class="flex flex-col gap-2 sm:flex-row lg:max-w-xl lg:flex-1 lg:justify-end">
+                <label class="relative min-w-0 flex-1 lg:max-w-sm">
+                    <span class="sr-only">Найти блюдо</span>
+                    <Search aria-hidden="true" class="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                     <Input
                         id="menu-search"
                         v-model="searchModel"
                         type="search"
-                        placeholder="Поиск блюд, ингредиентов..."
-                        class="h-[52px] rounded-[12px] border-[#e1e8f5] bg-white pl-12 pr-4 text-[15px] font-medium text-[#1f2a44] shadow-[0_10px_28px_rgba(21,39,75,0.04)] placeholder:text-[#7080a3] focus-visible:border-[#0f52ff] focus-visible:ring-[#0f52ff]/15"
+                        placeholder="Название или состав"
+                        class="h-12 rounded-xl border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                     />
-                </div>
+                </label>
 
                 <Button
+                    v-if="isAuthenticated"
                     type="button"
                     variant="outline"
-                    class="h-[52px] rounded-[12px] border-[#e1e8f5] bg-white px-6 text-[15px] font-bold text-[#25314d] shadow-[0_10px_28px_rgba(21,39,75,0.04)] hover:bg-[#f4f7ff] hover:text-[#0f52ff]"
+                    class="h-12 rounded-xl border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
+                    :class="favoritesOnly ? 'border-blue-200 bg-blue-50 text-blue-700' : ''"
+                    :aria-pressed="favoritesOnly"
+                    @click="emit('toggle-favorites-filter')"
                 >
-                    <SlidersHorizontal class="mr-2 size-5 text-[#0f52ff]" />
-                    Фильтры
+                    <Heart aria-hidden="true" class="size-4" :class="favoritesOnly ? 'fill-current' : ''" />
+                    Избранное
+                    <span v-if="favoritesCount" class="tabular-nums text-xs opacity-75">{{ favoritesCount }}</span>
                 </Button>
             </div>
         </div>
 
-        <CardContent class="space-y-5 bg-transparent p-0">
-            <div v-if="loading" class="dishes-grid">
-                <Card
-                    v-for="skeleton in menuSkeletonRows"
-                    :key="`menu-skeleton-${skeleton}`"
-                    class="border-slate-200 bg-white/90"
-                >
-                    <CardContent class="space-y-3 p-3">
-                        <Skeleton class="aspect-square w-full rounded-xl bg-slate-200/80" />
-                        <Skeleton class="h-5 w-3/4 rounded-md bg-slate-200/80" />
-                        <Skeleton class="h-4 w-full rounded-md bg-slate-200/70" />
-                        <Skeleton class="h-4 w-2/3 rounded-md bg-slate-200/70" />
-                        <div class="flex items-center justify-between">
-                            <Skeleton class="h-5 w-16 rounded-md bg-slate-200/80" />
-                            <Skeleton class="h-9 w-28 rounded-lg bg-slate-200/80" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
+        <div v-if="loading" class="dishes-grid" aria-busy="true" aria-label="Загрузка блюд">
             <Card
-                v-else-if="filteredItems.length === 0"
-                class="border-slate-200 bg-slate-50"
+                v-for="skeleton in menuSkeletonRows"
+                :key="`menu-skeleton-${skeleton}`"
+                class="overflow-hidden rounded-3xl border-slate-200 bg-white shadow-sm"
             >
-                <CardContent class="py-14 text-center text-slate-600">
-                    <p class="text-base font-semibold text-slate-800">Ничего не найдено</p>
-                    <p class="mt-2 text-sm text-slate-500">Попробуйте изменить поисковый запрос или выбрать другую категорию.</p>
+                <CardContent class="space-y-3 p-0">
+                    <div class="p-2.5 pb-0 sm:p-3 sm:pb-0">
+                        <Skeleton class="aspect-[4/3] w-full rounded-2xl bg-slate-100" />
+                    </div>
+                    <div class="space-y-3 px-5 pb-5 pt-1">
+                        <Skeleton class="h-4 w-20 rounded-md bg-slate-100" />
+                        <Skeleton class="h-5 w-4/5 rounded-md bg-slate-100" />
+                        <Skeleton class="h-4 w-full rounded-md bg-slate-100" />
+                        <div class="flex items-center justify-between pt-3">
+                            <Skeleton class="h-6 w-20 rounded-md bg-slate-100" />
+                            <Skeleton class="h-11 w-28 rounded-xl bg-slate-100" />
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
+        </div>
 
-            <div v-else class="dishes-grid">
-                <MenuItemCard
-                    v-for="item in filteredItems"
-                    :key="item.id"
-                    :item="item"
-                    :order-item="orderItemFor(item.id)"
-                    :is-favorite="isFavorite(item.id)"
-                    :is-authenticated="isAuthenticated"
-                    :is-open-for-ordering="isOpenForOrdering"
-                    :action-loading="actionLoading"
-                    @toggle-favorite="emit('toggle-favorite', $event)"
-                    @add-item="emit('add-item', $event)"
-                    @change-quantity="(...args) => emit('change-quantity', ...args)"
-                />
-            </div>
-        </CardContent>
-    </Card>
+        <Card v-else-if="filteredItems.length === 0" class="rounded-2xl border-slate-200 bg-white shadow-sm">
+            <CardContent class="flex flex-col items-center px-5 py-12 text-center">
+                <Search aria-hidden="true" class="size-7 text-slate-300" />
+                <p class="mt-4 text-balance text-lg font-semibold text-slate-900">{{ emptyTitle }}</p>
+                <p class="mt-2 max-w-sm text-pretty text-sm leading-6 text-slate-500">
+                    {{ emptyDescription }}
+                </p>
+                <Button
+                    v-if="hasActiveFilters"
+                    type="button"
+                    variant="outline"
+                    class="mt-5 h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold"
+                    @click="emit('clear-filters')"
+                >
+                    <X aria-hidden="true" class="size-4" />
+                    {{ clearFiltersLabel }}
+                </Button>
+            </CardContent>
+        </Card>
+
+        <div v-else class="dishes-grid">
+            <MenuItemCard
+                v-for="item in filteredItems"
+                :key="item.id"
+                :item="item"
+                :order-item="orderItemFor(item.id)"
+                :is-favorite="isFavorite(item.id)"
+                :is-authenticated="isAuthenticated"
+                :can-edit-order="canEditOrder"
+                :disabled-reason="disabledReason"
+                :action-loading="actionLoading"
+                @toggle-favorite="emit('toggle-favorite', $event)"
+                @add-item="emit('add-item', $event)"
+                @change-quantity="(...args) => emit('change-quantity', ...args)"
+            />
+        </div>
+    </section>
 </template>

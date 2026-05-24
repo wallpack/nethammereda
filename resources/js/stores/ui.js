@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
 export const useUiStore = defineStore('ui', () => {
-    const loading = ref(false);
+    const loading = ref(true);
     const actionLoading = ref(false);
     const error = ref('');
     const info = ref('');
@@ -10,8 +10,9 @@ export const useUiStore = defineStore('ui', () => {
     const isAuthModalOpen = ref(false);
     const authModalMessage = ref('');
     const isProfileModalOpen = ref(false);
-    const profileNotice = ref('');
     const favoriteIds = ref(new Set());
+    const favoritesOnly = ref(false);
+    const mobilePanel = ref(null);
 
     const favoritesCount = computed(() => favoriteIds.value.size);
 
@@ -27,17 +28,11 @@ export const useUiStore = defineStore('ui', () => {
     };
 
     const openProfileModal = () => {
-        profileNotice.value = '';
         isProfileModalOpen.value = true;
     };
 
     const closeProfileModal = () => {
         isProfileModalOpen.value = false;
-        profileNotice.value = '';
-    };
-
-    const showProfileNotice = (message) => {
-        profileNotice.value = message;
     };
 
     const toggleFavorite = (menuItemId) => {
@@ -52,10 +47,23 @@ export const useUiStore = defineStore('ui', () => {
         favoriteIds.value = nextFavorites;
     };
 
+    const toggleFavoritesFilter = () => {
+        favoritesOnly.value = !favoritesOnly.value;
+    };
+
+    const openMobilePanel = (panel) => {
+        mobilePanel.value = panel;
+    };
+
+    const closeMobilePanel = () => {
+        mobilePanel.value = null;
+    };
+
     const resetSessionUi = () => {
         activeSidebarTab.value = 'order';
         favoriteIds.value = new Set();
-        profileNotice.value = '';
+        favoritesOnly.value = false;
+        mobilePanel.value = null;
     };
 
     return {
@@ -67,15 +75,18 @@ export const useUiStore = defineStore('ui', () => {
         isAuthModalOpen,
         authModalMessage,
         isProfileModalOpen,
-        profileNotice,
         favoriteIds,
         favoritesCount,
+        favoritesOnly,
+        mobilePanel,
         openAuthModal,
         closeAuthModal,
         openProfileModal,
         closeProfileModal,
-        showProfileNotice,
         toggleFavorite,
+        toggleFavoritesFilter,
+        openMobilePanel,
+        closeMobilePanel,
         resetSessionUi,
     };
 });

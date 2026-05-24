@@ -1,8 +1,16 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from 'vue';
-import { Badge } from '@/components/ui/badge';
+import { computed } from 'vue';
+import {
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogOverlay,
+    DialogPortal,
+    DialogRoot,
+    DialogTitle,
+} from 'reka-ui';
 import { Button } from '@/components/ui/button';
-import { Heart, LogOut, Settings, ShoppingCart, User, X } from 'lucide-vue-next';
+import { Heart, History, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
     open: {
@@ -17,175 +25,116 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
-    ordersCount: {
-        type: Number,
-        default: 0,
-    },
-    lastOrderLabel: {
-        type: String,
-        default: '',
-    },
-    notice: {
-        type: String,
-        default: '',
-    },
 });
 
-const emit = defineEmits(['close', 'logout', 'show-favorites', 'show-orders', 'show-settings']);
+const emit = defineEmits(['close', 'logout', 'show-favorites', 'show-order', 'show-fridge', 'show-history']);
 
 const displayName = computed(() => {
     return props.user?.name || props.user?.full_name || props.user?.first_name || props.user?.email || 'Пользователь';
 });
 
-const identifier = computed(() => {
-    return props.user?.email || props.user?.phone || props.user?.telegram_id || '';
-});
+const identifier = computed(() => props.user?.email || props.user?.phone || props.user?.telegram_id || '');
 
-const onKeydown = (event) => {
-    if (props.open && event.key === 'Escape') {
+const closeWhenChanged = (open) => {
+    if (!open) {
         emit('close');
     }
 };
-
-onMounted(() => {
-    window.addEventListener('keydown', onKeydown);
-});
-
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', onKeydown);
-});
 </script>
 
 <template>
-    <Teleport to="body">
-        <Transition
-            enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition duration-100 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
-            <div
-                v-if="open"
-                class="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 py-8 backdrop-blur-[2px]"
-                role="presentation"
-                @click.self="emit('close')"
-            >
-                <section
-                    class="relative w-full max-w-[560px] rounded-[22px] bg-white px-6 pb-7 pt-8 text-slate-900 shadow-[0_28px_80px_rgba(15,23,42,0.22)] sm:px-9"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="profile-modal-title"
-                >
+    <DialogRoot :open="open" @update:open="closeWhenChanged">
+        <DialogPortal>
+            <DialogOverlay class="fixed inset-0 z-40 bg-slate-950/45" />
+            <DialogContent class="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(calc(100%_-_2rem),30rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl outline-none sm:p-7">
+                <DialogClose as-child>
                     <Button
                         type="button"
                         variant="ghost"
-                        size="icon-sm"
-                        class="absolute right-4 top-4 h-10 w-10 rounded-full border border-[#e5ebf7] bg-white text-[#66769f] shadow-none hover:bg-[#f4f7ff] hover:text-[#111827]"
+                        size="icon"
+                        class="absolute right-3 top-3 size-11 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                         aria-label="Закрыть профиль"
-                        @click="emit('close')"
                     >
-                        <X class="size-5" />
+                        <X aria-hidden="true" class="size-5" />
                     </Button>
+                </DialogClose>
 
-                    <div class="flex items-start gap-4 pr-10">
-                        <div class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[#f1f5ff] text-[#2459d9]">
-                            <User class="size-8" />
-                        </div>
-                        <div class="min-w-0">
-                            <h2 id="profile-modal-title" class="truncate text-[28px] font-black leading-tight tracking-[-0.4px] text-[#111827]">
-                                {{ displayName }}
-                            </h2>
-                            <p v-if="identifier" class="mt-1 truncate text-sm font-semibold text-[#66769f]">
-                                {{ identifier }}
-                            </p>
-                        </div>
+                <div class="flex items-start gap-4 pr-12">
+                    <div class="grid size-14 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700">
+                        <UserRound aria-hidden="true" class="size-7" />
                     </div>
-
-                    <div class="mt-7 grid gap-3 sm:grid-cols-2">
-                        <button
-                            type="button"
-                            class="rounded-[16px] border border-[#e5ebf7] bg-[#f8faff] p-4 text-left transition hover:border-[#cdd8ef] hover:bg-white"
-                            @click="emit('show-favorites')"
+                    <div class="min-w-0 flex-1">
+                        <DialogTitle
+                            data-testid="profile-name"
+                            class="line-clamp-2 break-words text-balance text-xl font-semibold leading-7 text-slate-950"
+                            :title="displayName"
                         >
-                            <span class="grid h-10 w-10 place-items-center rounded-[12px] bg-white text-rose-500 shadow-[0_8px_18px_rgba(21,39,75,0.07)]">
-                                <Heart class="size-5" />
-                            </span>
-                            <span class="mt-3 block text-base font-black text-[#111827]">Избранное</span>
-                            <span class="mt-1 block text-sm font-semibold text-[#66769f]">
-                                {{ favoritesCount ? `${favoritesCount} блюд` : 'Подборка любимых блюд' }}
-                            </span>
-                        </button>
-
-                        <button
-                            type="button"
-                            class="rounded-[16px] border border-[#e5ebf7] bg-[#f8faff] p-4 text-left transition hover:border-[#cdd8ef] hover:bg-white"
-                            @click="emit('show-orders')"
-                        >
-                            <span class="grid h-10 w-10 place-items-center rounded-[12px] bg-white text-[#2459d9] shadow-[0_8px_18px_rgba(21,39,75,0.07)]">
-                                <ShoppingCart class="size-5" />
-                            </span>
-                            <span class="mt-3 block text-base font-black text-[#111827]">Мои заказы</span>
-                            <span class="mt-1 block text-sm font-semibold text-[#66769f]">
-                                {{ lastOrderLabel || (ordersCount ? `${ordersCount} активный` : 'История заказов') }}
-                            </span>
-                        </button>
+                            {{ displayName }}
+                        </DialogTitle>
+                        <DialogDescription v-if="identifier" class="mt-1 break-all text-pretty text-sm leading-5 text-slate-500">
+                            {{ identifier }}
+                        </DialogDescription>
                     </div>
+                </div>
 
-                    <Badge
-                        v-if="notice"
+                <div class="mt-6 grid gap-2">
+                    <Button
+                        type="button"
                         variant="outline"
-                        class="mt-5 rounded-[10px] border-[#d7e2f7] bg-[#f4f7ff] px-3 py-2 text-sm font-semibold text-[#2459d9]"
+                        class="h-14 justify-between rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        data-testid="profile-favorites-action"
+                        @click="emit('show-favorites')"
                     >
-                        {{ notice }}
-                    </Badge>
+                        <span class="inline-flex items-center gap-3">
+                            <Heart aria-hidden="true" class="size-5 text-rose-600" />
+                            Избранное
+                        </span>
+                        <span class="tabular-nums text-slate-500">{{ favoritesCount || '' }}</span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="h-14 justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        data-testid="profile-order-action"
+                        @click="emit('show-order')"
+                    >
+                        <span class="inline-flex items-center gap-3">
+                            <ShoppingBag aria-hidden="true" class="size-5 text-blue-700" />
+                            Мой заказ
+                        </span>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="h-14 justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        data-testid="profile-fridge-action"
+                        @click="emit('show-fridge')"
+                    >
+                        <Refrigerator aria-hidden="true" class="size-5 text-blue-700" />
+                        Холодильник
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="h-14 justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        data-testid="profile-history-action"
+                        @click="emit('show-history')"
+                    >
+                        <History aria-hidden="true" class="size-5 text-blue-700" />
+                        История питания
+                    </Button>
+                </div>
 
-                    <div class="mt-6 overflow-hidden rounded-[16px] border border-[#e5ebf7]">
-                        <button
-                            type="button"
-                            class="flex h-14 w-full items-center justify-between border-b border-[#e5ebf7] bg-white px-4 text-left text-sm font-bold text-[#25314d] transition hover:bg-[#f8faff]"
-                            @click="emit('show-favorites')"
-                        >
-                            <span class="inline-flex items-center gap-3">
-                                <Heart class="size-5 text-rose-500" />
-                                Избранное
-                            </span>
-                            <span class="text-[#7080a3]">{{ favoritesCount || '' }}</span>
-                        </button>
-
-                        <button
-                            type="button"
-                            class="flex h-14 w-full items-center justify-between border-b border-[#e5ebf7] bg-white px-4 text-left text-sm font-bold text-[#25314d] transition hover:bg-[#f8faff]"
-                            @click="emit('show-orders')"
-                        >
-                            <span class="inline-flex items-center gap-3">
-                                <ShoppingCart class="size-5 text-[#2459d9]" />
-                                Мои заказы
-                            </span>
-                            <span class="text-[#7080a3]">{{ ordersCount || '' }}</span>
-                        </button>
-
-                        <button
-                            type="button"
-                            class="flex h-14 w-full items-center gap-3 border-b border-[#e5ebf7] bg-white px-4 text-left text-sm font-bold text-[#25314d] transition hover:bg-[#f8faff]"
-                            @click="emit('show-settings')"
-                        >
-                            <Settings class="size-5 text-[#7080a3]" />
-                            Настройки
-                        </button>
-
-                        <button
-                            type="button"
-                            class="flex h-14 w-full items-center gap-3 bg-white px-4 text-left text-sm font-bold text-rose-600 transition hover:bg-rose-50"
-                            @click="emit('logout')"
-                        >
-                            <LogOut class="size-5" />
-                            Выйти
-                        </button>
-                    </div>
-                </section>
-            </div>
-        </Transition>
-    </Teleport>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    class="mt-5 h-12 w-full justify-start rounded-xl px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                    @click="emit('logout')"
+                >
+                    <LogOut aria-hidden="true" class="size-5" />
+                    Выйти
+                </Button>
+            </DialogContent>
+        </DialogPortal>
+    </DialogRoot>
 </template>

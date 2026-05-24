@@ -1,28 +1,14 @@
 <script setup>
 import BrandLogo from '@/components/BrandLogo.vue';
-import WeekStatus from '@/components/WeekStatus.vue';
-import { Bell, ChevronDown, User } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Refrigerator, ShoppingBag, UserRound } from 'lucide-vue-next';
 
 defineProps({
-    cycle: {
-        type: Object,
-        default: null,
-    },
-    weeklyDeadlineLabel: {
-        type: String,
-        required: true,
-    },
-    isOpenForOrdering: {
+    loading: {
         type: Boolean,
         default: false,
-    },
-    availabilityLabel: {
-        type: String,
-        required: true,
-    },
-    availabilityDescription: {
-        type: String,
-        default: '',
     },
     isAuthenticated: {
         type: Boolean,
@@ -32,68 +18,106 @@ defineProps({
         type: Number,
         default: 0,
     },
+    activeFridgeItemsCount: {
+        type: Number,
+        default: 0,
+    },
     displayUserName: {
         type: String,
         required: true,
     },
 });
 
-const emit = defineEmits(['open-auth', 'open-profile']);
+const emit = defineEmits(['open-auth', 'open-profile', 'open-order', 'open-fridge']);
 </script>
 
 <template>
-    <header class="sticky top-0 z-40 border-b border-[#e7ecf6] bg-white/95 shadow-[0_8px_30px_rgba(21,39,75,0.04)] backdrop-blur">
-        <div class="header-inner app-header-shell">
-            <div class="flex min-w-0 items-center">
-                <BrandLogo />
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white">
+        <div class="header-inner flex min-h-16 items-center justify-between gap-3 py-2">
+            <BrandLogo />
+
+            <div v-if="loading" data-testid="header-auth-loading" class="flex items-center gap-2" aria-label="Загрузка профиля" aria-busy="true">
+                <Skeleton class="hidden h-11 w-28 rounded-xl bg-slate-100 xl:block" />
+                <Skeleton class="size-11 rounded-xl bg-slate-100" />
             </div>
 
-            <WeekStatus
-                :cycle="cycle"
-                :weekly-deadline-label="weeklyDeadlineLabel"
-                :is-open-for-ordering="isOpenForOrdering"
-                :availability-label="availabilityLabel"
-                :availability-description="availabilityDescription"
-            />
-
-            <div class="app-header-actions flex items-center gap-3">
-                <button
-                    v-if="isAuthenticated"
+            <nav
+                v-else-if="isAuthenticated"
+                class="hidden min-w-0 shrink-0 items-center gap-2 xl:flex"
+                aria-label="Быстрые действия"
+            >
+                <Button
                     type="button"
-                    class="relative grid h-11 w-11 place-items-center rounded-[13px] border border-[#e5ebf7] bg-white text-[#52617f] shadow-[0_8px_22px_rgba(34,58,104,0.05)] transition hover:border-[#cdd8ef] hover:text-[#174eff]"
-                    aria-label="Уведомления"
+                    variant="outline"
+                    class="relative h-11 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98]"
+                    aria-label="Открыть мой заказ"
+                    @click="emit('open-order')"
                 >
-                    <Bell class="size-5" />
-                    <span v-if="totalPositions" class="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#ff2e42] px-1 text-[10px] font-bold text-white">
+                    <ShoppingBag aria-hidden="true" class="size-5" />
+                    <span class="text-sm font-semibold">Мой заказ</span>
+                    <Badge
+                        v-if="totalPositions"
+                        class="ml-1 flex size-5 items-center justify-center rounded-full bg-blue-700 px-0 text-[11px] font-semibold tabular-nums text-white"
+                    >
                         {{ totalPositions }}
-                    </span>
-                </button>
+                    </Badge>
+                </Button>
 
-                <button
-                    v-if="isAuthenticated"
+                <Button
                     type="button"
-                    class="inline-flex h-12 min-w-[190px] items-center gap-3 rounded-[999px] border border-[#e5ebf7] bg-white py-2 pl-3 pr-4 text-left shadow-[0_8px_22px_rgba(34,58,104,0.05)] transition hover:border-[#cdd8ef] hover:bg-[#f8faff]"
+                    variant="outline"
+                    class="relative h-11 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98]"
+                    aria-label="Открыть холодильник"
+                    @click="emit('open-fridge')"
+                >
+                    <Refrigerator aria-hidden="true" class="size-5" />
+                    <span class="text-sm font-semibold">Холодильник</span>
+                    <Badge
+                        v-if="activeFridgeItemsCount"
+                        class="ml-1 flex size-5 items-center justify-center rounded-full bg-blue-700 px-0 text-[11px] font-semibold tabular-nums text-white"
+                    >
+                        {{ activeFridgeItemsCount }}
+                    </Badge>
+                </Button>
+
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="h-11 w-64 min-w-0 max-w-72 justify-start rounded-xl border-slate-200 bg-white px-1.5 pr-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98]"
+                    :aria-label="`Открыть профиль: ${displayUserName}`"
+                    :title="displayUserName"
                     @click="emit('open-profile')"
                 >
-                    <div class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#f1f5ff] text-[#2459d9]">
-                        <User class="size-5" />
-                    </div>
-                    <span class="min-w-0 flex-1 truncate text-[15px] font-black text-[#111827]">{{ displayUserName }}</span>
-                    <ChevronDown class="size-4 text-[#66769f]" />
-                </button>
+                    <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">
+                        <UserRound aria-hidden="true" class="size-4" />
+                    </span>
+                    <span class="min-w-0 truncate text-left text-sm font-semibold">{{ displayUserName }}</span>
+                </Button>
+            </nav>
 
-                <button
-                    v-else
-                    type="button"
-                    class="inline-flex h-12 min-w-[156px] items-center justify-center gap-3 rounded-[999px] border border-[#e5ebf7] bg-white px-5 text-[15px] font-black text-[#111827] shadow-[0_8px_22px_rgba(34,58,104,0.05)] transition hover:border-[#cdd8ef] hover:bg-[#f8faff]"
-                    @click="emit('open-auth')"
-                >
-                    <div class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#f1f5ff] text-[#2459d9]">
-                        <User class="size-5" />
-                    </div>
-                    Войти
-                </button>
-            </div>
+            <Button
+                v-if="isAuthenticated && !loading"
+                type="button"
+                variant="outline"
+                class="size-11 shrink-0 rounded-xl border-slate-200 bg-white px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98] xl:hidden"
+                :aria-label="`Открыть профиль: ${displayUserName}`"
+                :title="displayUserName"
+                @click="emit('open-profile')"
+            >
+                <span class="grid size-8 place-items-center rounded-lg bg-slate-100 text-slate-600">
+                    <UserRound aria-hidden="true" class="size-4" />
+                </span>
+            </Button>
+
+            <Button
+                v-if="!isAuthenticated && !loading"
+                type="button"
+                class="h-11 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
+                @click="emit('open-auth')"
+            >
+                <UserRound aria-hidden="true" class="size-4" />
+                Войти
+            </Button>
         </div>
     </header>
 </template>

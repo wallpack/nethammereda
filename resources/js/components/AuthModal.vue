@@ -1,10 +1,19 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { computed } from 'vue';
+import {
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogOverlay,
+    DialogPortal,
+    DialogRoot,
+    DialogTitle,
+} from 'reka-ui';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Loader2, User, X } from 'lucide-vue-next';
+import { Eye, EyeOff, Loader2, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
     open: {
@@ -70,159 +79,132 @@ const rememberMeModel = computed({
     set: (value) => emit('update:rememberMe', value === true),
 });
 
-const togglePassword = () => {
-    emit('update:showPassword', !props.showPassword);
-};
-
-const onKeydown = (event) => {
-    if (props.open && event.key === 'Escape') {
+const closeWhenChanged = (open) => {
+    if (!open) {
         emit('close');
     }
 };
-
-onMounted(() => {
-    window.addEventListener('keydown', onKeydown);
-});
-
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', onKeydown);
-});
 </script>
 
 <template>
-    <Teleport to="body">
-        <Transition
-            enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition duration-100 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
-            <div
-                v-if="open"
-                class="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-4 py-8 backdrop-blur-[2px]"
-                role="presentation"
-                @click.self="emit('close')"
+    <DialogRoot :open="open" @update:open="closeWhenChanged">
+        <DialogPortal>
+            <DialogOverlay class="fixed inset-0 z-40 bg-slate-950/45" />
+            <DialogContent
+                class="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(calc(100%_-_2rem),30rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-slate-200 bg-white px-5 pb-6 pt-7 text-slate-900 shadow-xl outline-none sm:px-8"
             >
-                <section
-                    class="relative w-full max-w-[520px] rounded-[22px] bg-white px-6 pb-7 pt-8 text-center text-slate-900 shadow-[0_28px_80px_rgba(15,23,42,0.22)] sm:px-9"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="auth-modal-title"
-                >
+                <DialogClose as-child>
                     <Button
                         type="button"
                         variant="ghost"
-                        size="icon-sm"
-                        class="absolute right-4 top-4 h-10 w-10 rounded-full border border-[#e5ebf7] bg-white text-[#66769f] shadow-none hover:bg-[#f4f7ff] hover:text-[#111827]"
+                        size="icon"
+                        class="absolute right-3 top-3 size-11 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                         aria-label="Закрыть окно входа"
-                        @click="emit('close')"
                     >
-                        <X class="size-5" />
+                        <X aria-hidden="true" class="size-5" />
                     </Button>
+                </DialogClose>
 
-                    <div class="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#f1f5ff] text-[#2459d9]">
-                        <User class="size-7" />
-                    </div>
+                <div class="mx-auto grid size-12 place-items-center rounded-xl bg-blue-50 text-blue-700">
+                    <UserRound aria-hidden="true" class="size-6" />
+                </div>
 
-                    <h2 id="auth-modal-title" class="mt-5 text-[28px] font-black leading-tight tracking-[-0.4px] text-[#111827]">
-                        Вход в аккаунт
-                    </h2>
+                <DialogTitle class="mt-5 text-center text-balance text-2xl font-semibold text-slate-950">
+                    Вход в аккаунт
+                </DialogTitle>
+                <DialogDescription class="mx-auto mt-2 max-w-sm text-center text-pretty text-sm leading-6 text-slate-500">
+                    Войдите, чтобы собрать заказ и проверить холодильник.
+                </DialogDescription>
 
-                    <p class="mx-auto mt-2 max-w-[340px] text-sm font-medium leading-5 text-[#66769f]">
-                        Используйте данные пользователя из админ-панели Nethammer EDA.
-                    </p>
+                <Alert v-if="message" class="mt-5 rounded-xl border-blue-100 bg-blue-50 text-blue-800" role="status">
+                    <AlertDescription>{{ message }}</AlertDescription>
+                </Alert>
 
-                    <Alert
-                        v-if="message"
-                        class="mt-6 rounded-[12px] border-[#d7e2f7] bg-[#f4f7ff] text-left text-[#2459d9]"
-                        role="status"
-                    >
-                        <AlertDescription>{{ message }}</AlertDescription>
-                    </Alert>
+                <Alert
+                    v-if="error"
+                    id="auth-modal-error"
+                    variant="destructive"
+                    class="mt-5 rounded-xl border-red-200 bg-red-50 text-red-700"
+                    role="alert"
+                    aria-live="assertive"
+                >
+                    <AlertDescription>{{ error }}</AlertDescription>
+                </Alert>
 
-                    <Alert
-                        v-if="error"
-                        variant="destructive"
-                        class="mt-6 rounded-[12px] border-red-200 bg-red-50 text-left text-red-700"
-                        role="alert"
-                        aria-live="assertive"
-                    >
-                        <AlertDescription>{{ error }}</AlertDescription>
-                    </Alert>
+                <form class="mt-6 grid gap-4 text-left" @submit.prevent="emit('submit')">
+                    <label class="grid gap-2">
+                        <span class="text-sm font-medium text-slate-700">Почта <span aria-hidden="true" class="text-red-600">*</span></span>
+                        <Input
+                            v-model="emailModel"
+                            id="auth-modal-email"
+                            name="email"
+                            type="email"
+                            autocomplete="username"
+                            required
+                            autofocus
+                            :aria-invalid="Boolean(error)"
+                            :aria-describedby="error ? 'auth-modal-error' : undefined"
+                            class="h-12 rounded-xl border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                        />
+                    </label>
 
-                    <form class="mt-6 grid gap-4 text-left" @submit.prevent="emit('submit')">
-                        <label class="grid gap-2">
-                            <span class="text-sm font-bold leading-5 text-[#25314d]">Почта<sup class="required-star">*</sup></span>
+                    <label class="grid gap-2">
+                        <span class="text-sm font-medium text-slate-700">Пароль <span aria-hidden="true" class="text-red-600">*</span></span>
+                        <div class="relative">
                             <Input
-                                v-model="emailModel"
-                                id="auth-modal-email"
-                                name="email"
-                                type="email"
-                                autocomplete="username"
+                                v-model="passwordModel"
+                                id="auth-modal-password"
+                                name="password"
+                                :type="showPassword ? 'text' : 'password'"
+                                autocomplete="current-password"
                                 required
-                                class="h-12 rounded-[12px] border-[#e1e8f5] bg-white px-4 text-[15px] font-medium text-[#1f2a44] placeholder:text-[#7080a3] focus-visible:border-[#0f52ff] focus-visible:ring-[#0f52ff]/15"
+                                :aria-invalid="Boolean(error)"
+                                :aria-describedby="error ? 'auth-modal-error' : undefined"
+                                class="h-12 rounded-xl border-slate-200 bg-white px-4 pr-12 text-sm text-slate-900 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                             />
-                        </label>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="absolute right-0.5 top-0.5 size-11 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                                :aria-label="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
+                                @click="emit('update:show-password', !showPassword)"
+                            >
+                                <EyeOff v-if="showPassword" aria-hidden="true" class="size-5" />
+                                <Eye v-else aria-hidden="true" class="size-5" />
+                            </Button>
+                        </div>
+                    </label>
 
-                        <label class="grid gap-2">
-                            <span class="text-sm font-bold leading-5 text-[#25314d]">Пароль<sup class="required-star">*</sup></span>
-                            <div class="relative">
-                                <Input
-                                    v-model="passwordModel"
-                                    id="auth-modal-password"
-                                    name="password"
-                                    :type="showPassword ? 'text' : 'password'"
-                                    autocomplete="current-password"
-                                    required
-                                    class="h-12 rounded-[12px] border-[#e1e8f5] bg-white px-4 pr-12 text-[15px] font-medium text-[#1f2a44] placeholder:text-[#7080a3] focus-visible:border-[#0f52ff] focus-visible:ring-[#0f52ff]/15"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    class="absolute right-1.5 top-1.5 h-9 w-9 rounded-[10px] border-0 bg-transparent p-0 text-[#7080a3] shadow-none hover:bg-[#f4f7ff] hover:text-[#0f52ff]"
-                                    :aria-label="showPassword ? 'Скрыть пароль' : 'Показать пароль'"
-                                    @click="togglePassword"
-                                >
-                                    <Eye v-if="showPassword" class="size-5" />
-                                    <EyeOff v-else class="size-5" />
-                                </Button>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 text-sm font-semibold leading-5 text-[#25314d]">
-                            <Checkbox
-                                v-model="rememberMeModel"
-                                class="size-4 rounded-[4px] border-[#d9e3f3] bg-white data-checked:border-[#0f52ff] data-checked:bg-[#0f52ff] data-checked:text-white"
-                            />
-                            <span>Запомнить меня</span>
-                        </label>
-
-                        <Button
-                            type="submit"
-                            class="h-12 w-full rounded-[999px] bg-[#111827] text-[15px] font-bold text-white shadow-[0_14px_26px_rgba(17,24,39,0.18)] hover:bg-[#0f172a]"
-                            :disabled="loading"
-                        >
-                            <Loader2 v-if="loading" class="mr-2 size-4 animate-spin" />
-                            Войти
-                        </Button>
-                    </form>
+                    <label class="flex min-h-11 items-center gap-3 text-sm font-medium text-slate-700">
+                        <Checkbox
+                            v-model="rememberMeModel"
+                            class="size-5 rounded-md border-slate-300 bg-white data-checked:border-blue-700 data-checked:bg-blue-700 data-checked:text-white"
+                        />
+                        <span>Запомнить меня</span>
+                    </label>
 
                     <Button
-                        v-if="showTelegram"
-                        type="button"
-                        variant="outline"
-                        class="mt-3 h-11 w-full rounded-[999px] border-[#d9e3f3] bg-white text-sm font-bold text-[#25314d] hover:bg-[#f4f7ff]"
+                        type="submit"
+                        class="mt-1 h-12 w-full rounded-xl bg-blue-700 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
                         :disabled="loading"
-                        @click="emit('telegram-login')"
                     >
-                        <Loader2 v-if="loading" class="mr-2 size-4 animate-spin" />
-                        Войти через Telegram
+                        <Loader2 v-if="loading" aria-hidden="true" class="size-4 animate-spin" />
+                        Войти
                     </Button>
-                </section>
-            </div>
-        </Transition>
-    </Teleport>
+                </form>
+
+                <Button
+                    v-if="showTelegram"
+                    type="button"
+                    variant="outline"
+                    class="mt-3 h-12 w-full rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    :disabled="loading"
+                    @click="emit('telegram-login')"
+                >
+                    Войти через Telegram
+                </Button>
+            </DialogContent>
+        </DialogPortal>
+    </DialogRoot>
 </template>

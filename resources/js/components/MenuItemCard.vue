@@ -1,10 +1,12 @@
 <script setup>
+import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatPrice, nutritionLine, shelfLifeLabel } from '@/lib/formatters';
-import { Clock3, Heart, Minus, Plus } from 'lucide-vue-next';
+import { formatPrice, nutritionLine } from '@/lib/formatters';
+import { Heart, ImageIcon, Minus, Plus } from 'lucide-vue-next';
 
-defineProps({
+const props = defineProps({
     item: {
         type: Object,
         required: true,
@@ -21,9 +23,13 @@ defineProps({
         type: Boolean,
         default: false,
     },
-    isOpenForOrdering: {
+    canEditOrder: {
         type: Boolean,
         default: false,
+    },
+    disabledReason: {
+        type: String,
+        default: '',
     },
     actionLoading: {
         type: Boolean,
@@ -32,92 +38,117 @@ defineProps({
 });
 
 const emit = defineEmits(['toggle-favorite', 'add-item', 'change-quantity']);
+const imageFailed = ref(false);
+
+watch(() => props.item.image_url, () => {
+    imageFailed.value = false;
+});
+
+const showImage = computed(() => Boolean(props.item.image_url) && !imageFailed.value);
+const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoading || props.item.is_active === false);
 </script>
 
 <template>
-    <Card class="menu-card overflow-hidden rounded-[12px] border border-[#e5ebf7] bg-white text-slate-900 shadow-[0_10px_28px_rgba(21,39,75,0.04)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#cfdaee] hover:shadow-[0_18px_38px_rgba(21,39,75,0.10)]">
-        <CardContent class="flex h-full flex-col gap-0 p-0">
-            <div class="relative aspect-[4/3] overflow-hidden bg-[#eef3fb]">
-                <img
-                    v-if="item.image_url"
-                    :src="item.image_url"
-                    :alt="item.title"
-                    class="size-full object-cover"
-                    loading="eager"
-                    decoding="async"
-                />
-                <div v-else class="flex size-full items-center justify-center px-4 text-center text-xs font-medium text-[#7080a3]">
-                    Фото скоро загрузим
+    <Card class="menu-card overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-slate-300 hover:shadow-md">
+        <CardContent class="flex h-full flex-col p-0">
+            <div class="relative p-2.5 pb-0 sm:p-3 sm:pb-0">
+                <div class="relative aspect-[4/3] overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-inset ring-slate-100">
+                    <img
+                        v-if="showImage"
+                        :src="item.image_url"
+                        :alt="item.title"
+                        class="size-full object-contain p-3 sm:p-4"
+                        loading="lazy"
+                        decoding="async"
+                        @error="imageFailed = true"
+                    />
+                    <div v-else class="flex size-full flex-col items-center justify-center gap-2 px-4 text-center text-slate-400">
+                        <ImageIcon aria-hidden="true" class="size-7" />
+                        <span class="text-sm font-medium">Фото блюда появится скоро</span>
+                    </div>
                 </div>
 
                 <button
                     type="button"
-                    class="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-[9px] border border-[#e1e8f5] bg-white/95 text-[#7080a3] shadow-[0_8px_18px_rgba(21,39,75,0.10)] transition hover:text-rose-500"
-                    :class="isFavorite ? 'border-rose-100 bg-rose-50 text-rose-500' : ''"
+                    class="absolute right-5 top-5 inline-flex size-11 items-center justify-center rounded-xl border border-slate-200/80 bg-white/95 text-slate-500 shadow-sm transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98]"
+                    :class="isFavorite ? 'border-rose-200 bg-rose-50 text-rose-600' : ''"
                     :aria-label="isFavorite ? `Убрать из избранного: ${item.title}` : `Добавить в избранное: ${item.title}`"
                     :aria-pressed="isFavorite"
                     @click="emit('toggle-favorite', item.id)"
                 >
-                    <Heart class="size-4" :class="isFavorite ? 'fill-current' : ''" />
+                    <Heart aria-hidden="true" class="size-5" :class="isFavorite ? 'fill-current' : ''" />
                 </button>
-
-                <div
-                    v-if="shelfLifeLabel(item)"
-                    class="absolute bottom-3 left-3 inline-flex h-7 items-center gap-1 rounded-[8px] bg-white/95 px-2.5 text-[12px] font-bold text-[#25314d] shadow-[0_8px_18px_rgba(21,39,75,0.10)]"
-                >
-                    <Clock3 class="size-3.5 text-[#0f52ff]" />
-                    {{ shelfLifeLabel(item) }}
-                </div>
             </div>
 
-            <div class="flex flex-1 flex-col p-4">
-                <h3 class="line-clamp-2 min-h-[46px] text-[16px] font-bold leading-[1.42] text-[#172033]">{{ item.title }}</h3>
-                <p class="mt-2 text-[13px] font-semibold leading-5 text-[#6b7aa0]">{{ item.weight }}</p>
-                <p class="mt-2 min-h-9 text-[12px] font-medium leading-[18px] text-[#65769b]">
+            <div class="flex flex-1 flex-col px-5 pb-5 pt-4">
+                <div class="flex min-w-0 items-center gap-2 text-xs font-medium text-slate-500">
+                    <span class="truncate">{{ item.category?.name || 'Меню' }}</span>
+                    <span v-if="item.weight" aria-hidden="true" class="shrink-0 text-slate-300">•</span>
+                    <span v-if="item.weight" class="shrink-0 tabular-nums">{{ item.weight }}</span>
+                </div>
+
+                <h3 class="mt-2.5 line-clamp-2 text-balance text-lg font-semibold leading-6 text-slate-950">
+                    {{ item.title }}
+                </h3>
+                <p v-if="item.description" class="mt-1.5 line-clamp-2 text-pretty text-sm leading-5 text-slate-500">
+                    {{ item.description }}
+                </p>
+                <p class="mt-3 text-xs font-medium tabular-nums text-slate-500">
                     {{ nutritionLine(item) }}
                 </p>
 
                 <div class="mt-auto flex min-h-12 items-center justify-between gap-3 pt-5">
-                    <p class="text-[21px] font-black leading-none text-[#111827]">{{ formatPrice(item.price) }}</p>
+                    <p class="text-lg font-semibold tabular-nums text-slate-950">{{ formatPrice(item.price) }}</p>
+
                     <Button
                         v-if="!orderItem"
                         type="button"
                         size="sm"
-                        :disabled="!isOpenForOrdering || actionLoading"
-                        class="h-10 rounded-[8px] border-0 bg-[#0f52ff] px-4 text-[13px] font-bold text-white shadow-[0_10px_20px_rgba(15,82,255,0.22)] hover:bg-[#0648ec]"
+                        :disabled="controlsDisabled"
+                        :title="controlsDisabled ? disabledReason : undefined"
+                        class="h-11 rounded-xl border border-blue-100 bg-blue-50 px-4 text-sm font-semibold text-blue-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-100 active:scale-[0.98] disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
                         @click="emit('add-item', item.id)"
                     >
-                        <Plus class="mr-1 size-4" />
+                        <Plus aria-hidden="true" class="size-4" />
                         Добавить
                     </Button>
+
                     <div
-                        v-else
-                        class="inline-flex h-10 items-center gap-1 rounded-[8px] border border-[#e1e8f5] bg-white px-1.5 shadow-[0_8px_16px_rgba(21,39,75,0.05)]"
+                        v-else-if="canEditOrder"
+                        class="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white p-1"
                     >
                         <Button
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            class="h-8 w-8 rounded-[7px] text-[#0f52ff] hover:bg-[#edf3ff] hover:text-[#0f52ff]"
-                            :disabled="!isOpenForOrdering || actionLoading"
+                            class="size-9 rounded-lg text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                            :disabled="actionLoading"
                             :aria-label="`Уменьшить количество: ${item.title}`"
                             @click="emit('change-quantity', orderItem, orderItem.quantity - 1)"
                         >
-                            <Minus class="size-4" />
+                            <Minus aria-hidden="true" class="size-4" />
                         </Button>
-                        <span class="min-w-7 text-center text-[15px] font-bold text-[#111827]">{{ orderItem.quantity }}</span>
+                        <span class="min-w-8 text-center text-sm font-semibold tabular-nums text-slate-950">{{ orderItem.quantity }}</span>
                         <Button
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            class="h-8 w-8 rounded-[7px] text-[#0f52ff] hover:bg-[#edf3ff] hover:text-[#0f52ff]"
-                            :disabled="!isOpenForOrdering || actionLoading"
+                            class="size-9 rounded-lg text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                            :disabled="actionLoading"
                             :aria-label="`Увеличить количество: ${item.title}`"
                             @click="emit('change-quantity', orderItem, orderItem.quantity + 1)"
                         >
-                            <Plus class="size-4" />
+                            <Plus aria-hidden="true" class="size-4" />
                         </Button>
                     </div>
+
+                    <Badge
+                        v-else
+                        variant="outline"
+                        class="h-11 rounded-xl border-slate-200 bg-slate-50 px-3 text-sm font-semibold tabular-nums text-slate-700"
+                    >
+                        В заказе: {{ orderItem.quantity }}
+                    </Badge>
                 </div>
             </div>
         </CardContent>

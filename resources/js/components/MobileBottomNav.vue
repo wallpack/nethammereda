@@ -1,0 +1,87 @@
+<script setup>
+import { Badge } from '@/components/ui/badge';
+import { BookOpen, History, Refrigerator, ShoppingBag } from 'lucide-vue-next';
+
+defineProps({
+    activePanel: {
+        type: String,
+        default: null,
+    },
+    totalPositions: {
+        type: Number,
+        default: 0,
+    },
+    activeFridgeItemsCount: {
+        type: Number,
+        default: 0,
+    },
+});
+
+const emit = defineEmits(['catalog', 'order', 'fridge', 'history']);
+</script>
+
+<template>
+    <nav
+        class="safe-nav-bottom fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white xl:hidden"
+        aria-label="Основная навигация"
+    >
+        <div class="mx-auto grid max-w-lg grid-cols-4 px-2 pt-1">
+            <button
+                type="button"
+                class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
+                :class="activePanel === null ? 'text-blue-700' : 'text-slate-500'"
+                :aria-current="activePanel === null ? 'page' : undefined"
+                aria-label="Открыть раздел: Каталог"
+                @click="emit('catalog')"
+            >
+                <BookOpen aria-hidden="true" class="size-5" />
+                Каталог
+            </button>
+            <button
+                type="button"
+                class="relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
+                :class="activePanel === 'order' ? 'text-blue-700' : 'text-slate-500'"
+                :aria-current="activePanel === 'order' ? 'page' : undefined"
+                aria-label="Открыть раздел: Заказ"
+                @click="emit('order')"
+            >
+                <ShoppingBag aria-hidden="true" class="size-5" />
+                Заказ
+                <Badge
+                    v-if="totalPositions"
+                    class="absolute right-5 top-0.5 flex size-5 items-center justify-center rounded-full bg-blue-700 px-0 text-[11px] font-semibold tabular-nums text-white"
+                >
+                    {{ totalPositions }}
+                </Badge>
+            </button>
+            <button
+                type="button"
+                class="relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
+                :class="activePanel === 'fridge' ? 'text-blue-700' : 'text-slate-500'"
+                :aria-current="activePanel === 'fridge' ? 'page' : undefined"
+                aria-label="Открыть раздел: Холодильник"
+                @click="emit('fridge')"
+            >
+                <Refrigerator aria-hidden="true" class="size-5" />
+                Холодильник
+                <Badge
+                    v-if="activeFridgeItemsCount"
+                    class="absolute right-4 top-0.5 flex size-5 items-center justify-center rounded-full bg-blue-700 px-0 text-[11px] font-semibold tabular-nums text-white"
+                >
+                    {{ activeFridgeItemsCount }}
+                </Badge>
+            </button>
+            <button
+                type="button"
+                class="flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
+                :class="activePanel === 'history' ? 'text-blue-700' : 'text-slate-500'"
+                :aria-current="activePanel === 'history' ? 'page' : undefined"
+                aria-label="Открыть раздел: История"
+                @click="emit('history')"
+            >
+                <History aria-hidden="true" class="size-5" />
+                История
+            </button>
+        </div>
+    </nav>
+</template>

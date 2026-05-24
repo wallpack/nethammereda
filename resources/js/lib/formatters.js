@@ -76,3 +76,28 @@ export const orderStatusLabel = (status) => {
 
     return labels[status] ?? status;
 };
+
+export const formatDateTime = (value) => {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+
+    return date.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
+export const expiryLabel = (value) => {
+    const formatted = formatDateTime(value);
+
+    return formatted ? `Годен до ${formatted}` : 'Срок хранения не указан';
+};

@@ -1,6 +1,6 @@
 <template>
-    <div class="inline-flex min-w-0 items-center gap-3" aria-label="NethammerEda" role="img">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[linear-gradient(145deg,#0a1222_0%,#0f52ff_100%)] shadow-[0_12px_26px_rgba(15,82,255,0.24)]">
+    <div class="inline-flex min-w-0 items-center gap-2.5" aria-label="NethammerEda" role="img">
+        <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-slate-950 shadow-sm">
             <img
                 :src="'/images/brand/nethammer-icon.svg'"
                 alt=""
@@ -9,8 +9,8 @@
             />
         </span>
 
-        <span class="min-w-0 whitespace-nowrap text-[22px] font-bold leading-none text-[#0b1428]" aria-hidden="true">
-            nethammer<span class="ml-0.5 text-[13px] font-bold text-[#0f52ff]">eda.</span>
+        <span class="hidden min-w-0 whitespace-nowrap text-xl font-semibold leading-none text-slate-950 min-[390px]:inline" aria-hidden="true">
+            nethammer<span class="ml-0.5 text-sm font-semibold text-blue-700">eda</span>
         </span>
     </div>
 </template>
