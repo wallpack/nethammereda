@@ -83,6 +83,12 @@ const orderWithItem = {
     ],
 };
 
+const submittedOrder = {
+    ...orderWithItem,
+    status: 'submitted',
+    can_reopen_for_editing: true,
+};
+
 const fridgeItem = {
     id: 31,
     user_id: user.id,
@@ -148,6 +154,17 @@ const createFetchMock = ({
 
         if (path === '/my-order/items' && method === 'POST') {
             currentOrder = orderWithItem;
+            return jsonResponse({ data: currentOrder });
+        }
+
+        if (path === '/my-order/reopen' && method === 'POST') {
+            currentOrder = {
+                ...currentOrder,
+                status: 'draft',
+                can_submit: true,
+                can_reopen_for_editing: false,
+            };
+
             return jsonResponse({ data: currentOrder });
         }
 
@@ -553,6 +570,68 @@ describe('catalog auth UX', () => {
         expect(weekStatusText).toContain('Доставлен');
     });
 
+    it('shows a reopen action for a submitted order before the deadline', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+            order: submittedOrder,
+        });
+
+        expect(buttonByText('Редактировать заказ')).toBeTruthy();
+        expect(document.body.textContent).toContain('Заказ отправлен. Его можно изменить до дедлайна.');
+        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
+        expect(buttonByText('Добавить')?.disabled).toBe(true);
+    });
+
+    it('reopens a submitted order and enables order controls again', async () => {
+        const { fetchMock } = await mountApp({
+            authenticated: true,
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+            order: submittedOrder,
+        });
+
+        await click(buttonByText('Редактировать заказ'));
+
+        expect(postedTo(fetchMock, '/my-order/reopen')).toBe(true);
+        expect(buttonByText('Редактировать заказ')).toBeFalsy();
+        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeTruthy();
+        expect(buttonByText('Оформить заказ')?.disabled).toBe(false);
+        expect(buttonByText('Добавить')?.disabled).toBe(false);
+    });
+
+    it('does not show reopen action after the deadline and keeps submitted controls disabled', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+            currentCycle: {
+                ...cycle,
+                is_open_for_ordering: false,
+                is_orderable: false,
+                can_order: false,
+                deadline_passed: true,
+                availability_label: 'Дедлайн прошел',
+                availability_description: 'Прием заказов завершен.',
+            },
+            order: {
+                ...submittedOrder,
+                can_reopen_for_editing: false,
+            },
+        });
+
+        expect(buttonByText('Редактировать заказ')).toBeFalsy();
+        expect(document.body.textContent).toContain('Заказ отправлен. Дедлайн прошел, изменения недоступны.');
+        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
+        expect(buttonByText('Добавить')?.disabled).toBe(true);
+
+        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
+        const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
+        expect(mobileOrderText).toContain('Заказ отправлен. Дедлайн прошел, изменения недоступны.');
+        expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
+    });
+
     it('keeps a submitted order visually read-only even while the cycle remains open', async () => {
         await mountApp({
             authenticated: true,
@@ -564,7 +643,7 @@ describe('catalog auth UX', () => {
             },
         });
 
-        expect(document.body.textContent).toContain('Заказ отправлен и больше не редактируется');
+        expect(document.body.textContent).toContain('Заказ отправлен. Изменения больше недоступны.');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить')?.disabled).toBe(true);
 

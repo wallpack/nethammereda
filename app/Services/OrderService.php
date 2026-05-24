@@ -5,11 +5,13 @@ namespace App\Services;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
 use App\Exceptions\OrderCannotBeSubmittedException;
+use App\Exceptions\OrderCannotBeReopenedForEditingException;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderCycle;
 use App\Models\OrderItem;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
@@ -31,6 +33,7 @@ class OrderService
     public function addItemForUser(Order $order, MenuItem $menuItem, int $quantity): Order
     {
         return DB::transaction(function () use ($order, $menuItem, $quantity): Order {
+            $order->refresh();
             $order->ensureCanBeChangedByUser();
 
             $item = OrderItem::query()->firstOrNew([
@@ -57,7 +60,7 @@ class OrderService
     public function updateItemQuantityForUser(OrderItem $orderItem, int $quantity): Order
     {
         return DB::transaction(function () use ($orderItem, $quantity): Order {
-            $orderItem->loadMissing('order');
+            $orderItem->load('order');
             $order = $orderItem->order;
             abort_if($order === null, 404);
 
@@ -76,7 +79,7 @@ class OrderService
     public function deleteItemForUser(OrderItem $orderItem): ?Order
     {
         return DB::transaction(function () use ($orderItem): ?Order {
-            $orderItem->loadMissing('order');
+            $orderItem->load('order');
             $order = $orderItem->order;
 
             if ($order === null) {
@@ -119,6 +122,32 @@ class OrderService
             $this->recalculate($order);
             $order->status = OrderStatus::Submitted;
             $order->submitted_at = now();
+            $order->save();
+
+            return $order->fresh(['cycle', 'items.menuItem']);
+        });
+    }
+
+    public function reopenForUserEditing(Order $order, User $user): Order
+    {
+        return DB::transaction(function () use ($order, $user): Order {
+            $order->refresh();
+            $order->loadMissing('cycle');
+
+            if ((int) $order->user_id !== (int) $user->id) {
+                throw new AuthorizationException('This order does not belong to the current user.');
+            }
+
+            if (! $order->isSubmitted()) {
+                throw OrderCannotBeReopenedForEditingException::forNonSubmittedOrder();
+            }
+
+            if ($order->cycle === null || ! $order->cycle->isOpenForOrdering()) {
+                throw OrderCannotBeReopenedForEditingException::forUnavailableCycle();
+            }
+
+            $order->status = OrderStatus::Draft;
+            $order->submitted_at = null;
             $order->save();
 
             return $order->fresh(['cycle', 'items.menuItem']);

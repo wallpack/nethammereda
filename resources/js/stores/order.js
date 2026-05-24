@@ -4,6 +4,7 @@ import {
     addOrderItem,
     deleteOrderItem,
     fetchMyOrder,
+    reopenMyOrder,
     submitMyOrder,
     updateOrderItemQuantity,
 } from '@/api/order';
@@ -81,6 +82,13 @@ export const useOrderStore = defineStore('order', () => {
         return response;
     };
 
+    const reopenOrder = async (token) => {
+        const response = await reopenMyOrder(token);
+        setOrderFromResponse(response);
+
+        return response;
+    };
+
     const clearOrder = async (token) => {
         if (!orderItems.value.length) {
             return null;
@@ -114,6 +122,7 @@ export const useOrderStore = defineStore('order', () => {
         addItem,
         changeQuantity,
         submitOrder,
+        reopenOrder,
         clearOrder,
         resetOrder,
     };

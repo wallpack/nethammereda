@@ -65,4 +65,29 @@ class MyOrderController extends Controller
             'data' => $this->orderPayload($order),
         ]);
     }
+
+    public function reopen(
+        CurrentOrderCycleResolver $resolver,
+        OrderService $orderService,
+    ): JsonResponse {
+        $cycle = $resolver->resolve();
+        $user = request()->user();
+
+        abort_if($user === null, 401);
+
+        $order = Order::query()
+            ->with(['cycle', 'items.menuItem'])
+            ->where('user_id', $user->id)
+            ->when($cycle !== null, fn ($query) => $query->where('order_cycle_id', $cycle->id))
+            ->latest('id')
+            ->first();
+
+        abort_if($order === null, 404);
+
+        $order = $orderService->reopenForUserEditing($order, $user);
+
+        return response()->json([
+            'data' => $this->orderPayload($order),
+        ]);
+    }
 }

@@ -90,11 +90,12 @@ const orderSkeletonRows = Array.from({ length: 3 }, (_, index) => index + 1);
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
+const canReopenSubmittedOrder = computed(() => Boolean(order.value?.can_reopen_for_editing));
 const canEditOrder = computed(() => isOpenForOrdering.value && !isSubmittedOrder.value);
 
 const orderPanelDescription = computed(() => {
     if (isSubmittedOrder.value) {
-        return 'Заказ отправлен. Изменения больше недоступны.';
+        return orderReadOnlyReason.value;
     }
 
     if (!canEditOrder.value) {
@@ -106,7 +107,15 @@ const orderPanelDescription = computed(() => {
 
 const orderReadOnlyReason = computed(() => {
     if (isSubmittedOrder.value) {
-        return 'Заказ отправлен и больше не редактируется.';
+        if (canReopenSubmittedOrder.value) {
+            return 'Заказ отправлен. Его можно изменить до дедлайна.';
+        }
+
+        if (cycle.value?.deadline_passed) {
+            return 'Заказ отправлен. Дедлайн прошел, изменения недоступны.';
+        }
+
+        return 'Заказ отправлен. Изменения больше недоступны.';
     }
 
     return availabilityDescription.value || 'Прием заказов завершен.';
@@ -373,6 +382,30 @@ const submitOrder = async () => {
     }
 };
 
+const reopenOrder = async () => {
+    if (!auth.token) {
+        return;
+    }
+
+    if (!canReopenSubmittedOrder.value) {
+        ui.error = orderReadOnlyReason.value;
+        return;
+    }
+
+    ui.actionLoading = true;
+    ui.error = '';
+    ui.info = '';
+
+    try {
+        await orderStore.reopenOrder(auth.token);
+        ui.info = 'Заказ снова открыт для редактирования.';
+    } catch (e) {
+        ui.error = e.message;
+    } finally {
+        ui.actionLoading = false;
+    }
+};
+
 const eatOneFromFridge = async (fridgeItemId) => {
     ui.actionLoading = true;
     ui.error = '';
@@ -525,12 +558,14 @@ onMounted(async () => {
                                     :menu-items-by-id="menuItemsById"
                                     :total-positions="totalPositions"
                                     :can-edit-order="canEditOrder"
+                                    :can-reopen-order="canReopenSubmittedOrder"
                                     :read-only-reason="orderReadOnlyReason"
                                     :loading="loading"
                                     :action-loading="actionLoading"
                                     :weekly-deadline-label="weeklyDeadlineLabel"
                                     :order-skeleton-rows="orderSkeletonRows"
                                     @change-quantity="changeQuantity"
+                                    @reopen-order="reopenOrder"
                                     @submit-order="submitOrder"
                                 />
                             </TabsContent>
@@ -587,6 +622,7 @@ onMounted(async () => {
                 :total-positions="totalPositions"
                 :show-heading="false"
                 :can-edit-order="canEditOrder"
+                :can-reopen-order="canReopenSubmittedOrder"
                 :read-only-reason="orderReadOnlyReason"
                 :loading="loading"
                 :action-loading="actionLoading"
@@ -594,6 +630,7 @@ onMounted(async () => {
                 :weekly-deadline-label="weeklyDeadlineLabel"
                 :order-skeleton-rows="orderSkeletonRows"
                 @change-quantity="changeQuantity"
+                @reopen-order="reopenOrder"
                 @submit-order="submitOrder"
             />
         </MobilePanelSheet>

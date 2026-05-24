@@ -32,6 +32,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    canReopenOrder: {
+        type: Boolean,
+        default: false,
+    },
     readOnlyReason: {
         type: String,
         default: '',
@@ -58,7 +62,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['change-quantity', 'submit-order']);
+const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order']);
 
 const isSubmittedOrder = computed(() => props.order?.status === 'submitted');
 const orderItemImage = (orderItem) => props.menuItemsById.get(orderItem.menu_item_id)?.image_url ?? null;
@@ -116,14 +120,27 @@ const positionsLabel = computed(() => {
             :class="isSubmittedOrder ? 'border-slate-200 bg-slate-50 text-slate-700' : 'border-amber-100 bg-amber-50 text-amber-900'"
             role="status"
         >
-            <AlertDescription class="flex items-start gap-2 text-sm">
-                <CheckCircle2 v-if="isSubmittedOrder" aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-blue-700" />
-                <span>
-                    <span :class="isSubmittedOrder ? 'font-medium' : ''">{{ readOnlyReason }}</span>
-                    <span v-if="!isSubmittedOrder" class="mt-1 block text-xs text-amber-800">
-                        Дедлайн: {{ weeklyDeadlineLabel }}
+            <AlertDescription class="space-y-3 text-sm">
+                <span class="flex items-start gap-2">
+                    <CheckCircle2 v-if="isSubmittedOrder" aria-hidden="true" class="mt-0.5 size-4 shrink-0 text-blue-700" />
+                    <span>
+                        <span :class="isSubmittedOrder ? 'font-medium' : ''">{{ readOnlyReason }}</span>
+                        <span v-if="!isSubmittedOrder" class="mt-1 block text-xs text-amber-800">
+                            Дедлайн: {{ weeklyDeadlineLabel }}
+                        </span>
                     </span>
                 </span>
+                <Button
+                    v-if="canReopenOrder"
+                    type="button"
+                    variant="outline"
+                    class="h-10 rounded-xl border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
+                    :disabled="actionLoading"
+                    @click="emit('reopen-order')"
+                >
+                    <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
+                    Редактировать заказ
+                </Button>
             </AlertDescription>
         </Alert>
 
@@ -238,7 +255,7 @@ const positionsLabel = computed(() => {
             @click="emit('submit-order')"
         >
             <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
-            {{ orderItems.length ? 'Отправить заказ' : 'Добавьте блюда' }}
+            {{ orderItems.length ? 'Оформить заказ' : 'Добавьте блюда' }}
         </Button>
 
     </div>

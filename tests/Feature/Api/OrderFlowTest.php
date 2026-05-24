@@ -207,6 +207,114 @@ class OrderFlowTest extends TestCase
     }
 
     #[Test]
+    public function submitted_order_can_be_reopened_before_deadline(): void
+    {
+        [$user, $order] = $this->createSubmittedOrderItem();
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/my-order/reopen')
+            ->assertOk()
+            ->assertJsonPath('data.id', $order->id)
+            ->assertJsonPath('data.status', OrderStatus::Draft->value)
+            ->assertJsonPath('data.can_submit', true)
+            ->assertJsonPath('data.can_reopen_for_editing', false);
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Draft->value,
+            'submitted_at' => null,
+        ]);
+    }
+
+    #[Test]
+    public function reopened_order_can_be_changed_and_submitted_again(): void
+    {
+        [$user, $order, $orderItem] = $this->createSubmittedOrderItem();
+
+        Sanctum::actingAs($user);
+
+        $this->patchJson("/api/my-order/items/{$orderItem->id}", [
+            'quantity' => 3,
+        ])->assertUnprocessable();
+
+        $this->postJson('/api/my-order/reopen')
+            ->assertOk()
+            ->assertJsonPath('data.status', OrderStatus::Draft->value);
+
+        $this->patchJson("/api/my-order/items/{$orderItem->id}", [
+            'quantity' => 3,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status', OrderStatus::Draft->value)
+            ->assertJsonPath('data.items.0.quantity', 3)
+            ->assertJsonPath('data.total_price', '300.00');
+
+        $this->postJson('/api/my-order/submit')
+            ->assertOk()
+            ->assertJsonPath('data.id', $order->id)
+            ->assertJsonPath('data.status', OrderStatus::Submitted->value)
+            ->assertJsonPath('data.can_reopen_for_editing', true);
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Submitted->value,
+            'total_price' => 300,
+        ]);
+        $this->assertNotNull($order->fresh()->submitted_at);
+    }
+
+    #[Test]
+    public function submitted_order_cannot_be_reopened_after_deadline(): void
+    {
+        [$user, $order] = $this->createSubmittedOrderItem(closesAt: now()->subMinute());
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/my-order/reopen')
+            ->assertUnprocessable();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Submitted->value,
+        ]);
+    }
+
+    #[Test]
+    #[DataProvider('notOrderableCycleStatuses')]
+    public function submitted_order_cannot_be_reopened_when_cycle_is_not_orderable(OrderCycleStatus $status): void
+    {
+        [$user, $order] = $this->createSubmittedOrderItem(cycleStatus: $status);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/my-order/reopen')
+            ->assertUnprocessable();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Submitted->value,
+        ]);
+    }
+
+    #[Test]
+    public function user_cannot_reopen_foreign_submitted_order(): void
+    {
+        [, $order] = $this->createSubmittedOrderItem();
+        $attacker = User::factory()->create();
+
+        Sanctum::actingAs($attacker);
+
+        $this->postJson('/api/my-order/reopen')
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Submitted->value,
+        ]);
+    }
+
+    #[Test]
     public function user_cannot_submit_empty_order(): void
     {
         $user = User::factory()->create();
@@ -343,11 +451,16 @@ class OrderFlowTest extends TestCase
     /**
      * @return array{User, Order, OrderItem}
      */
-    private function createDraftOrderItem(int $quantity = 1, int $price = 100): array
+    private function createDraftOrderItem(
+        int $quantity = 1,
+        int $price = 100,
+        OrderCycleStatus $cycleStatus = OrderCycleStatus::Open,
+        mixed $closesAt = null,
+    ): array
     {
         $user = User::factory()->create();
         $menuItem = $this->createMenuItem(price: $price);
-        $cycle = $this->createCycle(OrderCycleStatus::Open);
+        $cycle = $this->createCycle($cycleStatus, $closesAt);
         $order = Order::query()->create([
             'user_id' => $user->id,
             'order_cycle_id' => $cycle->id,
@@ -369,9 +482,15 @@ class OrderFlowTest extends TestCase
     /**
      * @return array{User, Order, OrderItem}
      */
-    private function createSubmittedOrderItem(): array
+    private function createSubmittedOrderItem(
+        OrderCycleStatus $cycleStatus = OrderCycleStatus::Open,
+        mixed $closesAt = null,
+    ): array
     {
-        [$user, $order, $orderItem] = $this->createDraftOrderItem();
+        [$user, $order, $orderItem] = $this->createDraftOrderItem(
+            cycleStatus: $cycleStatus,
+            closesAt: $closesAt,
+        );
         $order->forceFill([
             'status' => OrderStatus::Submitted,
             'submitted_at' => now()->subHour(),

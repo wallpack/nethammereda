@@ -26,3 +26,8 @@ export const submitMyOrder = (token) => apiRequest('/my-order/submit', {
     method: 'POST',
     token,
 });
+
+export const reopenMyOrder = (token) => apiRequest('/my-order/reopen', {
+    method: 'POST',
+    token,
+});

@@ -14,7 +14,9 @@ use App\Models\OrderCycle;
 use App\Models\OrderItem;
 use App\Models\User;
 use App\Services\OrderService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -140,6 +142,84 @@ class OrderServiceTest extends TestCase
     }
 
     #[Test]
+    public function submitted_order_can_be_reopened_for_owner_before_deadline_through_order_service(): void
+    {
+        [$order] = $this->createSubmittedOrder();
+        $user = $order->user()->firstOrFail();
+
+        $reopened = app(OrderService::class)->reopenForUserEditing($order, $user);
+
+        $this->assertSame(OrderStatus::Draft, $reopened->status);
+        $this->assertNull($reopened->submitted_at);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Draft->value,
+            'submitted_at' => null,
+        ]);
+    }
+
+    #[Test]
+    public function reopened_order_allows_user_item_changes_through_order_service(): void
+    {
+        [$order, $orderItem, $menuItem] = $this->createSubmittedOrder();
+        $user = $order->user()->firstOrFail();
+
+        app(OrderService::class)->reopenForUserEditing($order, $user);
+
+        $updated = app(OrderService::class)->updateItemQuantityForUser($orderItem, 3);
+        $updated = app(OrderService::class)->addItemForUser($updated, $menuItem, 2);
+
+        $this->assertSame(OrderStatus::Draft, $updated->status);
+        $this->assertDatabaseHas('order_items', [
+            'id' => $orderItem->id,
+            'quantity' => 3,
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $order->id,
+            'menu_item_id' => $menuItem->id,
+            'quantity' => 2,
+        ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'total_price' => 500,
+        ]);
+    }
+
+    #[Test]
+    public function submitted_order_cannot_be_reopened_after_deadline_through_order_service(): void
+    {
+        [$order] = $this->createSubmittedOrder(closesAt: now()->subMinute());
+        $user = $order->user()->firstOrFail();
+
+        $this->expectException(\RuntimeException::class);
+
+        app(OrderService::class)->reopenForUserEditing($order, $user);
+    }
+
+    #[Test]
+    #[DataProvider('notOrderableCycleStatuses')]
+    public function submitted_order_cannot_be_reopened_when_cycle_is_not_orderable_through_order_service(OrderCycleStatus $status): void
+    {
+        [$order] = $this->createSubmittedOrder(cycleStatus: $status);
+        $user = $order->user()->firstOrFail();
+
+        $this->expectException(\RuntimeException::class);
+
+        app(OrderService::class)->reopenForUserEditing($order, $user);
+    }
+
+    #[Test]
+    public function foreign_submitted_order_cannot_be_reopened_through_order_service(): void
+    {
+        [$order] = $this->createSubmittedOrder();
+        $attacker = User::factory()->create();
+
+        $this->expectException(AuthorizationException::class);
+
+        app(OrderService::class)->reopenForUserEditing($order, $attacker);
+    }
+
+    #[Test]
     public function empty_draft_order_cannot_be_submitted_through_order_service(): void
     {
         [$order] = $this->createDraftOrder();
@@ -156,16 +236,32 @@ class OrderServiceTest extends TestCase
     }
 
     /**
+     * @return array<string, array{OrderCycleStatus}>
+     */
+    public static function notOrderableCycleStatuses(): array
+    {
+        return [
+            'closed' => [OrderCycleStatus::Closed],
+            'sent_to_supplier' => [OrderCycleStatus::SentToSupplier],
+            'delivered' => [OrderCycleStatus::Delivered],
+            'archived' => [OrderCycleStatus::Archived],
+        ];
+    }
+
+    /**
      * @return array{Order, OrderItem, MenuItem}
      */
-    private function createSubmittedOrder(): array
+    private function createSubmittedOrder(
+        OrderCycleStatus $cycleStatus = OrderCycleStatus::Open,
+        mixed $closesAt = null,
+    ): array
     {
         $user = User::factory()->create();
         $cycle = OrderCycle::query()->create([
             'title' => 'Test Week',
             'starts_at' => now()->startOfWeek(),
-            'closes_at' => now()->addDay(),
-            'status' => OrderCycleStatus::Open,
+            'closes_at' => $closesAt ?? now()->addDay(),
+            'status' => $cycleStatus,
         ]);
 
         $order = Order::query()->create([

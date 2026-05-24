@@ -40,6 +40,7 @@ trait FormatsApiPayloads
     {
         $order->loadMissing(['cycle', 'items.menuItem']);
         $itemsCount = $order->items->count();
+        $isOpenForOrdering = $order->cycle?->isOpenForOrdering() === true;
         $payload = $order->toArray();
         unset($payload['cycle']);
 
@@ -47,8 +48,10 @@ trait FormatsApiPayloads
             'items_count' => $itemsCount,
             'total_price' => $order->total_price,
             'can_submit' => $order->status === OrderStatus::Draft
-                && $order->cycle?->isOpenForOrdering() === true
+                && $isOpenForOrdering
                 && $itemsCount > 0,
+            'can_reopen_for_editing' => $order->status === OrderStatus::Submitted
+                && $isOpenForOrdering,
             'status_label' => $this->orderStatusLabel($order->status),
         ]);
     }
