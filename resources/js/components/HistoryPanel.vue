@@ -1,10 +1,11 @@
 <script setup>
+import { computed } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDateTime, fridgeStatusLabel } from '@/lib/formatters';
 import { History } from 'lucide-vue-next';
 
-defineProps({
+const props = defineProps({
     fridgeHistory: {
         type: Array,
         default: () => [],
@@ -22,10 +23,44 @@ defineProps({
         default: () => [],
     },
 });
+
+const dayLabel = (value) => {
+    if (!value) {
+        return 'Без даты';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return 'Без даты';
+    }
+
+    return date.toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: 'long',
+    });
+};
+
+const groupedHistory = computed(() => {
+    const groups = new Map();
+
+    props.fridgeHistory.forEach((item) => {
+        const value = item.updated_at || item.expires_at;
+        const label = dayLabel(value);
+
+        if (!groups.has(label)) {
+            groups.set(label, []);
+        }
+
+        groups.get(label).push(item);
+    });
+
+    return Array.from(groups.entries()).map(([label, items]) => ({ label, items }));
+});
 </script>
 
 <template>
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 sm:px-5 sm:pt-5" :aria-busy="fridgeLoading">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="fridgeLoading">
         <div v-if="showHeading" class="mb-4 shrink-0">
             <h2 class="text-lg font-semibold text-slate-950">История питания</h2>
             <p class="mt-0.5 text-sm text-slate-500">Съеденные и списанные блюда</p>
@@ -41,29 +76,34 @@ defineProps({
 
         <div
             v-else-if="fridgeHistory.length === 0"
-            class="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center"
+            class="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-10 text-center"
         >
             <History aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">История пока пуста</p>
             <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Действия с блюдами из холодильника появятся здесь.</p>
         </div>
 
-        <ul v-else class="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pb-5 pr-1 text-sm text-slate-700">
-            <li
-                v-for="item in fridgeHistory"
-                :key="item.id"
-                class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
-            >
-                <div class="flex min-w-0 items-start justify-between gap-3">
-                    <span class="min-w-0 line-clamp-2 font-medium text-slate-900">{{ item.title_snapshot }}</span>
-                    <Badge variant="outline" class="shrink-0 rounded-lg border-slate-200 bg-white text-slate-500">
-                        {{ fridgeStatusLabel(item.status) }}
-                    </Badge>
-                </div>
-                <p v-if="formatDateTime(item.updated_at || item.expires_at)" class="mt-2 text-xs tabular-nums text-slate-500">
-                    {{ formatDateTime(item.updated_at || item.expires_at) }}
-                </p>
-            </li>
-        </ul>
+        <div v-else class="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pb-5 pr-1 text-sm text-slate-700">
+            <section v-for="group in groupedHistory" :key="group.label" aria-label="День истории питания">
+                <h3 class="mb-2 px-1 text-xs font-semibold text-slate-400">{{ group.label }}</h3>
+                <ul class="space-y-2 border-l border-slate-200 pl-3">
+                    <li
+                        v-for="item in group.items"
+                        :key="item.id"
+                        class="relative rounded-2xl bg-slate-50/80 px-4 py-3 ring-1 ring-inset ring-slate-100 before:absolute before:-left-[1.08rem] before:top-5 before:size-2 before:rounded-full before:bg-blue-600"
+                    >
+                        <div class="flex min-w-0 items-start justify-between gap-3">
+                            <span class="min-w-0 line-clamp-2 font-medium text-slate-900">{{ item.title_snapshot }}</span>
+                            <Badge variant="outline" class="shrink-0 rounded-full border-slate-200 bg-white px-3 text-slate-500">
+                                {{ fridgeStatusLabel(item.status) }}
+                            </Badge>
+                        </div>
+                        <p v-if="formatDateTime(item.updated_at || item.expires_at)" class="mt-2 text-xs tabular-nums text-slate-500">
+                            {{ formatDateTime(item.updated_at || item.expires_at) }}
+                        </p>
+                    </li>
+                </ul>
+            </section>
+        </div>
     </div>
 </template>

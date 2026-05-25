@@ -1,12 +1,9 @@
 <script setup>
-import { computed, nextTick, onMounted, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useMediaQuery } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppHeader from '@/components/AppHeader.vue';
 import CategorySidebar from '@/components/CategorySidebar.vue';
 import FridgePanel from '@/components/FridgePanel.vue';
@@ -30,6 +27,7 @@ const orderStore = useOrderStore();
 const fridge = useFridgeStore();
 const ui = useUiStore();
 const isDesktopLayout = useMediaQuery('(min-width: 1280px)');
+const reopenedForEditing = ref(false);
 
 const {
     me,
@@ -85,6 +83,10 @@ const {
     mobilePanel,
 } = storeToRefs(ui);
 
+if (activeSidebarTab.value !== 'catalog') {
+    ui.activeSidebarTab = 'catalog';
+}
+
 const menuSkeletonRows = Array.from({ length: 6 }, (_, index) => index + 1);
 const orderSkeletonRows = Array.from({ length: 3 }, (_, index) => index + 1);
 
@@ -92,18 +94,6 @@ const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id,
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
 const canReopenSubmittedOrder = computed(() => Boolean(order.value?.can_reopen_for_editing));
 const canEditOrder = computed(() => isOpenForOrdering.value && !isSubmittedOrder.value);
-
-const orderPanelDescription = computed(() => {
-    if (isSubmittedOrder.value) {
-        return orderReadOnlyReason.value;
-    }
-
-    if (!canEditOrder.value) {
-        return 'Редактирование завершено. Проверьте позиции заказа.';
-    }
-
-    return 'Проверьте позиции и отправьте заказ до дедлайна.';
-});
 
 const orderReadOnlyReason = computed(() => {
     if (isSubmittedOrder.value) {
@@ -121,6 +111,56 @@ const orderReadOnlyReason = computed(() => {
     return availabilityDescription.value || 'Прием заказов завершен.';
 });
 
+const deadlineShortLabel = computed(() => {
+    if (!cycle.value?.closes_at) {
+        return weeklyDeadlineLabel.value;
+    }
+
+    const closeDate = new Date(cycle.value.closes_at);
+    if (Number.isNaN(closeDate.getTime())) {
+        return weeklyDeadlineLabel.value;
+    }
+
+    return closeDate.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+});
+
+const compactOrderStatusText = computed(() => {
+    if (loading.value) {
+        return '';
+    }
+
+    if (!isAuthenticated.value) {
+        if (isOpenForOrdering.value) {
+            return `Заказ открыт · Дедлайн: ${deadlineShortLabel.value}`;
+        }
+
+        return 'Приём заказов закрыт';
+    }
+
+    if (canEditOrder.value) {
+        if (reopenedForEditing.value) {
+            return `Редактирование заказа открыто · Дедлайн: ${deadlineShortLabel.value}`;
+        }
+
+        return `Заказ открыт · Дедлайн: ${deadlineShortLabel.value}`;
+    }
+
+    if (isSubmittedOrder.value && canReopenSubmittedOrder.value) {
+        return `Заказ отправлен · Можно редактировать до ${deadlineShortLabel.value}`;
+    }
+
+    return 'Приём заказов закрыт';
+});
+
+const orderPanelDescription = computed(() => {
+    return compactOrderStatusText.value || orderReadOnlyReason.value;
+});
+
 const displayedItems = computed(() => {
     if (!favoritesOnly.value) {
         return filteredItems.value;
@@ -133,9 +173,45 @@ const hasActiveFilters = computed(() => {
     return Boolean(search.value.trim() || selectedCategory.value !== null || favoritesOnly.value);
 });
 
+const isCatalogView = computed(() => {
+    if (!isAuthenticated.value) {
+        return true;
+    }
+
+    if (!isDesktopLayout.value) {
+        return true;
+    }
+
+    return activeSidebarTab.value === 'catalog';
+});
+
+const isOrderView = computed(() => (
+    isAuthenticated.value
+    && isDesktopLayout.value
+    && activeSidebarTab.value === 'order'
+));
+
+const isFridgeView = computed(() => (
+    isAuthenticated.value
+    && isDesktopLayout.value
+    && activeSidebarTab.value === 'fridge'
+));
+
+const isHistoryView = computed(() => (
+    isAuthenticated.value
+    && isDesktopLayout.value
+    && activeSidebarTab.value === 'history'
+));
+
 watch(isDesktopLayout, (desktop) => {
     if (desktop) {
         ui.closeMobilePanel();
+    }
+});
+
+watch(() => order.value?.status, (status) => {
+    if (status !== 'draft') {
+        reopenedForEditing.value = false;
     }
 });
 
@@ -143,6 +219,7 @@ const resetProtectedState = () => {
     orderStore.resetOrder();
     fridge.resetFridge();
     ui.resetSessionUi();
+    reopenedForEditing.value = false;
 };
 
 const openAuthModal = (message = '') => {
@@ -213,7 +290,7 @@ const loginFromWeb = async () => {
         await auth.authWithPassword();
         await auth.loadMe();
         await loadData();
-        ui.activeSidebarTab = 'order';
+        ui.activeSidebarTab = 'catalog';
         auth.password = '';
         closeAuthModal();
     } catch (e) {
@@ -237,7 +314,7 @@ const loginFromTelegram = async () => {
 
         await auth.loadMe();
         await loadData();
-        ui.activeSidebarTab = 'order';
+        ui.activeSidebarTab = 'catalog';
         closeAuthModal();
     } catch (e) {
         auth.authError = e.message;
@@ -263,23 +340,32 @@ const logout = async () => {
     auth.authError = '';
 };
 
-const openProtectedPanel = (panel) => {
-    if (!isAuthenticated.value) {
+const navigateToView = (view) => {
+    if (view !== 'catalog' && !isAuthenticated.value) {
         openAuthModal('Войдите, чтобы открыть личный раздел.');
         return;
     }
 
-    ui.activeSidebarTab = panel;
+    ui.activeSidebarTab = view;
 
     if (!isDesktopLayout.value) {
-        ui.openMobilePanel(panel);
+        if (view === 'catalog') {
+            ui.closeMobilePanel();
+        } else {
+            ui.openMobilePanel(view);
+        }
     } else {
         ui.closeMobilePanel();
     }
 };
 
+const openProtectedPanel = (panel) => {
+    navigateToView(panel);
+};
+
 const returnToCatalog = () => {
-    ui.closeMobilePanel();
+    navigateToView('catalog');
+
     nextTick(() => {
         document.getElementById('menu-heading')?.focus({ preventScroll: true });
         document.getElementById('menu-heading')?.scrollIntoView?.({ block: 'start' });
@@ -296,7 +382,7 @@ const showFavoritesFromProfile = () => {
 
 const openPanelFromProfile = (panel) => {
     ui.closeProfileModal();
-    openProtectedPanel(panel);
+    navigateToView(panel);
 };
 
 const clearCatalogFilters = () => {
@@ -374,7 +460,7 @@ const submitOrder = async () => {
 
     try {
         await orderStore.submitOrder(auth.token);
-        ui.info = 'Заказ подтвержден.';
+        reopenedForEditing.value = false;
     } catch (e) {
         ui.error = e.message;
     } finally {
@@ -398,7 +484,7 @@ const reopenOrder = async () => {
 
     try {
         await orderStore.reopenOrder(auth.token);
-        ui.info = 'Заказ снова открыт для редактирования.';
+        reopenedForEditing.value = true;
     } catch (e) {
         ui.error = e.message;
     } finally {
@@ -454,6 +540,10 @@ onMounted(async () => {
 
     await ensureAuth();
     await loadData();
+
+    if (isAuthenticated.value && activeSidebarTab.value === 'order') {
+        ui.activeSidebarTab = 'catalog';
+    }
 });
 </script>
 
@@ -465,13 +555,14 @@ onMounted(async () => {
             :total-positions="totalPositions"
             :active-fridge-items-count="activeFridgeItemsCount"
             :display-user-name="displayUserName"
+            :active-view="activeSidebarTab"
+            v-model:search="search"
             @open-auth="openAuthModal()"
-            @open-order="openProtectedPanel('order')"
-            @open-fridge="openProtectedPanel('fridge')"
+            @navigate="navigateToView"
             @open-profile="ui.openProfileModal"
         />
 
-        <main class="page-shell pt-4 sm:pt-6" :class="isAuthenticated ? 'pb-24 xl:pb-10' : 'pb-8 xl:pb-10'">
+        <main class="page-shell pt-3 sm:pt-4" :class="isAuthenticated ? 'pb-24 xl:pb-8' : 'pb-8 xl:pb-8'">
             <Alert
                 v-if="error && !mobilePanel"
                 variant="destructive"
@@ -498,20 +589,24 @@ onMounted(async () => {
                 :is-open-for-ordering="isOpenForOrdering"
                 :availability-label="availabilityLabel"
                 :availability-description="availabilityDescription"
+                :order-status-text="compactOrderStatusText"
             />
 
-            <div
-                class="catalog-layout mt-5 sm:mt-6"
-                :class="isAuthenticated ? 'catalog-layout--auth' : 'catalog-layout--guest'"
-            >
+            <div v-if="isCatalogView" class="mt-4 sm:mt-5">
                 <CategorySidebar
                     :loading="loading"
                     :categories="categories"
                     :items="items"
                     v-model:selected-category="selectedCategory"
                 />
+            </div>
 
+            <div
+                class="catalog-layout mt-4 sm:mt-5"
+                :class="isAuthenticated && isCatalogView ? 'catalog-layout--auth' : 'catalog-layout--guest'"
+            >
                 <MenuGrid
+                    v-if="isCatalogView"
                     v-model:search="search"
                     :loading="loading"
                     :filtered-items="displayedItems"
@@ -533,75 +628,91 @@ onMounted(async () => {
                 />
 
                 <Card
-                    v-if="isAuthenticated"
+                    v-else-if="isOrderView"
+                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm"
+                >
+                    <CardContent class="h-[calc(100dvh-12.5rem)] min-h-[28rem] p-0">
+                        <OrderPanel
+                            :order="order"
+                            :order-items="orderItems"
+                            :menu-items-by-id="menuItemsById"
+                            :total-positions="totalPositions"
+                            :panel-title="'Мой заказ'"
+                            :status-line="compactOrderStatusText"
+                            :can-edit-order="canEditOrder"
+                            :can-reopen-order="canReopenSubmittedOrder"
+                            :loading="loading"
+                            :action-loading="actionLoading"
+                            :order-skeleton-rows="orderSkeletonRows"
+                            @change-quantity="changeQuantity"
+                            @reopen-order="reopenOrder"
+                            @submit-order="submitOrder"
+                        />
+                    </CardContent>
+                </Card>
+
+                <Card
+                    v-else-if="isFridgeView"
+                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm"
+                >
+                    <CardContent class="h-[calc(100dvh-12.5rem)] min-h-[28rem] p-0">
+                        <FridgePanel
+                            :fridge-items="fridgeItems"
+                            :fridge-loading="loading || fridgeLoading"
+                            :action-loading="actionLoading"
+                            :active-fridge-items-count="activeFridgeItemsCount"
+                            :order-skeleton-rows="orderSkeletonRows"
+                            @eat-one="eatOneFromFridge"
+                            @eat-all="eatAllFromFridge"
+                            @discard="discardFromFridge"
+                        />
+                    </CardContent>
+                </Card>
+
+                <Card
+                    v-else-if="isHistoryView"
+                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm"
+                >
+                    <CardContent class="h-[calc(100dvh-12.5rem)] min-h-[28rem] p-0">
+                        <HistoryPanel
+                            :fridge-history="fridgeHistory"
+                            :fridge-loading="loading || fridgeLoading"
+                            :order-skeleton-rows="orderSkeletonRows"
+                        />
+                    </CardContent>
+                </Card>
+
+                <Card
+                    v-if="isAuthenticated && isCatalogView"
                     data-testid="desktop-order-panel"
-                    aria-label="Панель заказа"
-                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm xl:sticky xl:top-24 xl:block xl:h-[calc(100dvh-7rem)] xl:max-h-[calc(100dvh-7rem)]"
+                    aria-label="Панель корзины"
+                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white text-slate-900 shadow-[0_18px_45px_rgb(15_23_42/0.08)] xl:sticky xl:top-16 xl:block xl:h-[calc(100dvh-14.5rem)] xl:max-h-[calc(100dvh-14.5rem)]"
                 >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
-                        <Tabs v-model="activeSidebarTab" class="flex h-full min-h-0 w-full flex-col">
-                            <TabsList :aria-busy="loading" class="mx-3 mt-3 grid h-12 shrink-0 grid-cols-3 rounded-2xl border border-slate-200 bg-slate-50 p-1">
-                                <TabsTrigger value="order" class="gap-1 rounded-xl px-1 text-xs font-medium text-slate-500 data-active:bg-white data-active:text-slate-950 data-active:shadow-sm">
-                                    Заказ
-                                    <Skeleton v-if="loading" class="size-5 rounded-full bg-slate-100" />
-                                    <Badge v-else class="rounded-full bg-blue-700 px-2 text-xs font-medium tabular-nums text-white">{{ totalPositions }}</Badge>
-                                </TabsTrigger>
-                                <TabsTrigger value="fridge" class="gap-1 rounded-xl px-1 text-xs font-medium text-slate-500 data-active:bg-white data-active:text-slate-950 data-active:shadow-sm">
-                                    Холодильник
-                                    <Skeleton v-if="loading" class="size-5 rounded-full bg-slate-100" />
-                                    <Badge v-else class="rounded-full bg-slate-200 px-2 text-xs font-medium tabular-nums text-slate-700">{{ activeFridgeItemsCount }}</Badge>
-                                </TabsTrigger>
-                                <TabsTrigger value="history" class="rounded-xl px-1 text-xs font-medium text-slate-500 data-active:bg-white data-active:text-slate-950 data-active:shadow-sm">
-                                    История
-                                </TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="order" class="mt-0 flex min-h-0 flex-1 overflow-hidden p-0">
-                                <OrderPanel
-                                    :order="order"
-                                    :order-items="orderItems"
-                                    :menu-items-by-id="menuItemsById"
-                                    :total-positions="totalPositions"
-                                    :can-edit-order="canEditOrder"
-                                    :can-reopen-order="canReopenSubmittedOrder"
-                                    :read-only-reason="orderReadOnlyReason"
-                                    :loading="loading"
-                                    :action-loading="actionLoading"
-                                    :weekly-deadline-label="weeklyDeadlineLabel"
-                                    :order-skeleton-rows="orderSkeletonRows"
-                                    @change-quantity="changeQuantity"
-                                    @reopen-order="reopenOrder"
-                                    @submit-order="submitOrder"
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="fridge" class="mt-0 flex min-h-0 flex-1 overflow-hidden p-0">
-                                <FridgePanel
-                                    :fridge-items="fridgeItems"
-                                    :fridge-loading="loading || fridgeLoading"
-                                    :action-loading="actionLoading"
-                                    :active-fridge-items-count="activeFridgeItemsCount"
-                                    :order-skeleton-rows="orderSkeletonRows"
-                                    @eat-one="eatOneFromFridge"
-                                    @eat-all="eatAllFromFridge"
-                                    @discard="discardFromFridge"
-                                />
-                            </TabsContent>
-                            <TabsContent value="history" class="mt-0 flex min-h-0 flex-1 overflow-hidden p-0">
-                                <HistoryPanel
-                                    :fridge-history="fridgeHistory"
-                                    :fridge-loading="loading || fridgeLoading"
-                                    :order-skeleton-rows="orderSkeletonRows"
-                                />
-                            </TabsContent>
-                        </Tabs>
+                        <OrderPanel
+                            :order="order"
+                            :order-items="orderItems"
+                            :menu-items-by-id="menuItemsById"
+                            :total-positions="totalPositions"
+                            :panel-title="'Корзина'"
+                            :status-line="compactOrderStatusText"
+                            :can-edit-order="canEditOrder"
+                            :can-reopen-order="canReopenSubmittedOrder"
+                            :loading="loading"
+                            :action-loading="actionLoading"
+                            :error="error"
+                            :order-skeleton-rows="orderSkeletonRows"
+                            @change-quantity="changeQuantity"
+                            @reopen-order="reopenOrder"
+                            @submit-order="submitOrder"
+                        />
                     </CardContent>
                 </Card>
             </div>
         </main>
 
         <MobileBottomNav
-            v-if="isAuthenticated"
+            v-if="isAuthenticated && !mobilePanel"
             :active-panel="mobilePanel"
             :total-positions="totalPositions"
             :active-fridge-items-count="activeFridgeItemsCount"
@@ -626,13 +737,12 @@ onMounted(async () => {
                 :menu-items-by-id="menuItemsById"
                 :total-positions="totalPositions"
                 :show-heading="false"
+                :status-line="compactOrderStatusText"
                 :can-edit-order="canEditOrder"
                 :can-reopen-order="canReopenSubmittedOrder"
-                :read-only-reason="orderReadOnlyReason"
                 :loading="loading"
                 :action-loading="actionLoading"
                 :error="error"
-                :weekly-deadline-label="weeklyDeadlineLabel"
                 :order-skeleton-rows="orderSkeletonRows"
                 @change-quantity="changeQuantity"
                 @reopen-order="reopenOrder"
@@ -644,7 +754,7 @@ onMounted(async () => {
             v-if="isAuthenticated"
             :open="mobilePanel === 'fridge'"
             title="Холодильник"
-            description="Доставленные блюда и история действий."
+            description="Что у вас сейчас есть, и недавние действия с блюдами."
             close-label="Закрыть холодильник"
             test-id="mobile-fridge-panel"
             @close="ui.closeMobilePanel"

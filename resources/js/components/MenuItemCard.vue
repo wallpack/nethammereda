@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatPrice, nutritionLine } from '@/lib/formatters';
+import { compactNumber, formatPrice } from '@/lib/formatters';
 import { Heart, ImageIcon, Minus, Plus } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -47,21 +47,22 @@ watch(imageSrc, () => {
 
 const showImage = computed(() => Boolean(imageSrc.value) && !imageFailed.value);
 const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoading || props.item.is_active === false);
+const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(props.item.calories)} ккал` : null);
 </script>
 
 <template>
-    <Card class="menu-card overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm transition-[border-color,box-shadow] duration-150 hover:border-slate-300 hover:shadow-md">
+    <Card class="menu-card overflow-hidden rounded-[1.45rem] border border-slate-200/80 bg-white text-slate-900 shadow-[0_10px_28px_rgb(15_23_42/0.055)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-blue-100 hover:shadow-[0_18px_36px_rgb(15_23_42/0.085)]">
         <CardContent class="flex h-full flex-col p-0">
-            <div class="relative p-2 pb-0 sm:p-2.5 sm:pb-0">
+            <div class="relative p-2.5 pb-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative aspect-[5/4] overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-inset ring-slate-100"
+                    class="relative h-64 overflow-hidden rounded-[1.15rem] bg-slate-50/80 sm:h-64 lg:h-[15.5rem] xl:h-[16.25rem]"
                 >
                     <img
                         v-if="showImage"
                         :src="imageSrc"
                         :alt="item.title"
-                        class="size-full object-contain p-2.5 sm:p-3"
+                        class="size-full object-contain p-5"
                         loading="lazy"
                         decoding="async"
                         @error="imageFailed = true"
@@ -76,7 +77,7 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
 
                 <button
                     type="button"
-                    class="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full border border-slate-200/80 bg-white text-slate-500 shadow-sm transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98]"
+                    class="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full border border-white/80 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98]"
                     :class="isFavorite ? 'border-rose-200 bg-rose-50 text-rose-600' : ''"
                     :aria-label="isFavorite ? `Убрать из избранного: ${item.title}` : `Добавить в избранное: ${item.title}`"
                     :aria-pressed="isFavorite"
@@ -86,25 +87,18 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
                 </button>
             </div>
 
-            <div class="flex flex-1 flex-col px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5">
-                <div class="flex min-w-0 items-center gap-2 text-xs font-medium text-slate-500">
-                    <span class="truncate">{{ item.category?.name || 'Меню' }}</span>
-                    <span v-if="item.weight" aria-hidden="true" class="shrink-0 text-slate-300">•</span>
-                    <span v-if="item.weight" class="shrink-0 tabular-nums">{{ item.weight }}</span>
-                </div>
-
-                <h3 class="mt-2 line-clamp-2 break-words text-balance text-lg font-semibold leading-6 text-slate-950">
+            <div class="flex flex-1 flex-col px-5 pb-5 pt-4">
+                <h3 class="line-clamp-2 break-words text-balance text-[1.05rem] font-semibold leading-6 text-slate-950 sm:text-[1.12rem]">
                     {{ item.title }}
                 </h3>
-                <p v-if="item.description" class="mt-1.5 line-clamp-2 text-pretty text-sm leading-5 text-slate-500">
-                    {{ item.description }}
-                </p>
-                <p class="mt-3 text-xs font-medium tabular-nums text-slate-500">
-                    {{ nutritionLine(item) }}
+                <p class="mt-2.5 min-w-0 truncate text-xs font-medium tabular-nums text-slate-400">
+                    <span>{{ item.category?.name || 'Меню' }}</span>
+                    <span v-if="item.weight"> · {{ item.weight }}</span>
+                    <span v-if="caloriesLabel"> · {{ caloriesLabel }}</span>
                 </p>
 
                 <div class="mt-auto flex min-h-12 items-center justify-between gap-3 pt-5">
-                    <p class="text-lg font-semibold tabular-nums text-slate-950">{{ formatPrice(item.price) }}</p>
+                    <p class="shrink-0 whitespace-nowrap text-xl font-bold tabular-nums text-slate-950">{{ formatPrice(item.price) }}</p>
 
                     <Button
                         v-if="!orderItem"
@@ -112,7 +106,7 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
                         size="sm"
                         :disabled="controlsDisabled"
                         :title="controlsDisabled ? disabledReason : undefined"
-                        class="h-11 rounded-xl bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
+                        class="h-11 shrink-0 rounded-full bg-blue-700 px-4.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
                         @click="emit('add-item', item.id)"
                     >
                         <Plus aria-hidden="true" class="size-4" />
@@ -121,13 +115,13 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
 
                     <div
                         v-else-if="canEditOrder"
-                        class="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white p-1"
+                        class="inline-flex h-11 shrink-0 items-center rounded-full border border-slate-200 bg-white p-0.5"
                     >
                         <Button
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            class="size-9 rounded-lg text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                            class="size-10 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-700"
                             :disabled="actionLoading"
                             :aria-label="`Уменьшить количество: ${item.title}`"
                             @click="emit('change-quantity', orderItem, orderItem.quantity - 1)"
@@ -139,7 +133,7 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            class="size-9 rounded-lg text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                            class="size-10 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-700"
                             :disabled="actionLoading"
                             :aria-label="`Увеличить количество: ${item.title}`"
                             @click="emit('change-quantity', orderItem, orderItem.quantity + 1)"
@@ -151,7 +145,7 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
                     <Badge
                         v-else
                         variant="outline"
-                        class="h-11 rounded-xl border-slate-200 bg-slate-50 px-3 text-sm font-semibold tabular-nums text-slate-700"
+                        class="h-11 shrink-0 rounded-full border-slate-200 bg-slate-50 px-3 text-sm font-semibold tabular-nums text-slate-700"
                     >
                         В заказе: {{ orderItem.quantity }}
                     </Badge>

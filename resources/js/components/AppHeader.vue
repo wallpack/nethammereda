@@ -1,11 +1,13 @@
 <script setup>
+import { computed } from 'vue';
 import BrandLogo from '@/components/BrandLogo.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Refrigerator, ShoppingBag, UserRound } from 'lucide-vue-next';
+import { Search, UserRound } from 'lucide-vue-next';
 
-defineProps({
+const props = defineProps({
     loading: {
         type: Boolean,
         default: false,
@@ -26,85 +28,109 @@ defineProps({
         type: String,
         required: true,
     },
+    search: {
+        type: String,
+        default: '',
+    },
+    activeView: {
+        type: String,
+        default: 'catalog',
+    },
 });
 
-const emit = defineEmits(['open-auth', 'open-profile', 'open-order', 'open-fridge']);
+const emit = defineEmits(['open-auth', 'open-profile', 'navigate', 'update:search']);
+
+const searchModel = computed({
+    get: () => props.search,
+    set: (value) => emit('update:search', value),
+});
+
+const navItems = [
+    { key: 'catalog', label: 'Каталог' },
+    { key: 'fridge', label: 'Холодильник' },
+    { key: 'history', label: 'История' },
+];
+
+const navItemClass = (key) => (
+    props.activeView === key
+        ? 'bg-slate-900 text-white shadow-sm'
+        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+);
 </script>
 
 <template>
-    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white">
-        <div class="header-inner flex min-h-16 items-center justify-between gap-3 py-2">
-            <BrandLogo />
+    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+        <div class="header-inner flex min-h-16 items-center gap-3 py-2">
+            <div class="flex min-w-0 items-center gap-2 xl:gap-4">
+                <BrandLogo />
 
-            <div v-if="loading" data-testid="header-auth-loading" class="flex items-center gap-2" aria-label="Загрузка профиля" aria-busy="true">
-                <Skeleton class="hidden h-11 w-28 rounded-xl bg-slate-100 xl:block" />
-                <Skeleton class="size-11 rounded-xl bg-slate-100" />
+                <nav
+                    v-if="isAuthenticated && !loading"
+                    class="hidden items-center gap-2.5 xl:flex"
+                    aria-label="Разделы приложения"
+                >
+                    <button
+                        v-for="item in navItems"
+                        :key="item.key"
+                        type="button"
+                        class="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
+                        :class="navItemClass(item.key)"
+                        :aria-current="activeView === item.key ? 'page' : undefined"
+                        :aria-label="`Открыть раздел: ${item.label}`"
+                        @click="emit('navigate', item.key)"
+                    >
+                        {{ item.label }}
+                        <Badge
+                            v-if="item.key === 'fridge' && activeFridgeItemsCount"
+                            class="flex size-5 items-center justify-center rounded-full bg-blue-700 px-0 text-[11px] font-semibold tabular-nums text-white"
+                        >
+                            {{ activeFridgeItemsCount }}
+                        </Badge>
+                    </button>
+                </nav>
             </div>
 
-            <nav
+            <label class="relative hidden min-w-0 flex-1 md:block md:max-w-sm lg:max-w-md">
+                <span class="sr-only">Найти блюдо</span>
+                <Search aria-hidden="true" class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input
+                    v-model="searchModel"
+                    type="search"
+                    placeholder="Поиск по меню"
+                    class="h-10 rounded-full border-slate-200 bg-slate-50 pl-9 pr-4 text-sm text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:bg-white focus-visible:ring-blue-600/15"
+                />
+            </label>
+
+            <div v-if="loading" data-testid="header-auth-loading" class="ml-auto flex items-center gap-2" aria-label="Загрузка профиля" aria-busy="true">
+                <Skeleton class="hidden h-10 w-28 rounded-full bg-slate-100 xl:block" />
+                <Skeleton class="size-10 rounded-full bg-slate-100" />
+            </div>
+
+            <Button
                 v-else-if="isAuthenticated"
-                class="hidden min-w-0 shrink-0 items-center gap-2 xl:flex"
-                aria-label="Быстрые действия"
+                type="button"
+                variant="outline"
+                class="ml-auto hidden h-10 w-56 min-w-0 max-w-64 justify-start rounded-full border-slate-200 bg-white px-1 pr-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98] xl:inline-flex"
+                :aria-label="`Открыть профиль: ${displayUserName}`"
+                :title="displayUserName"
+                @click="emit('open-profile')"
             >
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="relative h-11 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98]"
-                    aria-label="Открыть мой заказ"
-                    @click="emit('open-order')"
-                >
-                    <ShoppingBag aria-hidden="true" class="size-5" />
-                    <span class="text-sm font-semibold">Мой заказ</span>
-                    <Badge
-                        v-if="totalPositions"
-                        class="ml-1 flex size-5 items-center justify-center rounded-full bg-blue-700 px-0 text-[11px] font-semibold tabular-nums text-white"
-                    >
-                        {{ totalPositions }}
-                    </Badge>
-                </Button>
-
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="relative h-11 rounded-xl border-slate-200 bg-white px-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98]"
-                    aria-label="Открыть холодильник"
-                    @click="emit('open-fridge')"
-                >
-                    <Refrigerator aria-hidden="true" class="size-5" />
-                    <span class="text-sm font-semibold">Холодильник</span>
-                    <Badge
-                        v-if="activeFridgeItemsCount"
-                        class="ml-1 flex size-5 items-center justify-center rounded-full bg-blue-700 px-0 text-[11px] font-semibold tabular-nums text-white"
-                    >
-                        {{ activeFridgeItemsCount }}
-                    </Badge>
-                </Button>
-
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="h-11 w-64 min-w-0 max-w-72 justify-start rounded-xl border-slate-200 bg-white px-1.5 pr-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98]"
-                    :aria-label="`Открыть профиль: ${displayUserName}`"
-                    :title="displayUserName"
-                    @click="emit('open-profile')"
-                >
-                    <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">
-                        <UserRound aria-hidden="true" class="size-4" />
-                    </span>
-                    <span class="min-w-0 truncate text-left text-sm font-semibold">{{ displayUserName }}</span>
-                </Button>
-            </nav>
+                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600">
+                    <UserRound aria-hidden="true" class="size-4" />
+                </span>
+                <span class="min-w-0 truncate text-left text-sm font-semibold">{{ displayUserName }}</span>
+            </Button>
 
             <Button
                 v-if="isAuthenticated && !loading"
                 type="button"
                 variant="outline"
-                class="size-11 shrink-0 rounded-xl border-slate-200 bg-white px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98] xl:hidden"
+                class="ml-auto size-10 shrink-0 rounded-full border-slate-200 bg-white px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98] xl:hidden"
                 :aria-label="`Открыть профиль: ${displayUserName}`"
                 :title="displayUserName"
                 @click="emit('open-profile')"
             >
-                <span class="grid size-8 place-items-center rounded-lg bg-slate-100 text-slate-600">
+                <span class="grid size-8 place-items-center rounded-full bg-slate-100 text-slate-600">
                     <UserRound aria-hidden="true" class="size-4" />
                 </span>
             </Button>
@@ -112,7 +138,7 @@ const emit = defineEmits(['open-auth', 'open-profile', 'open-order', 'open-fridg
             <Button
                 v-if="!isAuthenticated && !loading"
                 type="button"
-                class="h-11 rounded-xl bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
+                class="ml-auto h-10 rounded-full bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
                 @click="emit('open-auth')"
             >
                 <UserRound aria-hidden="true" class="size-4" />

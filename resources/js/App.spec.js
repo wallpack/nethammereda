@@ -335,9 +335,9 @@ describe('catalog auth UX', () => {
         await mountApp({ currentCycle: null, menuItems: [], menuCategories: [] });
 
         const weekStatusText = document.querySelector('.week-status')?.textContent ?? '';
-        expect(document.querySelector('.week-status h1')?.textContent).toContain('Недельный цикл не создан');
-        expect(weekStatusText).toContain('Меню появится после создания цикла администратором.');
-        expect(weekStatusText.match(/Недельный цикл не создан/g)).toHaveLength(1);
+        expect(weekStatusText).toContain('Приём заказов закрыт');
+        expect(weekStatusText).not.toContain('Недельный цикл не создан');
+        expect(weekStatusText).not.toContain('Меню появится после создания цикла администратором.');
     });
 
     it('renders guest header with a single login action and no old guest copy', async () => {
@@ -398,8 +398,12 @@ describe('catalog auth UX', () => {
 
         expect(document.body.textContent).toContain(user.name);
         expect(buttonByText('Войти')).toBeFalsy();
+        expect(document.querySelector('[aria-label="Открыть раздел: Каталог"]')).toBeTruthy();
+        expect(document.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeTruthy();
+        expect(document.querySelector('[aria-label="Открыть раздел: История"]')).toBeTruthy();
+        expect(document.querySelector('[aria-label="Открыть раздел: Мой заказ"]')).toBeNull();
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
-        expect(document.body.textContent).toContain('Мой заказ');
+        expect(document.body.textContent).toContain('Корзина');
     });
 
     it('opens profile modal with account actions', async () => {
@@ -546,7 +550,7 @@ describe('catalog auth UX', () => {
             },
         });
 
-        expect(document.body.textContent).toContain('Дедлайн прошел');
+        expect(document.body.textContent).toContain('Приём заказов закрыт');
         expect(document.body.textContent).not.toContain('Заказ закрыт');
         expect(buttonByText('Добавить')?.disabled).toBe(true);
     });
@@ -565,10 +569,8 @@ describe('catalog auth UX', () => {
         });
 
         const weekStatusText = document.querySelector('.week-status')?.textContent ?? '';
-        expect(document.querySelector('.week-status h1')?.textContent).toContain('Доставка отмечена');
-        expect(weekStatusText).toContain('Проверьте холодильник.');
-        expect(weekStatusText.match(/Доставка отмечена/g)).toHaveLength(1);
-        expect(weekStatusText).toContain('Доставлен');
+        expect(weekStatusText).toContain('Приём заказов закрыт');
+        expect(weekStatusText).not.toContain('Проверьте холодильник.');
     });
 
     it('shows a reopen action for a submitted order before the deadline', async () => {
@@ -580,7 +582,7 @@ describe('catalog auth UX', () => {
         });
 
         expect(buttonByText('Редактировать заказ')).toBeTruthy();
-        expect(document.body.textContent).toContain('Заказ отправлен. Его можно изменить до дедлайна.');
+        expect(document.body.textContent).toContain('Заказ отправлен · Можно редактировать до');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить')?.disabled).toBe(true);
     });
@@ -623,13 +625,13 @@ describe('catalog auth UX', () => {
         });
 
         expect(buttonByText('Редактировать заказ')).toBeFalsy();
-        expect(document.body.textContent).toContain('Заказ отправлен. Дедлайн прошел, изменения недоступны.');
+        expect(document.body.textContent).toContain('Приём заказов закрыт');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить')?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
-        expect(mobileOrderText).toContain('Заказ отправлен. Дедлайн прошел, изменения недоступны.');
+        expect(mobileOrderText).toContain('Приём заказов закрыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });
 
@@ -644,13 +646,13 @@ describe('catalog auth UX', () => {
             },
         });
 
-        expect(document.body.textContent).toContain('Заказ отправлен. Изменения больше недоступны.');
+        expect(document.body.textContent).toContain('Приём заказов закрыт');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить')?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
-        expect(mobileOrderText).toContain('Заказ отправлен. Изменения больше недоступны.');
+        expect(mobileOrderText).toContain('Приём заказов закрыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });
 
@@ -689,7 +691,7 @@ describe('catalog auth UX', () => {
         }));
 
         await mountApp({ authenticated: true });
-        await click(document.querySelector('[aria-label="Открыть мой заказ"]'));
+        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
         expect(document.querySelector('[data-testid="mobile-order-panel"]')).toBeTruthy();
 
         desktop = true;
@@ -738,8 +740,9 @@ describe('catalog auth UX', () => {
         const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(imageArea).toBeTruthy();
-        expect(imageArea?.className).toContain('aspect-[5/4]');
+        expect(imageArea?.className).toContain('h-64');
         expect(image?.className).toContain('object-contain');
+        expect(image?.className).toContain('p-5');
     });
 
     it('uses image_display_url for order panel thumbnails', async () => {
@@ -768,7 +771,7 @@ describe('catalog auth UX', () => {
         const panel = document.querySelector('[data-testid="desktop-order-panel"]');
 
         expect(panel).toBeTruthy();
-        expect(panel?.getAttribute('aria-label')).toBe('Панель заказа');
+        expect(panel?.getAttribute('aria-label')).toBe('Панель корзины');
         expect(panel?.className).toContain('xl:sticky');
     });
 
