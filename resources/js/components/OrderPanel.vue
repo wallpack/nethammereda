@@ -24,6 +24,10 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
+    isAuthenticated: {
+        type: Boolean,
+        default: true,
+    },
     showHeading: {
         type: Boolean,
         default: true,
@@ -62,10 +66,11 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order']);
+const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order', 'open-auth']);
 const failedOrderImages = ref(new Set());
 
 const isSubmittedOrder = computed(() => props.order?.status === 'submitted');
+const showGuestAuthPrompt = computed(() => !props.isAuthenticated);
 const orderItemImage = (orderItem) => {
     if (failedOrderImages.value.has(orderItem.menu_item_id)) {
         return null;
@@ -106,13 +111,13 @@ watch(() => props.menuItemsById, () => {
                 <div class="min-w-0">
                     <h2 class="text-balance text-lg font-semibold tracking-[-0.02em] text-slate-950">{{ panelTitle }}</h2>
                     <Skeleton v-if="loading" class="mt-1 h-4 w-20 rounded-md bg-slate-100" />
-                    <p v-else class="mt-0.5 text-xs font-medium tabular-nums text-slate-500">
+                    <p v-else-if="!showGuestAuthPrompt" class="mt-0.5 text-xs font-medium tabular-nums text-slate-500">
                         <span>{{ totalPositions }}</span> {{ positionsLabel }}
                     </p>
                 </div>
                 <Skeleton v-if="loading" class="h-7 w-20 rounded-lg bg-slate-100" />
                 <Badge
-                    v-else
+                    v-else-if="!showGuestAuthPrompt"
                     variant="outline"
                     class="shrink-0 rounded-full px-3 text-xs font-semibold"
                     :class="isSubmittedOrder ? 'border-blue-100 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'"
@@ -145,6 +150,15 @@ watch(() => props.menuItemsById, () => {
                 <Skeleton class="h-5 w-3/4 rounded-md bg-slate-100" />
                 <Skeleton class="h-4 w-1/2 rounded-md bg-slate-100" />
             </div>
+        </div>
+
+        <div
+            v-else-if="showGuestAuthPrompt"
+            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-5 py-10 text-center"
+        >
+            <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
+            <p class="mt-3 text-balance text-base font-semibold text-slate-900">Войдите, чтобы заказать</p>
+            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">После входа вы сможете добавить блюда в заказ.</p>
         </div>
 
         <div
@@ -234,15 +248,29 @@ watch(() => props.menuItemsById, () => {
         >
             <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
             <template v-else>
-                <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                <div class="rounded-2xl px-4 py-3" :class="showGuestAuthPrompt ? 'bg-slate-50/80' : 'bg-slate-50'">
                     <div class="flex items-center justify-between gap-4">
-                        <p class="text-sm font-medium text-slate-600">Итого</p>
-                        <strong class="whitespace-nowrap text-xl font-semibold tabular-nums text-slate-950">{{ formatPrice(order?.total_price ?? 0) }}</strong>
+                        <p class="text-sm font-medium" :class="showGuestAuthPrompt ? 'text-slate-500' : 'text-slate-600'">Итого</p>
+                        <strong
+                            class="whitespace-nowrap tabular-nums"
+                            :class="showGuestAuthPrompt ? 'text-lg font-medium text-slate-400' : 'text-xl font-semibold text-slate-950'"
+                        >
+                            {{ formatPrice(order?.total_price ?? 0) }}
+                        </strong>
                     </div>
                 </div>
 
                 <Button
-                    v-if="canEditOrder"
+                    v-if="showGuestAuthPrompt"
+                    type="button"
+                    class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
+                    @click="emit('open-auth')"
+                >
+                    Войти
+                </Button>
+
+                <Button
+                    v-else-if="canEditOrder"
                     type="button"
                     class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
                     :disabled="!orderItems.length || actionLoading"

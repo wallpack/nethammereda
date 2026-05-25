@@ -267,6 +267,9 @@ describe('catalog auth UX', () => {
         await nextTick();
 
         expect(document.querySelector('[data-testid="week-status-loading"]')).toBeTruthy();
+        const menuLoadingGrid = document.querySelector('.dishes-grid[aria-busy="true"]');
+        const menuCardSkeleton = menuLoadingGrid?.querySelector('.menu-card [data-slot="skeleton"]');
+        expect(menuCardSkeleton?.className).toContain('max-[430px]:h-[8.25rem]');
         expect(document.body.textContent).not.toContain('Недельный цикл не создан');
         expect(document.body.textContent).not.toContain('Ничего не найдено');
         expect(document.body.textContent).not.toContain('0 блюд');
@@ -348,6 +351,27 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain('Вход в панели заказа');
     });
 
+    it('renders catalog heading without legacy promo copy', async () => {
+        await mountApp({
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+        });
+
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+        expect(document.body.textContent).not.toContain('Меню недели');
+        expect(document.body.textContent).not.toContain('Что нового');
+        expect(document.body.textContent).not.toContain('доступно для заказа');
+    });
+
+    it('renders brand with uppercase N', async () => {
+        await mountApp();
+
+        const brand = document.querySelector('[aria-label="NethammerEda"]');
+
+        expect(brand).toBeTruthy();
+        expect(brand?.textContent?.trim().startsWith('N')).toBe(true);
+    });
+
     it('opens and closes login modal from the header', async () => {
         await mountApp();
 
@@ -363,13 +387,33 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain('Вход в аккаунт');
     });
 
-    it('hides the order panel and sidebar login form for guests', async () => {
+    it('shows guest cart with auth prompt instead of fake order items', async () => {
         await mountApp();
 
-        expect(document.querySelector('.catalog-order-panel')).toBeNull();
-        expect(document.body.textContent).not.toContain('ЗАКАЗ');
-        expect(document.body.textContent).not.toContain('Войдите для корзины');
-        expect(document.querySelector('#catalog-login-email')).toBeNull();
+        const panel = document.querySelector('[data-testid="desktop-order-panel"]');
+        const panelButtons = Array.from(panel?.querySelectorAll('button') ?? []);
+        const footer = panel?.querySelector('[data-testid="order-panel-footer"]');
+
+        expect(panel).toBeTruthy();
+        expect(panelButtons).toHaveLength(1);
+        expect(footer?.querySelector('button')).toBeTruthy();
+        expect(panel?.textContent).toContain('Корзина');
+        expect(panel?.textContent).toContain('Войдите, чтобы заказать');
+        expect(panel?.textContent).toContain('После входа вы сможете добавить блюда в заказ.');
+        expect(panel?.textContent).not.toContain('Вы ещё ничего не добавили');
+    });
+
+    it('opens login modal from guest cart CTA', async () => {
+        await mountApp();
+
+        const panel = document.querySelector('[data-testid="desktop-order-panel"]');
+        const footer = panel?.querySelector('[data-testid="order-panel-footer"]');
+        const loginButton = footer?.querySelector('button');
+
+        await click(loginButton);
+
+        expect(document.body.textContent).toContain('Вход в аккаунт');
+        expect(document.body.textContent).toContain('Войдите, чтобы оформить заказ.');
     });
 
     it('keeps product CTA as Add for guests and opens login modal instead of adding to cart', async () => {
@@ -478,7 +522,8 @@ describe('catalog auth UX', () => {
         expect(postedTo(fetchMock, '/auth/logout')).toBe(true);
         expect(document.body.textContent).not.toContain(user.name);
         expect(buttonByText('Войти')).toBeTruthy();
-        expect(document.querySelector('.catalog-order-panel')).toBeNull();
+        expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
+        expect(document.body.textContent).toContain('Войдите, чтобы заказать');
     });
 
     it('lets authenticated users add items to the order', async () => {
@@ -740,9 +785,57 @@ describe('catalog auth UX', () => {
         const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(imageArea).toBeTruthy();
-        expect(imageArea?.className).toContain('h-64');
+        expect(imageArea?.className).toContain('h-[16rem]');
         expect(image?.className).toContain('object-contain');
-        expect(image?.className).toContain('p-5');
+        expect(image?.className).toContain('scale-[1.02]');
+    });
+
+    it('prepares a compact mobile card variant for dense catalog rows', async () => {
+        await mountApp({
+            menuItems: [{
+                ...menuItem,
+                image_display_url: '/storage/menu-items/manual/11/soup.png',
+            }],
+        });
+
+        const card = document.querySelector('[data-testid="menu-item-card"]');
+        const imageArea = document.querySelector('[data-testid="menu-item-image-area"]');
+        const meta = document.querySelector('[data-testid="menu-item-meta"]');
+        const title = card?.querySelector('h3');
+        const addButton = document.querySelector('[data-testid="menu-item-add-button"]');
+        const addIcon = addButton?.querySelector('svg');
+        const favoriteButton = card?.querySelector('button[aria-pressed]');
+
+        expect(card).toBeTruthy();
+        expect(imageArea?.className).toContain('max-[430px]:h-[8.25rem]');
+        expect(meta?.className).toContain('max-[430px]:hidden');
+        expect(title?.className).toContain('max-[430px]:line-clamp-3');
+        expect(title?.className).toContain('max-[430px]:min-h-[3.15rem]');
+        expect(title?.getAttribute('title')).toBe(menuItem.title);
+        expect(title?.getAttribute('aria-label')).toBe(`Название блюда: ${menuItem.title}`);
+        expect(addButton?.className).toContain('max-[430px]:size-10');
+        expect(addButton?.className).toContain('max-[430px]:text-[0px]');
+        expect(addIcon?.className).not.toContain('translate-x-px');
+        expect(favoriteButton?.className).toContain('max-[430px]:size-8');
+    });
+
+    it('keeps a compact inline stepper for mobile tiles without separate quantity badge', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem],
+            order: orderWithItem,
+        });
+
+        const compactQuantityButton = document.querySelector('[data-testid="menu-item-compact-quantity-button"]');
+        const desktopStepper = document.querySelector('[data-testid="menu-item-stepper"]');
+        const stepperQuantity = desktopStepper?.querySelector('span');
+
+        expect(compactQuantityButton).toBeNull();
+        expect(desktopStepper).toBeTruthy();
+        expect(desktopStepper?.className).toContain('max-[430px]:h-9');
+        expect(desktopStepper?.className).toContain('max-[430px]:w-[5.9rem]');
+        expect(desktopStepper?.className).toContain('max-[430px]:grid-cols-[2rem_minmax(1.5rem,1fr)_2rem]');
+        expect(stepperQuantity?.className).toContain('max-[430px]:min-w-0');
     });
 
     it('uses image_display_url for order panel thumbnails', async () => {
@@ -773,6 +866,8 @@ describe('catalog auth UX', () => {
         expect(panel).toBeTruthy();
         expect(panel?.getAttribute('aria-label')).toBe('Панель корзины');
         expect(panel?.className).toContain('xl:sticky');
+        expect(panel?.className).toContain('xl:mt-[7.25rem]');
+        expect(panel?.className).toContain('xl:h-[calc(100dvh-18.75rem)]');
     });
 
     it('keeps the order total and submit action in a sticky footer', async () => {

@@ -5,7 +5,6 @@ import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import AppHeader from '@/components/AppHeader.vue';
-import CategorySidebar from '@/components/CategorySidebar.vue';
 import FridgePanel from '@/components/FridgePanel.vue';
 import HistoryPanel from '@/components/HistoryPanel.vue';
 import LoginModal from '@/components/LoginModal.vue';
@@ -592,23 +591,17 @@ onMounted(async () => {
                 :order-status-text="compactOrderStatusText"
             />
 
-            <div v-if="isCatalogView" class="mt-4 sm:mt-5">
-                <CategorySidebar
-                    :loading="loading"
-                    :categories="categories"
-                    :items="items"
-                    v-model:selected-category="selectedCategory"
-                />
-            </div>
-
             <div
                 class="catalog-layout mt-4 sm:mt-5"
-                :class="isAuthenticated && isCatalogView ? 'catalog-layout--auth' : 'catalog-layout--guest'"
+                :class="isCatalogView ? (isAuthenticated ? 'catalog-layout--auth-cart' : 'catalog-layout--guest-cart') : 'catalog-layout--single'"
             >
                 <MenuGrid
                     v-if="isCatalogView"
                     v-model:search="search"
+                    v-model:selected-category="selectedCategory"
                     :loading="loading"
+                    :categories="categories"
+                    :items="items"
                     :filtered-items="displayedItems"
                     :menu-skeleton-rows="menuSkeletonRows"
                     :order-item-by-menu-item="orderItemByMenuItem"
@@ -683,10 +676,10 @@ onMounted(async () => {
                 </Card>
 
                 <Card
-                    v-if="isAuthenticated && isCatalogView"
+                    v-if="isCatalogView"
                     data-testid="desktop-order-panel"
                     aria-label="Панель корзины"
-                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white text-slate-900 shadow-[0_18px_45px_rgb(15_23_42/0.08)] xl:sticky xl:top-16 xl:block xl:h-[calc(100dvh-14.5rem)] xl:max-h-[calc(100dvh-14.5rem)]"
+                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white text-slate-900 shadow-[0_18px_45px_rgb(15_23_42/0.08)] xl:mt-[7.25rem] xl:block xl:sticky xl:top-20 xl:h-[calc(100dvh-18.75rem)] xl:max-h-[calc(100dvh-18.75rem)]"
                 >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
                         <OrderPanel
@@ -696,12 +689,14 @@ onMounted(async () => {
                             :total-positions="totalPositions"
                             :panel-title="'Корзина'"
                             :status-line="compactOrderStatusText"
-                            :can-edit-order="canEditOrder"
-                            :can-reopen-order="canReopenSubmittedOrder"
+                            :is-authenticated="isAuthenticated"
+                            :can-edit-order="isAuthenticated ? canEditOrder : false"
+                            :can-reopen-order="isAuthenticated ? canReopenSubmittedOrder : false"
                             :loading="loading"
                             :action-loading="actionLoading"
                             :error="error"
                             :order-skeleton-rows="orderSkeletonRows"
+                            @open-auth="openAuthModal('Войдите, чтобы оформить заказ.')"
                             @change-quantity="changeQuantity"
                             @reopen-order="reopenOrder"
                             @submit-order="submitOrder"

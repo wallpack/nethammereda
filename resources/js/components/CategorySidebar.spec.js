@@ -7,7 +7,7 @@ const expectClasses = (element, classes) => {
 };
 
 describe('CategorySidebar', () => {
-    it('uses brand-blue selected states and badges in mobile and desktop navigation', async () => {
+    it('uses brand-blue selected states and badges in chip navigation', async () => {
         const wrapper = mount(CategorySidebar, {
             props: {
                 categories: [{ id: 1, name: 'Soups' }],
@@ -16,23 +16,41 @@ describe('CategorySidebar', () => {
             },
         });
 
-        let [mobileAll, mobileCategory, desktopAll, desktopCategory] = wrapper.findAll('button');
+        let [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(mobileCategory, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
-        expectClasses(desktopCategory, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
-        expectClasses(mobileCategory.find('span'), ['bg-white/20', 'text-white']);
-        expectClasses(desktopCategory.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
-        expectClasses(mobileAll, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
-        expectClasses(desktopAll, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
+        expectClasses(categoryButton, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
+        expectClasses(categoryButton.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
+        expectClasses(allButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
 
         await wrapper.setProps({ selectedCategory: null });
-        [mobileAll, mobileCategory, desktopAll, desktopCategory] = wrapper.findAll('button');
+        [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(mobileAll, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
-        expectClasses(desktopAll, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
-        expectClasses(mobileAll.find('span'), ['bg-white/20', 'text-white']);
-        expectClasses(desktopAll.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
-        expectClasses(mobileCategory, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
-        expectClasses(desktopCategory, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
+        expectClasses(allButton, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
+        expectClasses(allButton.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
+        expectClasses(categoryButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
+    });
+
+    it('prepares mobile chip row wrapping without forcing horizontal page overflow', () => {
+        const wrapper = mount(CategorySidebar, {
+            props: {
+                categories: [
+                    { id: 1, name: 'Soups' },
+                    { id: 2, name: 'Mains' },
+                    { id: 3, name: 'Bakery' },
+                ],
+                items: [
+                    { id: 11, category_id: 1 },
+                    { id: 12, category_id: 2 },
+                    { id: 13, category_id: 3 },
+                ],
+                selectedCategory: null,
+            },
+        });
+
+        const nav = wrapper.get('nav');
+        const row = wrapper.get('[data-testid="category-chip-row"]');
+
+        expectClasses(nav, ['max-[639px]:overflow-x-clip']);
+        expectClasses(row, ['max-[639px]:w-full', 'max-[639px]:min-w-0', 'max-[639px]:flex-wrap']);
     });
 });

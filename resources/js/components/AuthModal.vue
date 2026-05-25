@@ -144,7 +144,7 @@ const closeWhenChanged = (open) => {
                             autofocus
                             :aria-invalid="Boolean(error)"
                             :aria-describedby="error ? 'auth-modal-error' : undefined"
-                            class="h-12 rounded-xl border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                            class="h-12 rounded-xl border-slate-200 bg-white px-4 text-base text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                         />
                     </label>
 
@@ -160,7 +160,7 @@ const closeWhenChanged = (open) => {
                                 required
                                 :aria-invalid="Boolean(error)"
                                 :aria-describedby="error ? 'auth-modal-error' : undefined"
-                                class="h-12 rounded-xl border-slate-200 bg-white px-4 pr-12 text-sm text-slate-900 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                                class="h-12 rounded-xl border-slate-200 bg-white px-4 pr-12 text-base text-slate-900 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                             />
                             <Button
                                 type="button"
