@@ -6,6 +6,7 @@ use App\Enums\OrderCycleStatus;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\OrderCycle;
+use Carbon\CarbonInterface;
 
 trait FormatsApiPayloads
 {
@@ -20,6 +21,10 @@ trait FormatsApiPayloads
             'title' => $cycle->title,
             'starts_at' => $cycle->starts_at,
             'closes_at' => $cycle->closes_at,
+            'deadline_date' => $this->deadlineDate($cycle),
+            'deadline_time' => $this->deadlineTime($cycle),
+            'deadline_display' => $this->deadlineDisplay($cycle),
+            'deadline_display_full' => $this->deadlineDisplayFull($cycle),
             'status' => $cycle->status->value,
             'is_open_status' => $isOpenStatus,
             'is_orderable' => $isOrderable,
@@ -108,12 +113,45 @@ trait FormatsApiPayloads
 
     protected function deadlineLabel(OrderCycle $cycle): ?string
     {
-        if ($cycle->closes_at === null) {
+        $deadline = $this->deadlineForDisplay($cycle);
+
+        if ($deadline === null) {
             return null;
         }
 
         $prefix = $cycle->isOpenForOrdering() ? 'Дедлайн' : 'Дедлайн был';
 
-        return $prefix.' '.$cycle->closes_at->format('Y-m-d H:i');
+        return $prefix.' '.$deadline->format('Y-m-d H:i');
+    }
+
+    protected function deadlineDate(OrderCycle $cycle): ?string
+    {
+        return $this->deadlineForDisplay($cycle)?->format('d.m');
+    }
+
+    protected function deadlineTime(OrderCycle $cycle): ?string
+    {
+        return $this->deadlineForDisplay($cycle)?->format('H:i');
+    }
+
+    protected function deadlineDisplay(OrderCycle $cycle): ?string
+    {
+        return $this->deadlineForDisplay($cycle)?->format('d.m, H:i');
+    }
+
+    protected function deadlineDisplayFull(OrderCycle $cycle): ?string
+    {
+        return $this->deadlineForDisplay($cycle)?->format('d.m.Y, H:i');
+    }
+
+    protected function deadlineForDisplay(OrderCycle $cycle): ?CarbonInterface
+    {
+        if ($cycle->closes_at === null) {
+            return null;
+        }
+
+        return $cycle->closes_at->copy()->setTimezone(
+            config('lunch.business_timezone', config('app.timezone', 'UTC')),
+        );
     }
 }

@@ -55,18 +55,16 @@ export const useCatalogStore = defineStore('catalog', () => {
     });
 
     const weeklyDeadlineLabel = computed(() => {
-        if (cycle.value?.closes_at) {
-            const closeDate = new Date(cycle.value.closes_at);
+        if (cycle.value?.deadline_display_full) {
+            return cycle.value.deadline_display_full;
+        }
 
-            if (!Number.isNaN(closeDate.getTime())) {
-                return closeDate.toLocaleString('ru-RU', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                });
-            }
+        if (cycle.value?.deadline_display) {
+            return cycle.value.deadline_display;
+        }
+
+        if (cycle.value?.deadline_date && cycle.value?.deadline_time) {
+            return `${cycle.value.deadline_date}, ${cycle.value.deadline_time}`;
         }
 
         if (!cycle.value?.starts_at) {

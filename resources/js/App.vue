@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useMediaQuery } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -27,6 +27,8 @@ const fridge = useFridgeStore();
 const ui = useUiStore();
 const isDesktopLayout = useMediaQuery('(min-width: 1280px)');
 const reopenedForEditing = ref(false);
+const deadlinePassedLocally = ref(false);
+let deadlineRefreshTimerId = null;
 
 const {
     me,
@@ -91,8 +93,31 @@ const orderSkeletonRows = Array.from({ length: 3 }, (_, index) => index + 1);
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
-const canReopenSubmittedOrder = computed(() => Boolean(order.value?.can_reopen_for_editing));
-const canEditOrder = computed(() => isOpenForOrdering.value && !isSubmittedOrder.value);
+const isOrderingWindowOpen = computed(() => isOpenForOrdering.value && !deadlinePassedLocally.value);
+const canReopenSubmittedOrder = computed(() => Boolean(order.value?.can_reopen_for_editing) && isOrderingWindowOpen.value);
+const canEditOrder = computed(() => isOrderingWindowOpen.value && !isSubmittedOrder.value);
+const effectiveAvailabilityLabel = computed(() => {
+    if (isOrderingWindowOpen.value) {
+        return availabilityLabel.value;
+    }
+
+    if (deadlinePassedLocally.value && cycle.value?.status === 'open') {
+        return 'Приём заказов закрыт';
+    }
+
+    return availabilityLabel.value;
+});
+const effectiveAvailabilityDescription = computed(() => {
+    if (isOrderingWindowOpen.value) {
+        return availabilityDescription.value;
+    }
+
+    if (deadlinePassedLocally.value && cycle.value?.status === 'open') {
+        return 'Приём заказов завершён.';
+    }
+
+    return availabilityDescription.value;
+});
 
 const orderReadOnlyReason = computed(() => {
     if (isSubmittedOrder.value) {
@@ -100,32 +125,26 @@ const orderReadOnlyReason = computed(() => {
             return 'Заказ отправлен. Его можно изменить до дедлайна.';
         }
 
-        if (cycle.value?.deadline_passed) {
+        if (deadlinePassedLocally.value || cycle.value?.deadline_passed) {
             return 'Заказ отправлен. Дедлайн прошел, изменения недоступны.';
         }
 
         return 'Заказ отправлен. Изменения больше недоступны.';
     }
 
-    return availabilityDescription.value || 'Прием заказов завершен.';
+    return effectiveAvailabilityDescription.value || 'Прием заказов завершен.';
 });
 
 const deadlineShortLabel = computed(() => {
-    if (!cycle.value?.closes_at) {
-        return weeklyDeadlineLabel.value;
+    if (cycle.value?.deadline_display) {
+        return cycle.value.deadline_display;
     }
 
-    const closeDate = new Date(cycle.value.closes_at);
-    if (Number.isNaN(closeDate.getTime())) {
-        return weeklyDeadlineLabel.value;
+    if (cycle.value?.deadline_date && cycle.value?.deadline_time) {
+        return `${cycle.value.deadline_date}, ${cycle.value.deadline_time}`;
     }
 
-    return closeDate.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return weeklyDeadlineLabel.value;
 });
 
 const compactOrderStatusText = computed(() => {
@@ -134,7 +153,7 @@ const compactOrderStatusText = computed(() => {
     }
 
     if (!isAuthenticated.value) {
-        if (isOpenForOrdering.value) {
+        if (isOrderingWindowOpen.value) {
             return `Заказ открыт · Дедлайн: ${deadlineShortLabel.value}`;
         }
 
@@ -159,6 +178,64 @@ const compactOrderStatusText = computed(() => {
 const orderPanelDescription = computed(() => {
     return compactOrderStatusText.value || orderReadOnlyReason.value;
 });
+
+const parseDeadlineTimestamp = () => {
+    if (!cycle.value?.closes_at) {
+        return null;
+    }
+
+    const timestamp = Date.parse(cycle.value.closes_at);
+
+    return Number.isNaN(timestamp) ? null : timestamp;
+};
+
+const refreshOrderingState = async () => {
+    try {
+        await catalog.loadCatalogData();
+
+        if (auth.token) {
+            await orderStore.loadCurrentOrder(auth.token);
+        }
+    } catch (e) {
+        ui.error = e.message;
+    }
+};
+
+const clearDeadlineRefreshTimer = () => {
+    if (deadlineRefreshTimerId === null) {
+        return;
+    }
+
+    clearTimeout(deadlineRefreshTimerId);
+    deadlineRefreshTimerId = null;
+};
+
+const scheduleDeadlineRefresh = () => {
+    clearDeadlineRefreshTimer();
+    deadlinePassedLocally.value = Boolean(cycle.value?.deadline_passed);
+
+    if (!isOpenForOrdering.value) {
+        return;
+    }
+
+    const deadlineTimestamp = parseDeadlineTimestamp();
+
+    if (deadlineTimestamp === null) {
+        return;
+    }
+
+    const delayMs = deadlineTimestamp - Date.now();
+
+    if (delayMs <= 0) {
+        void refreshOrderingState();
+        return;
+    }
+
+    deadlineRefreshTimerId = setTimeout(() => {
+        deadlinePassedLocally.value = true;
+        void refreshOrderingState();
+    }, delayMs + 50);
+};
 
 const displayedItems = computed(() => {
     if (!favoritesOnly.value) {
@@ -213,6 +290,18 @@ watch(() => order.value?.status, (status) => {
         reopenedForEditing.value = false;
     }
 });
+
+watch(
+    [
+        () => cycle.value?.id,
+        () => cycle.value?.closes_at,
+        isOpenForOrdering,
+    ],
+    () => {
+        scheduleDeadlineRefresh();
+    },
+    { immediate: true },
+);
 
 const resetProtectedState = () => {
     orderStore.resetOrder();
@@ -544,6 +633,10 @@ onMounted(async () => {
         ui.activeSidebarTab = 'catalog';
     }
 });
+
+onBeforeUnmount(() => {
+    clearDeadlineRefreshTimer();
+});
 </script>
 
 <template>
@@ -585,9 +678,9 @@ onMounted(async () => {
                 :loading="loading"
                 :cycle="cycle"
                 :weekly-deadline-label="weeklyDeadlineLabel"
-                :is-open-for-ordering="isOpenForOrdering"
-                :availability-label="availabilityLabel"
-                :availability-description="availabilityDescription"
+                :is-open-for-ordering="isOrderingWindowOpen"
+                :availability-label="effectiveAvailabilityLabel"
+                :availability-description="effectiveAvailabilityDescription"
                 :order-status-text="compactOrderStatusText"
             />
 

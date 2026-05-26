@@ -5,6 +5,7 @@ namespace App\Filament\Resources\OrderCycles\Tables;
 use App\Enums\OrderCycleStatus;
 use App\Exceptions\SupplierOrderCannotBeSentException;
 use App\Filament\Resources\OrderCycles\Actions\MarkOrderCycleDeliveredAction;
+use App\Filament\Resources\OrderCycles\Actions\ReopenOrderCycleAction;
 use App\Models\OrderCycle;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
@@ -85,6 +86,8 @@ class OrderCyclesTable
             ->recordActions([
                 EditAction::make()
                     ->label('Изменить'),
+                ReopenOrderCycleAction::make(),
+
                 Action::make('sendToSupplier')
                     ->label('Отправить поставщику')
                     ->icon('heroicon-o-paper-airplane')

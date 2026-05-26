@@ -110,6 +110,188 @@ class OrderCycleResourceTest extends TestCase
     }
 
     #[Test]
+    public function reopen_ordering_action_is_visible_only_for_closed_cycles(): void
+    {
+        $this->actingAsAdmin();
+
+        $draftCycle = $this->createCycle(OrderCycleStatus::Draft);
+        $openCycle = $this->createCycle(OrderCycleStatus::Open);
+        $closedCycle = $this->createCycle(OrderCycleStatus::Closed);
+        $sentCycle = $this->createSentToSupplierCycle();
+        $deliveredCycle = $this->createCycle(OrderCycleStatus::Delivered);
+        $archivedCycle = $this->createCycle(OrderCycleStatus::Archived);
+
+        Livewire::test(ListOrderCycles::class)
+            ->assertActionHidden(TestAction::make('reopenOrdering')->table($draftCycle))
+            ->assertActionHidden(TestAction::make('reopenOrdering')->table($openCycle))
+            ->assertActionVisible(TestAction::make('reopenOrdering')->table($closedCycle))
+            ->assertActionHidden(TestAction::make('reopenOrdering')->table($sentCycle))
+            ->assertActionHidden(TestAction::make('reopenOrdering')->table($deliveredCycle))
+            ->assertActionHidden(TestAction::make('reopenOrdering')->table($archivedCycle));
+    }
+
+    #[Test]
+    public function closed_cycle_can_be_reopened_by_admin_with_future_deadline(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $orderItem = $this->createOrderItem($cycle, OrderStatus::Submitted);
+        $order = $orderItem->order;
+        $newDeadline = now()->addHours(3)->setSecond(0);
+
+        Livewire::test(ListOrderCycles::class)
+            ->callAction(TestAction::make('reopenOrdering')->table($cycle), data: [
+                'new_closes_at' => $newDeadline
+                    ->copy()
+                    ->setTimezone(config('lunch.business_timezone'))
+                    ->toDateTimeString(),
+            ])
+            ->assertHasNoActionErrors();
+
+        $cycle->refresh();
+
+        $this->assertSame(OrderCycleStatus::Open, $cycle->status);
+        $this->assertSame($newDeadline->toDateTimeString(), $cycle->closes_at?->toDateTimeString());
+        $this->assertNull($cycle->sent_to_supplier_at);
+        $this->assertNull($cycle->sent_to_supplier_by);
+        $this->assertDatabaseCount('supplier_order_exports', 0);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'order_cycle_id' => $cycle->id,
+            'status' => OrderStatus::Submitted->value,
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'id' => $orderItem->id,
+            'order_id' => $order->id,
+            'menu_item_id' => $orderItem->menu_item_id,
+            'quantity' => 1,
+        ]);
+    }
+
+    #[Test]
+    public function closed_cycle_cannot_be_reopened_with_past_deadline(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $pastDeadline = now()->subMinute()->setSecond(0);
+
+        Livewire::test(ListOrderCycles::class)
+            ->callAction(TestAction::make('reopenOrdering')->table($cycle), data: [
+                'new_closes_at' => $pastDeadline
+                    ->copy()
+                    ->setTimezone(config('lunch.business_timezone'))
+                    ->toDateTimeString(),
+            ])
+            ->assertHasActionErrors(['new_closes_at']);
+
+        $this->assertDatabaseHas('order_cycles', [
+            'id' => $cycle->id,
+            'status' => OrderCycleStatus::Closed->value,
+        ]);
+    }
+
+    #[Test]
+    public function open_cycle_can_still_be_closed_manually_from_edit_form(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Open);
+
+        Livewire::test(EditOrderCycle::class, ['record' => $cycle->id])
+            ->fillForm([
+                'title' => $cycle->title,
+                'starts_at' => $cycle->starts_at?->toDateTimeString(),
+                'closes_at' => now()->addHour()->toDateTimeString(),
+                'status' => OrderCycleStatus::Closed->value,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('order_cycles', [
+            'id' => $cycle->id,
+            'status' => OrderCycleStatus::Closed->value,
+        ]);
+    }
+
+    #[Test]
+    public function saving_open_cycle_with_past_deadline_auto_closes_cycle(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Open);
+
+        Livewire::test(EditOrderCycle::class, ['record' => $cycle->id])
+            ->fillForm([
+                'title' => $cycle->title,
+                'starts_at' => $cycle->starts_at?->toDateTimeString(),
+                'closes_at' => now()->subMinute()->toDateTimeString(),
+                'status' => OrderCycleStatus::Open->value,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('order_cycles', [
+            'id' => $cycle->id,
+            'status' => OrderCycleStatus::Closed->value,
+        ]);
+    }
+
+    #[Test]
+    public function reopened_cycle_is_returned_as_open_and_orderable_in_current_cycle_api(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $newDeadline = now()->addHours(2)->setSecond(0);
+
+        Livewire::test(ListOrderCycles::class)
+            ->callAction(TestAction::make('reopenOrdering')->table($cycle), data: [
+                'new_closes_at' => $newDeadline
+                    ->copy()
+                    ->setTimezone(config('lunch.business_timezone'))
+                    ->toDateTimeString(),
+            ])
+            ->assertHasNoActionErrors();
+
+        $this->getJson('/api/current-cycle')
+            ->assertOk()
+            ->assertJsonPath('data.id', $cycle->id)
+            ->assertJsonPath('data.status', OrderCycleStatus::Open->value)
+            ->assertJsonPath('data.is_orderable', true)
+            ->assertJsonPath('data.can_order', true)
+            ->assertJsonPath('data.deadline_passed', false);
+    }
+
+    #[Test]
+    public function reopened_cycle_is_auto_closed_again_after_new_deadline_passes(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $newDeadline = now()->addMinute()->setSecond(0);
+
+        Livewire::test(ListOrderCycles::class)
+            ->callAction(TestAction::make('reopenOrdering')->table($cycle), data: [
+                'new_closes_at' => $newDeadline
+                    ->copy()
+                    ->setTimezone(config('lunch.business_timezone'))
+                    ->toDateTimeString(),
+            ])
+            ->assertHasNoActionErrors();
+
+        $this->travelTo($newDeadline->copy()->addMinute());
+
+        $this->getJson('/api/current-cycle')
+            ->assertOk()
+            ->assertJsonPath('data.id', $cycle->id)
+            ->assertJsonPath('data.status', OrderCycleStatus::Closed->value)
+            ->assertJsonPath('data.is_orderable', false)
+            ->assertJsonPath('data.can_order', false)
+            ->assertJsonPath('data.deadline_passed', true);
+
+        $this->assertDatabaseHas('order_cycles', [
+            'id' => $cycle->id,
+            'status' => OrderCycleStatus::Closed->value,
+        ]);
+    }
+
+    #[Test]
     public function edit_page_warns_when_open_cycle_deadline_has_passed(): void
     {
         $this->actingAsAdmin();

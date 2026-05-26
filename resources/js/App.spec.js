@@ -16,6 +16,10 @@ const cycle = {
     title: 'Тестовая неделя',
     starts_at: '2026-05-18T00:00:00.000000Z',
     closes_at: '2026-05-22T12:00:00.000000Z',
+    deadline_date: '22.05',
+    deadline_time: '12:00',
+    deadline_display: '22.05, 12:00',
+    deadline_display_full: '22.05.2026, 12:00',
     status: 'open',
     is_open_for_ordering: true,
 };
@@ -630,6 +634,156 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Заказ отправлен · Можно редактировать до');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить')?.disabled).toBe(true);
+    });
+
+    it('uses API deadline display fields without timezone conversion shift', async () => {
+        await mountApp({
+            authenticated: true,
+            order: submittedOrder,
+            currentCycle: {
+                ...cycle,
+                closes_at: '2026-05-29T12:00:00.000000Z',
+                deadline_date: '29.05',
+                deadline_time: '12:00',
+                deadline_display: '29.05, 12:00',
+                deadline_display_full: '29.05.2026, 12:00',
+            },
+        });
+
+        const pageText = document.body.textContent ?? '';
+        expect(pageText).toContain('29.05, 12:00');
+        expect(pageText).not.toContain('29.05, 17:00');
+    });
+
+    it('refreshes ordering state when the deadline passes on an already open page', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-05-22T11:59:55.000Z'));
+        localStorage.setItem('lunch_mvp_token', 'test-token');
+
+        const openCycle = {
+            ...cycle,
+            closes_at: '2026-05-22T12:00:00.000000Z',
+            deadline_date: '22.05',
+            deadline_time: '12:00',
+            deadline_display: '22.05, 12:00',
+            deadline_display_full: '22.05.2026, 12:00',
+            status: 'open',
+            is_open_for_ordering: true,
+            is_orderable: true,
+            can_order: true,
+            deadline_passed: false,
+        };
+        const closedCycle = {
+            ...openCycle,
+            status: 'closed',
+            is_open_for_ordering: false,
+            is_orderable: false,
+            can_order: false,
+            deadline_passed: true,
+            availability_label: 'Заказ закрыт',
+            availability_description: 'Администратор закрыл сбор заказов.',
+        };
+
+        let currentCycleRequestCount = 0;
+        global.fetch = vi.fn((input, options = {}) => {
+            const path = String(input).replace('/api', '');
+            const method = options.method ?? 'GET';
+
+            if (path === '/me') {
+                return jsonResponse({ data: user });
+            }
+
+            if (path === '/current-cycle') {
+                currentCycleRequestCount += 1;
+
+                return jsonResponse({
+                    data: currentCycleRequestCount === 1 ? openCycle : closedCycle,
+                });
+            }
+
+            if (path === '/menu/categories') {
+                return jsonResponse({ data: [category] });
+            }
+
+            if (path === '/menu/items') {
+                return jsonResponse({ data: [menuItem] });
+            }
+
+            if (path === '/my-order' && method === 'GET') {
+                const activeCycle = currentCycleRequestCount <= 1 ? openCycle : closedCycle;
+
+                return jsonResponse({
+                    data: {
+                        cycle: activeCycle,
+                        order: orderWithItem,
+                    },
+                });
+            }
+
+            if (path === '/my-fridge' && method === 'GET') {
+                return jsonResponse({ data: [] });
+            }
+
+            if (path === '/my-fridge/history') {
+                return jsonResponse({ data: [] });
+            }
+
+            return jsonResponse({ data: null });
+        });
+
+        const wrapper = mount(App, {
+            attachTo: document.body,
+            global: {
+                plugins: [createPinia()],
+            },
+        });
+
+        await flushPromises();
+        await flushPromises();
+
+        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeTruthy();
+
+        await vi.advanceTimersByTimeAsync(5100);
+        await flushPromises();
+        await flushPromises();
+
+        expect(currentCycleRequestCount).toBeGreaterThan(1);
+        expect(document.body.textContent).toContain('Приём заказов закрыт');
+        expect(document.body.textContent).not.toContain('Можно редактировать до');
+        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
+
+        wrapper.unmount();
+        vi.useRealTimers();
+    });
+
+    it('does not show editable-until copy when API returns a closed cycle', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem],
+            menuCategories: [category],
+            currentCycle: {
+                ...cycle,
+                status: 'closed',
+                is_open_for_ordering: false,
+                is_orderable: false,
+                can_order: false,
+                deadline_passed: true,
+                availability_label: 'Заказ закрыт',
+                availability_description: 'Администратор закрыл сбор заказов.',
+            },
+            order: {
+                ...submittedOrder,
+                can_reopen_for_editing: false,
+            },
+        });
+
+        const pageText = document.body.textContent ?? '';
+        const addButton = buttonByText('Добавить');
+
+        expect(pageText).toContain('Приём заказов закрыт');
+        expect(pageText).not.toContain('Можно редактировать до');
+        expect(buttonByText('Редактировать заказ')).toBeFalsy();
+        expect(addButton === undefined || addButton.disabled).toBe(true);
     });
 
     it('reopens a submitted order and enables order controls again', async () => {

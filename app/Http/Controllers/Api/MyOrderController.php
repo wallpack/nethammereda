@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\FormatsApiPayloads;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\CurrentOrderCycleResolver;
+use App\Services\OrderCycleAutoCloser;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 
@@ -13,9 +14,13 @@ class MyOrderController extends Controller
 {
     use FormatsApiPayloads;
 
-    public function show(CurrentOrderCycleResolver $resolver): JsonResponse
+    public function show(
+        CurrentOrderCycleResolver $resolver,
+        OrderCycleAutoCloser $autoCloser,
+    ): JsonResponse
     {
         $cycle = $resolver->resolve();
+        $autoCloser->closeIfExpired($cycle);
         $user = request()->user();
 
         if ($cycle === null || $user === null) {
@@ -43,9 +48,11 @@ class MyOrderController extends Controller
 
     public function submit(
         CurrentOrderCycleResolver $resolver,
+        OrderCycleAutoCloser $autoCloser,
         OrderService $orderService,
     ): JsonResponse {
         $cycle = $resolver->resolve();
+        $autoCloser->closeIfExpired($cycle);
         $user = request()->user();
 
         abort_if($user === null, 401);
@@ -68,9 +75,11 @@ class MyOrderController extends Controller
 
     public function reopen(
         CurrentOrderCycleResolver $resolver,
+        OrderCycleAutoCloser $autoCloser,
         OrderService $orderService,
     ): JsonResponse {
         $cycle = $resolver->resolve();
+        $autoCloser->closeIfExpired($cycle);
         $user = request()->user();
 
         abort_if($user === null, 401);
@@ -84,6 +93,7 @@ class MyOrderController extends Controller
 
         abort_if($order === null, 404);
 
+        $autoCloser->closeIfExpired($order->cycle);
         $order = $orderService->reopenForUserEditing($order, $user);
 
         return response()->json([

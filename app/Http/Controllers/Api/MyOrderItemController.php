@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateMyOrderItemRequest;
 use App\Models\MenuItem;
 use App\Models\OrderItem;
 use App\Services\CurrentOrderCycleResolver;
+use App\Services\OrderCycleAutoCloser;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 
@@ -20,9 +21,11 @@ class MyOrderItemController extends Controller
     public function store(
         StoreMyOrderItemRequest $request,
         CurrentOrderCycleResolver $resolver,
+        OrderCycleAutoCloser $autoCloser,
         OrderService $orderService,
     ): JsonResponse {
         $cycle = $resolver->resolve();
+        $autoCloser->closeIfExpired($cycle);
         $user = $request->user();
 
         abort_if($user === null, 401);
@@ -51,9 +54,11 @@ class MyOrderItemController extends Controller
     public function update(
         UpdateMyOrderItemRequest $request,
         OrderItem $orderItem,
+        OrderCycleAutoCloser $autoCloser,
         OrderService $orderService,
     ): JsonResponse {
         $orderItem->loadMissing('order.cycle');
+        $autoCloser->closeIfExpired($orderItem->order?->cycle);
         $this->authorize('update', $orderItem);
 
         if (! $orderItem->order?->cycle?->isOpenForOrdering()) {
@@ -69,9 +74,14 @@ class MyOrderItemController extends Controller
         ]);
     }
 
-    public function destroy(OrderItem $orderItem, OrderService $orderService): JsonResponse
+    public function destroy(
+        OrderItem $orderItem,
+        OrderCycleAutoCloser $autoCloser,
+        OrderService $orderService,
+    ): JsonResponse
     {
         $orderItem->loadMissing('order.cycle');
+        $autoCloser->closeIfExpired($orderItem->order?->cycle);
         $this->authorize('delete', $orderItem);
 
         if (! $orderItem->order?->cycle?->isOpenForOrdering()) {

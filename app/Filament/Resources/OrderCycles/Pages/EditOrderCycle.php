@@ -4,11 +4,14 @@ namespace App\Filament\Resources\OrderCycles\Pages;
 
 use App\Filament\Resources\Concerns\HasCleanResourceBreadcrumbs;
 use App\Filament\Resources\OrderCycles\Actions\MarkOrderCycleDeliveredAction;
+use App\Filament\Resources\OrderCycles\Actions\ReopenOrderCycleAction;
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
 use App\Filament\Resources\SupplierOrderExports\SupplierOrderExportResource;
+use App\Services\OrderCycleAutoCloser;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditOrderCycle extends EditRecord
@@ -36,6 +39,8 @@ class EditOrderCycle extends EditRecord
                     ],
                 ]))
                 ->visible(fn (): bool => $this->getRecord()->supplierOrderExports()->exists()),
+            ReopenOrderCycleAction::make(),
+
             MarkOrderCycleDeliveredAction::make(),
             DeleteAction::make()
                 ->label('Удалить'),
@@ -49,17 +54,37 @@ class EditOrderCycle extends EditRecord
         return $data;
     }
 
+    protected function afterSave(): void
+    {
+        $record = $this->getRecord();
+        $wasClosed = app(OrderCycleAutoCloser::class)->closeIfExpired($record);
+
+        if (! $wasClosed) {
+            return;
+        }
+
+        Notification::make()
+            ->title('Прием заказов автоматически закрыт')
+            ->body('Вы сохранили открытый цикл с дедлайном в прошлом. Цикл переведен в статус «Закрыт».')
+            ->warning()
+            ->send();
+    }
+
     private function resolveFridayNoon(mixed $startsAt): string
     {
+        $businessTimezone = config('lunch.business_timezone', config('app.timezone'));
+        $appTimezone = config('app.timezone', 'UTC');
+
         $start = $startsAt !== null
-            ? Carbon::parse($startsAt)
-            : now();
+            ? Carbon::parse((string) $startsAt, $businessTimezone)
+            : now($businessTimezone);
 
         return $start
             ->copy()
             ->startOfWeek(Carbon::MONDAY)
             ->addDays(4)
             ->setTime(12, 0)
+            ->setTimezone($appTimezone)
             ->toDateTimeString();
     }
 }

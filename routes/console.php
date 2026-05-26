@@ -208,3 +208,7 @@ Artisan::command('fridge:expire', function () {
 Schedule::command('fridge:expire')
     ->everyThirtyMinutes()
     ->withoutOverlapping();
+
+Schedule::command('order-cycles:close-expired')
+    ->everyMinute()
+    ->withoutOverlapping();

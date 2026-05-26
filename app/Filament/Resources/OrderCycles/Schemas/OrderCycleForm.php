@@ -15,6 +15,9 @@ class OrderCycleForm
 {
     public static function configure(Schema $schema): Schema
     {
+        $businessTimezone = config('lunch.business_timezone', config('app.timezone'));
+        $appTimezone = config('app.timezone', 'UTC');
+
         return $schema
             ->components([
                 TextInput::make('title')
@@ -23,13 +26,16 @@ class OrderCycleForm
                     ->maxLength(255),
                 DateTimePicker::make('starts_at')
                     ->label('Начало недели')
+                    ->timezone($businessTimezone)
                     ->required(),
                 DateTimePicker::make('closes_at')
                     ->label('Дедлайн заказа')
-                    ->default(fn (): string => now()
+                    ->timezone($businessTimezone)
+                    ->default(fn (): string => now($businessTimezone)
                         ->startOfWeek(Carbon::MONDAY)
                         ->addDays(4)
                         ->setTime(12, 0)
+                        ->setTimezone($appTimezone)
                         ->toDateTimeString())
                     ->required(),
                 Select::make('status')
@@ -44,6 +50,7 @@ class OrderCycleForm
                         && $record->closes_at->isPast()),
                 DateTimePicker::make('sent_to_supplier_at')
                     ->label('Дата отправки поставщику')
+                    ->timezone($businessTimezone)
                     ->disabled()
                     ->dehydrated(false)
                     ->visible(fn (?OrderCycle $record = null): bool => $record?->sent_to_supplier_at !== null),
@@ -56,6 +63,7 @@ class OrderCycleForm
                     ->visible(fn (?OrderCycle $record = null): bool => $record?->sent_to_supplier_by !== null),
                 DateTimePicker::make('delivered_at')
                     ->label('Дата доставки')
+                    ->timezone($businessTimezone)
                     ->disabled()
                     ->dehydrated(false)
                     ->visible(fn (?OrderCycle $record = null): bool => $record?->delivered_at !== null),
