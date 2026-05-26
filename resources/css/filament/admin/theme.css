@@ -264,7 +264,7 @@
 .nh-admin-login-card__brand {
     display: inline-flex;
     align-items: center;
-    gap: 15px;
+    justify-content: center;
     width: fit-content;
     color: #f8fbff;
 }
@@ -272,19 +272,30 @@
 .nh-brand-logo {
     display: inline-flex;
     align-items: center;
+    min-width: 0;
     width: fit-content;
-}
-
-.nh-brand-logo__icon {
-    flex: 0 0 auto;
+    max-width: 100%;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .nh-brand-logo__word {
+    display: inline-flex;
+    align-items: flex-end;
     white-space: nowrap;
+    color: #f8fbff;
+    font-size: 1.25rem;
+    line-height: 1;
+    font-weight: 600;
     letter-spacing: 0;
 }
 
-.nh-brand-logo__word span {
+.nh-brand-logo__accent {
+    margin-left: 0.125rem;
+    color: #3476ff;
+    font-size: 0.875rem;
+    line-height: 1;
+    font-weight: 600;
     letter-spacing: 0;
 }
 
@@ -293,30 +304,18 @@
     z-index: 3;
 }
 
-.nh-admin-login-brand__icon,
-.nh-admin-login-card__brand-icon {
-    width: 64px;
-    height: auto;
-    flex: 0 0 auto;
-    filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.32));
-}
-
 .nh-admin-login-brand__word,
 .nh-admin-login-card__brand-word {
-    color: #f8fbff;
-    font-size: 34px;
+    color: inherit;
+    font-size: 1.25rem;
     line-height: 1;
-    font-weight: 760;
-    letter-spacing: -0.06em;
+    font-weight: 600;
+    letter-spacing: 0;
 }
 
-.nh-admin-login-brand__word span,
-.nh-admin-login-card__brand-word span {
-    margin-left: 2px;
+.nh-admin-login-brand__word .nh-brand-logo__accent,
+.nh-admin-login-card__brand-word .nh-brand-logo__accent {
     color: #3476ff;
-    font-size: 18px;
-    font-weight: 720;
-    letter-spacing: -0.04em;
 }
 
 .nh-admin-login-hero__copy {
@@ -2339,3 +2338,55 @@
     }
 }
 
+/* Admin text logo: compact, no icon, catalog-like proportions. */
+.fi-panel-admin .fi-logo .nh-admin-shell-logo.nh-brand-logo {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-height: 2.5rem;
+    line-height: 1;
+    white-space: nowrap;
+    padding-inline: 2px;
+}
+
+.fi-panel-admin .fi-logo .nh-admin-shell-logo .nh-admin-shell-logo__word {
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+.fi-panel-admin .fi-logo .nh-admin-shell-logo .nh-admin-shell-logo__word .nh-brand-logo__accent {
+    margin-left: 0.125rem;
+    color: #3476ff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.nh-admin-login-card .nh-admin-login-card__brand.nh-brand-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto clamp(24px, 3vw, 38px);
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.nh-admin-login-card .nh-admin-login-card__brand .nh-admin-login-card__brand-word {
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+.nh-admin-login-card .nh-admin-login-card__brand .nh-admin-login-card__brand-word .nh-brand-logo__accent {
+    margin-left: 0.125rem;
+    color: #3476ff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+}

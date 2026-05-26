@@ -40,7 +40,8 @@ class AdminLoginPageTest extends TestCase
         $html = $this->get('/admin/login')->getContent();
 
         $this->assertStringNotContainsString('class="nh-admin-login-brand"', $html);
-        $this->assertSame(1, substr_count($html, 'images/brand/nethammer-icon.svg'));
+        $this->assertStringNotContainsString('images/brand/nethammer-icon.svg', $html);
+        $this->assertStringContainsString('Nethammer<span class="nh-brand-logo__accent">eda</span>', $html);
         $this->assertStringNotContainsString('NethammerEda · Admin Console · Версия 1.0', $html);
         $this->assertStringNotContainsString('Управляйте меню, заказами сотрудников и остатками блюд в едином интерфейсе.', $html);
     }

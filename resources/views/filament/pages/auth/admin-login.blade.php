@@ -16,7 +16,6 @@
         <div class="nh-admin-login-card__body">
             <x-brand.logo
                 class="nh-admin-login-card__brand"
-                icon-class="nh-admin-login-card__brand-icon"
                 word-class="nh-admin-login-card__brand-word"
                 data-testid="admin-login-logo"
             />
