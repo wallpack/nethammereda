@@ -18,6 +18,9 @@ class UserForm
                 TextInput::make('name')
                     ->label('Имя')
                     ->required(),
+                TextInput::make('full_name')
+                    ->label('ФИО')
+                    ->maxLength(255),
                 TextInput::make('email')
                     ->label('Email')
                     ->email(),

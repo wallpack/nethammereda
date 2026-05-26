@@ -1,6 +1,11 @@
 import { apiRequest } from './http';
 
 export const fetchMe = (token) => apiRequest('/me', { token });
+export const updateMyProfile = ({ full_name }, token) => apiRequest('/me/profile', {
+    method: 'PATCH',
+    token,
+    body: { full_name },
+});
 
 export const loginWithPassword = ({ email, password }, token = '') => apiRequest('/auth/login', {
     method: 'POST',

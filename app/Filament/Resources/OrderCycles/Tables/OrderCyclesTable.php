@@ -127,23 +127,13 @@ class OrderCyclesTable
                     ->label('Экспорт CSV')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->action(function (OrderCycle $record) {
-                        $rows = app(SupplierOrderExportService::class)->rowsForCycle($record);
+                        $csv = app(SupplierOrderExportService::class)->csvForCycle($record);
 
                         $filename = "supplier-order-cycle-{$record->id}.csv";
 
                         return response()->streamDownload(
-                            function () use ($rows): void {
-                                $handle = fopen('php://output', 'wb');
-                                $handle && fwrite($handle, "\xEF\xBB\xBF");
-                                fputcsv($handle, ['Блюдо', 'Количество', 'Сумма'], ';');
-                                foreach ($rows as $row) {
-                                    fputcsv($handle, [
-                                        self::escapeCsvCell((string) $row->title_snapshot),
-                                        (int) $row->quantity_sum,
-                                        number_format((float) $row->total_sum, 2, '.', ''),
-                                    ], ';');
-                                }
-                                fclose($handle);
+                            function () use ($csv): void {
+                                echo $csv;
                             },
                             $filename,
                             ['Content-Type' => 'text/csv; charset=UTF-8'],
@@ -160,12 +150,5 @@ class OrderCyclesTable
             ])
             ->emptyStateHeading('Недельных циклов пока нет')
             ->emptyStateDescription('Создайте цикл, чтобы открыть сбор заказов на неделю.');
-    }
-
-    private static function escapeCsvCell(string $value): string
-    {
-        return preg_match('/^[=+\-@]/', ltrim($value)) === 1
-            ? "'{$value}"
-            : $value;
     }
 }

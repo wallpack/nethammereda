@@ -17,10 +17,11 @@ class AuthCatalogApiTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function current_user_response_includes_id_name_and_email(): void
+    public function current_user_response_includes_id_name_email_and_full_name(): void
     {
         $user = User::factory()->create([
             'name' => 'Катя Nethammer',
+            'full_name' => 'Катя Н. Е.',
             'email' => 'katya@example.com',
         ]);
 
@@ -30,7 +31,60 @@ class AuthCatalogApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $user->id)
             ->assertJsonPath('data.name', 'Катя Nethammer')
+            ->assertJsonPath('data.full_name', 'Катя Н. Е.')
             ->assertJsonPath('data.email', 'katya@example.com');
+    }
+
+    #[Test]
+    public function authenticated_user_can_update_full_name(): void
+    {
+        $user = User::factory()->create([
+            'full_name' => null,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->patchJson('/api/me/profile', [
+            'full_name' => '  Чертова Е.Н.  ',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.full_name', 'Чертова Е.Н.');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'full_name' => 'Чертова Е.Н.',
+        ]);
+    }
+
+    #[Test]
+    public function empty_full_name_is_stored_as_null(): void
+    {
+        $user = User::factory()->create([
+            'full_name' => 'Старое ФИО',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->patchJson('/api/me/profile', [
+            'full_name' => '   ',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.id', $user->id)
+            ->assertJsonPath('data.full_name', null);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'full_name' => null,
+        ]);
+    }
+
+    #[Test]
+    public function guest_cannot_update_full_name(): void
+    {
+        $this->patchJson('/api/me/profile', [
+            'full_name' => 'Мекшун А.Н.',
+        ])->assertUnauthorized();
     }
 
     #[Test]

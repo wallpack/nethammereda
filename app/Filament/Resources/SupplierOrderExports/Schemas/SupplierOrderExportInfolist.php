@@ -56,43 +56,38 @@ class SupplierOrderExportInfolist
                     ]),
                 Section::make('Снимок отправки')
                     ->columnSpanFull()
-                    ->description('Агрегированные строки на момент отправки поставщику.')
+                    ->description('Построчные позиции по пользователям на момент отправки поставщику.')
                     ->schema([
                         RepeatableEntry::make('snapshot_rows')
                             ->label('Строки отправки')
                             ->state(fn (SupplierOrderExport $record): array => $record->snapshotRows())
                             ->table([
-                                TableColumn::make('Блюдо'),
-                                TableColumn::make('Категория'),
-                                TableColumn::make('Количество'),
+                                TableColumn::make('ФИО'),
+                                TableColumn::make('Наименование'),
                                 TableColumn::make('Цена'),
+                                TableColumn::make('Количество'),
                                 TableColumn::make('Сумма'),
-                                TableColumn::make('Комментарий'),
                             ])
                             ->schema([
+                                TextEntry::make('full_name')
+                                    ->label('ФИО')
+                                    ->hiddenLabel()
+                                    ->placeholder('-'),
                                 TextEntry::make('title')
-                                    ->label('Блюдо')
+                                    ->label('Наименование')
                                     ->hiddenLabel()
                                     ->placeholder('-'),
-                                TextEntry::make('category')
-                                    ->label('Категория')
-                                    ->hiddenLabel()
-                                    ->placeholder('-'),
-                                TextEntry::make('quantity')
-                                    ->label('Количество')
-                                    ->hiddenLabel(),
                                 TextEntry::make('unit_price')
                                     ->label('Цена')
                                     ->hiddenLabel()
                                     ->formatStateUsing(fn (int | float | string | null $state): string => self::formatMoney($state)),
+                                TextEntry::make('quantity')
+                                    ->label('Количество')
+                                    ->hiddenLabel(),
                                 TextEntry::make('total_price')
                                     ->label('Сумма')
                                     ->hiddenLabel()
                                     ->formatStateUsing(fn (int | float | string | null $state): string => self::formatMoney($state)),
-                                TextEntry::make('comment')
-                                    ->label('Комментарий')
-                                    ->hiddenLabel()
-                                    ->placeholder('-'),
                             ])
                             ->contained(false)
                             ->columnSpanFull(),

@@ -22,6 +22,10 @@ class UsersTable
                 TextColumn::make('name')
                     ->label('Имя')
                     ->searchable(),
+                TextColumn::make('full_name')
+                    ->label('ФИО')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable(),

@@ -130,6 +130,7 @@ const createFetchMock = ({
 } = {}) => {
     let currentOrder = order;
     let currentFridgeItems = [...fridgeItems];
+    let currentUser = { ...authenticatedUser };
 
     return vi.fn((input, options = {}) => {
         const path = String(input).replace('/api', '');
@@ -137,8 +138,22 @@ const createFetchMock = ({
 
         if (path === '/me') {
             return authenticated
-                ? jsonResponse({ data: authenticatedUser })
+                ? jsonResponse({ data: currentUser })
                 : jsonResponse({ message: 'Unauthenticated.' }, 401);
+        }
+
+        if (path === '/me/profile' && method === 'PATCH') {
+            const payload = options.body ? JSON.parse(options.body) : {};
+            const normalizedFullName = typeof payload.full_name === 'string'
+                ? payload.full_name.trim()
+                : payload.full_name;
+
+            currentUser = {
+                ...currentUser,
+                full_name: normalizedFullName ? normalizedFullName : null,
+            };
+
+            return jsonResponse({ data: currentUser });
         }
 
         if (path === '/current-cycle') {
@@ -245,6 +260,14 @@ const buttonByText = (text) => {
 const click = async (element) => {
     expect(element).toBeTruthy();
     element.click();
+    await nextTick();
+    await flushPromises();
+};
+
+const fillInput = async (input, value) => {
+    expect(input).toBeTruthy();
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
     await nextTick();
     await flushPromises();
 };
@@ -465,8 +488,51 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Мой заказ');
         expect(document.body.textContent).toContain('Холодильник');
         expect(document.body.textContent).toContain('История питания');
+        expect(document.body.textContent).toContain('Укажите ФИО в формате: Фамилия и инициалы. Например: Иванов И.И.');
         expect(document.body.textContent).not.toContain('Настройки');
         expect(buttonByText('Выйти')).toBeTruthy();
+    });
+
+    it('prefers full_name over name in header and profile surfaces', async () => {
+        const account = {
+            ...user,
+            name: 'Administrator',
+            full_name: 'Иванов И.И.',
+        };
+
+        await mountApp({
+            authenticated: true,
+            authenticatedUser: account,
+        });
+
+        expect(buttonByText('Иванов И.И.')).toBeTruthy();
+        expect(buttonByText('Administrator')).toBeFalsy();
+
+        await click(buttonByText('Иванов И.И.'));
+        expect(document.querySelector('[data-testid="profile-name"]')?.textContent).toContain('Иванов И.И.');
+    });
+
+    it('updates full_name via profile API and keeps updated value in auth state', async () => {
+        const account = {
+            ...user,
+            name: 'Administrator',
+            full_name: null,
+        };
+        const { fetchMock } = await mountApp({
+            authenticated: true,
+            authenticatedUser: account,
+        });
+
+        await click(buttonByText('Administrator'));
+
+        const fullNameInput = document.querySelector('[data-testid="profile-full-name-input"]');
+        await fillInput(fullNameInput, 'Иванов И.И.');
+        await click(document.querySelector('[data-testid="profile-save-full-name"]'));
+
+        expect(patchedTo(fetchMock, '/me/profile')).toBe(true);
+        expect(document.body.textContent).toContain('Профиль обновлен.');
+        expect(document.querySelector('[data-testid="profile-name"]')?.textContent).toContain('Иванов И.И.');
+        expect(buttonByText('Иванов И.И.')).toBeTruthy();
     });
 
     it('handles a long user name in the header and profile surface', async () => {

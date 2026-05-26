@@ -5,6 +5,7 @@ import {
     loginWithPassword,
     loginWithTelegram,
     logoutUser,
+    updateMyProfile,
 } from '@/api/auth';
 
 const tokenKey = 'lunch_mvp_token';
@@ -20,11 +21,13 @@ export const useAuthStore = defineStore('auth', () => {
     const showPassword = ref(false);
     const authLoading = ref(false);
     const authError = ref('');
+    const profileSaving = ref(false);
+    const profileError = ref('');
 
     const isAuthenticated = computed(() => Boolean(token.value && me.value));
 
     const displayUserName = computed(() => {
-        return me.value?.name || me.value?.full_name || me.value?.first_name || me.value?.email || 'Пользователь';
+        return me.value?.full_name || me.value?.name || me.value?.first_name || me.value?.email || 'Пользователь';
     });
 
     const persistToken = () => {
@@ -98,9 +101,27 @@ export const useAuthStore = defineStore('auth', () => {
         return logoutUser(token.value);
     };
 
+    const updateProfile = async ({ full_name }) => {
+        profileSaving.value = true;
+        profileError.value = '';
+
+        try {
+            const response = await updateMyProfile({ full_name }, token.value);
+            me.value = response.data ?? me.value;
+
+            return response;
+        } catch (error) {
+            profileError.value = error?.message ?? 'Не удалось обновить профиль.';
+            throw error;
+        } finally {
+            profileSaving.value = false;
+        }
+    };
+
     const clearAuth = () => {
         setToken('');
         me.value = null;
+        profileError.value = '';
     };
 
     return {
@@ -112,12 +133,15 @@ export const useAuthStore = defineStore('auth', () => {
         showPassword,
         authLoading,
         authError,
+        profileSaving,
+        profileError,
         isAuthenticated,
         displayUserName,
         hasTelegramInitData,
         loadMe,
         authWithTelegram,
         authWithPassword,
+        updateProfile,
         requestLogout,
         clearAuth,
     };

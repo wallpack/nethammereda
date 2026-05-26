@@ -110,7 +110,7 @@ const navItemClass = (key) => (
                 v-else-if="isAuthenticated"
                 type="button"
                 variant="outline"
-                class="ml-auto hidden h-10 w-56 min-w-0 max-w-64 justify-start rounded-full border-slate-200 bg-white px-1 pr-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98] xl:inline-flex"
+                class="ml-auto hidden h-10 w-56 min-w-0 max-w-64 justify-center rounded-full border-slate-200 bg-white px-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 active:scale-[0.98] xl:inline-flex"
                 :aria-label="`Открыть профиль: ${displayUserName}`"
                 :title="displayUserName"
                 @click="emit('open-profile')"
@@ -118,7 +118,7 @@ const navItemClass = (key) => (
                 <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600">
                     <UserRound aria-hidden="true" class="size-4" />
                 </span>
-                <span class="min-w-0 truncate text-left text-sm font-semibold">{{ displayUserName }}</span>
+                <span class="min-w-0 truncate text-center text-sm font-semibold">{{ displayUserName }}</span>
             </Button>
 
             <Button

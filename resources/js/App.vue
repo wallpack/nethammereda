@@ -38,6 +38,8 @@ const {
     showPassword,
     authLoading,
     authError,
+    profileSaving,
+    profileError,
     isAuthenticated,
     displayUserName,
 } = storeToRefs(auth);
@@ -426,6 +428,28 @@ const logout = async () => {
     ui.error = '';
     ui.info = '';
     auth.authError = '';
+};
+
+const closeProfileModal = () => {
+    auth.profileError = '';
+    ui.closeProfileModal();
+};
+
+const saveProfileFullName = async (fullName) => {
+    if (!auth.token) {
+        openAuthModal('Войдите, чтобы обновить профиль.');
+        return;
+    }
+
+    ui.info = '';
+    auth.profileError = '';
+
+    try {
+        await auth.updateProfile({ full_name: fullName });
+        ui.info = 'Профиль обновлен.';
+    } catch {
+        // Error text is set in the auth store.
+    }
 };
 
 const navigateToView = (view) => {
@@ -901,12 +925,15 @@ onBeforeUnmount(() => {
             :open="isProfileModalOpen"
             :user="me"
             :favorites-count="favoritesCount"
-            @close="ui.closeProfileModal"
+            :profile-saving="profileSaving"
+            :profile-error="profileError"
+            @close="closeProfileModal"
             @logout="logout"
             @show-favorites="showFavoritesFromProfile"
             @show-order="openPanelFromProfile('order')"
             @show-fridge="openPanelFromProfile('fridge')"
             @show-history="openPanelFromProfile('history')"
+            @save-full-name="saveProfileFullName"
         />
     </div>
 </template>

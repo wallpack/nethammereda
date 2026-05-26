@@ -364,6 +364,27 @@ class OrderCycleResourceTest extends TestCase
     }
 
     #[Test]
+    public function direct_cycle_csv_export_uses_user_full_name(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $user = User::factory()->create([
+            'name' => 'Administrator',
+            'full_name' => 'Тестов Т.Т.',
+            'email' => 'admin@lunch.local',
+        ]);
+        $this->createOrderItem($cycle, OrderStatus::Submitted, $user);
+
+        Livewire::test(ListOrderCycles::class)
+            ->callAction(TestAction::make('exportCsv')->table($cycle))
+            ->assertFileDownloaded(
+                "supplier-order-cycle-{$cycle->id}.csv",
+                content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Тестов Т.Т.\";\"Test Dish\";100;1;100\n",
+                contentType: 'text/csv; charset=UTF-8',
+            );
+    }
+
+    #[Test]
     public function mark_delivered_table_action_delivers_cycle_and_creates_fridge_items(): void
     {
         $admin = $this->actingAsAdmin();
@@ -430,9 +451,9 @@ class OrderCycleResourceTest extends TestCase
         ]);
     }
 
-    private function createOrderItem(OrderCycle $cycle, OrderStatus $orderStatus): OrderItem
+    private function createOrderItem(OrderCycle $cycle, OrderStatus $orderStatus, ?User $user = null): OrderItem
     {
-        $user = User::factory()->create();
+        $user ??= User::factory()->create();
         $menuItem = $this->createMenuItem();
 
         $order = Order::query()->create([

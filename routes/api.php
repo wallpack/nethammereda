@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MyFridgeController;
 use App\Http\Controllers\Api\MyOrderController;
 use App\Http\Controllers\Api\MyOrderItemController;
+use App\Http\Controllers\Api\MyProfileController;
 use App\Http\Controllers\Api\PasswordLoginController;
 use App\Http\Controllers\Api\TelegramAuthController;
 use App\Http\Controllers\TelegramWebhookController;
@@ -29,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'data' => $request->user(),
         ]);
     });
+    Route::patch('/me/profile', [MyProfileController::class, 'update']);
 
     Route::post('/auth/logout', function (Request $request) {
         $accessToken = $request->user()?->currentAccessToken();

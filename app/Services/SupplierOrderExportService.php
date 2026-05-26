@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class SupplierOrderExportService
 {
+    private const CSV_DELIMITER = ';';
+
     public function sendToSupplier(OrderCycle $cycle, ?User $exportedBy = null, string $format = 'csv'): SupplierOrderExport
     {
         return DB::transaction(function () use ($cycle, $exportedBy, $format): SupplierOrderExport {
@@ -56,35 +58,85 @@ class SupplierOrderExportService
 
     public function rowsForCycle(OrderCycle $cycle): Collection
     {
-        return OrderItem::query()
+        $rows = OrderItem::query()
             ->selectRaw(
-                'order_items.title_snapshot,
+                'orders.user_id,
+                users.full_name as user_full_name,
+                users.name as user_name,
+                users.email as user_email,
+                order_items.title_snapshot,
+                order_items.price_snapshot,
                 SUM(order_items.quantity) as quantity_sum,
                 SUM(order_items.quantity * order_items.price_snapshot) as total_sum'
             )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('users', 'users.id', '=', 'orders.user_id')
             ->where('orders.order_cycle_id', $cycle->id)
             ->where('orders.status', OrderStatus::Submitted->value)
             ->where('order_items.status', '!=', OrderItemStatus::Cancelled->value)
-            ->groupBy('order_items.title_snapshot')
+            ->groupBy([
+                'orders.user_id',
+                'users.full_name',
+                'users.name',
+                'users.email',
+                'order_items.title_snapshot',
+                'order_items.price_snapshot',
+            ])
+            ->orderBy('orders.user_id')
             ->orderBy('order_items.title_snapshot')
-            ->get();
+            ->get()
+            ->map(function (OrderItem $row): array {
+                $fullName = $this->displayNameForExport(
+                    (int) $row->user_id,
+                    $row->user_full_name,
+                    $row->user_name,
+                    $row->user_email,
+                );
+
+                return [
+                    'user_id' => (int) $row->user_id,
+                    'full_name' => $fullName,
+                    'title_snapshot' => (string) $row->title_snapshot,
+                    'price_snapshot' => round((float) $row->price_snapshot, 2),
+                    'quantity' => (int) $row->quantity_sum,
+                    'total_sum' => round((float) $row->total_sum, 2),
+                ];
+            })
+            ->values();
+
+        $previousUserId = null;
+
+        return $rows->map(function (array $row) use (&$previousUserId): array {
+            $resolvedName = $row['full_name'];
+            $row['full_name'] = $previousUserId === $row['user_id'] ? '' : $resolvedName;
+            $previousUserId = $row['user_id'];
+
+            return $row;
+        });
     }
 
     /**
      * @return array{
      *     cycle: array{id: int, title: string, starts_at: ?string, closes_at: ?string},
-     *     rows: array<int, array{title: string, quantity: int, total_price: float}>,
+     *     rows: array<int, array{
+     *         full_name: string,
+     *         title: string,
+     *         unit_price: float,
+     *         quantity: int,
+     *         total_price: float
+     *     }>,
      *     totals: array{rows_count: int, total_quantity: int, total_price: float}
      * }
      */
     public function snapshotForCycle(OrderCycle $cycle): array
     {
         $rows = $this->rowsForCycle($cycle)
-            ->map(fn (OrderItem $row): array => [
-                'title' => $row->title_snapshot,
-                'quantity' => (int) $row->quantity_sum,
-                'total_price' => round((float) $row->total_sum, 2),
+            ->map(fn (array $row): array => [
+                'full_name' => (string) $row['full_name'],
+                'title' => (string) $row['title_snapshot'],
+                'unit_price' => round((float) $row['price_snapshot'], 2),
+                'quantity' => (int) $row['quantity'],
+                'total_price' => round((float) $row['total_sum'], 2),
             ])
             ->values();
 
@@ -107,10 +159,29 @@ class SupplierOrderExportService
     public function totalForCycle(OrderCycle $cycle): float
     {
         return (float) $this->rowsForCycle($cycle)
-            ->sum(fn (OrderItem $row): float => (float) $row->total_sum);
+            ->sum(fn (array $row): float => (float) $row['total_sum']);
+    }
+
+    public function csvForCycle(OrderCycle $cycle): string
+    {
+        return $this->csvFromRows($this->snapshotForCycle($cycle)['rows']);
     }
 
     public function csvForExport(SupplierOrderExport $export): string
+    {
+        return $this->csvFromRows($export->snapshotRows());
+    }
+
+    /**
+     * @param  iterable<int, array{
+     *     full_name?: mixed,
+     *     title?: mixed,
+     *     unit_price?: mixed,
+     *     quantity?: mixed,
+     *     total_price?: mixed
+     * }>  $rows
+     */
+    private function csvFromRows(iterable $rows): string
     {
         $handle = fopen('php://temp', 'wb+');
 
@@ -119,17 +190,22 @@ class SupplierOrderExportService
         }
 
         fwrite($handle, "\xEF\xBB\xBF");
-        fputcsv($handle, ['Блюдо', 'Категория', 'Количество', 'Цена', 'Сумма', 'Комментарий'], ';');
+        fputcsv($handle, ['ФИО', 'Наименование', 'Цена', 'количество', 'Сумма'], self::CSV_DELIMITER);
 
-        foreach ($export->snapshotRows() as $row) {
+        foreach ($rows as $row) {
+            $quantity = (int) ($row['quantity'] ?? 0);
+            $unitPrice = round((float) ($row['unit_price'] ?? 0), 2);
+            $sum = array_key_exists('total_price', $row)
+                ? round((float) ($row['total_price'] ?? 0), 2)
+                : round($unitPrice * $quantity, 2);
+
             fputcsv($handle, [
-                $this->escapeCsvCell($row['title']),
-                $this->escapeCsvCell((string) ($row['category'] ?? '')),
-                $row['quantity'],
-                number_format($row['unit_price'], 2, '.', ''),
-                number_format($row['total_price'], 2, '.', ''),
-                $this->escapeCsvCell((string) ($row['comment'] ?? '')),
-            ], ';');
+                $this->escapeCsvCell((string) ($row['full_name'] ?? '')),
+                $this->escapeCsvCell((string) ($row['title'] ?? '')),
+                $this->formatNumber($unitPrice),
+                (string) $quantity,
+                $this->formatNumber($sum),
+            ], self::CSV_DELIMITER);
         }
 
         rewind($handle);
@@ -144,5 +220,40 @@ class SupplierOrderExportService
         return preg_match('/^[=+\-@]/', ltrim($value)) === 1
             ? "'{$value}"
             : $value;
+    }
+
+    private function formatNumber(float $value): string
+    {
+        $formatted = number_format($value, 2, '.', '');
+
+        return rtrim(rtrim($formatted, '0'), '.');
+    }
+
+    private function displayNameForExport(int $userId, ?string $fullName, ?string $name, ?string $email): string
+    {
+        $candidates = [
+            $this->trimToNullable($fullName),
+            $this->trimToNullable($name),
+            $this->trimToNullable($email),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== null) {
+                return $candidate;
+            }
+        }
+
+        return "Пользователь #{$userId}";
+    }
+
+    private function trimToNullable(?string $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 }

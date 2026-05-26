@@ -90,14 +90,21 @@ class SupplierOrderSendWorkflowTest extends TestCase
     {
         $cycle = $this->createCycle(OrderCycleStatus::Closed);
         $admin = User::factory()->create();
-        $this->createOrderItem($cycle, OrderStatus::Submitted, title: 'Cutlet', quantity: 2, price: 150);
+        $user = User::factory()->create([
+            'full_name' => 'Чертова Е.Н.',
+            'name' => 'Chertova',
+            'email' => 'chertova@example.com',
+        ]);
+        $this->createOrderItem($cycle, OrderStatus::Submitted, title: 'Cutlet', quantity: 2, price: 150, user: $user);
         $this->createOrderItem($cycle, OrderStatus::Draft, title: 'Draft Soup', quantity: 3, price: 120);
 
         $export = app(SupplierOrderExportService::class)->sendToSupplier($cycle, $admin);
 
         $this->assertEquals([
             [
+                'full_name' => 'Чертова Е.Н.',
                 'title' => 'Cutlet',
+                'unit_price' => 150.0,
                 'quantity' => 2,
                 'total_price' => 300.0,
             ],
@@ -114,7 +121,12 @@ class SupplierOrderSendWorkflowTest extends TestCase
     {
         $cycle = $this->createCycle(OrderCycleStatus::Closed);
         $admin = User::factory()->create();
-        $this->createOrderItem($cycle, OrderStatus::Submitted, title: 'Cutlet', quantity: 2, price: 150);
+        $user = User::factory()->create([
+            'full_name' => 'Чертова Е.Н.',
+            'name' => 'Chertova',
+            'email' => 'chertova@example.com',
+        ]);
+        $this->createOrderItem($cycle, OrderStatus::Submitted, title: 'Cutlet', quantity: 2, price: 150, user: $user);
         $this->createOrderItem($cycle, OrderStatus::Cancelled, title: 'Cancelled Order Soup', quantity: 3, price: 120);
         $this->createOrderItem(
             $cycle,
@@ -129,7 +141,9 @@ class SupplierOrderSendWorkflowTest extends TestCase
 
         $this->assertEquals([
             [
+                'full_name' => 'Чертова Е.Н.',
                 'title' => 'Cutlet',
+                'unit_price' => 150.0,
                 'quantity' => 2,
                 'total_price' => 300.0,
             ],
@@ -139,6 +153,25 @@ class SupplierOrderSendWorkflowTest extends TestCase
             'total_quantity' => 2,
             'total_price' => 300.0,
         ], $export->snapshot_json['totals']);
+    }
+
+    #[Test]
+    public function supplier_order_snapshot_stores_full_name_at_export_time(): void
+    {
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $admin = User::factory()->create();
+        $user = User::factory()->create([
+            'full_name' => 'Старое ФИО',
+            'name' => 'Fallback Name',
+            'email' => 'fallback@example.com',
+        ]);
+        $this->createOrderItem($cycle, OrderStatus::Submitted, title: 'Cutlet', quantity: 1, price: 150, user: $user);
+
+        $export = app(SupplierOrderExportService::class)->sendToSupplier($cycle, $admin);
+
+        $user->update(['full_name' => 'Новое ФИО']);
+
+        $this->assertSame('Старое ФИО', $export->fresh()->snapshot_json['rows'][0]['full_name']);
     }
 
     #[Test]
@@ -217,8 +250,9 @@ class SupplierOrderSendWorkflowTest extends TestCase
         string $title = 'Test Dish',
         int $quantity = 1,
         int $price = 100,
+        ?User $user = null,
     ): OrderItem {
-        $user = User::factory()->create();
+        $user ??= User::factory()->create();
         $menuItem = $this->createMenuItem($title, $price);
 
         $order = Order::query()->create([

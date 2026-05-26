@@ -82,7 +82,7 @@ class SupplierOrderExportResourceTest extends TestCase
             ->callAction(TestAction::make('downloadCsv')->table($export))
             ->assertFileDownloaded(
                 "supplier-order-export-{$export->id}.csv",
-                content: "\xEF\xBB\xBFБлюдо;Категория;Количество;Цена;Сумма;Комментарий\n\"Stored Soup\";;2;120.00;240.00;\n",
+                content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Чертова Е.Н.\";\"Stored Soup\";120;2;240\n",
                 contentType: 'text/csv; charset=UTF-8',
             );
     }
@@ -152,7 +152,11 @@ class SupplierOrderExportResourceTest extends TestCase
 
     private function createOrderItem(OrderCycle $cycle, string $title, int $quantity, int $price): OrderItem
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'full_name' => 'Чертова Е.Н.',
+            'name' => 'Chertova',
+            'email' => 'chertova@example.com',
+        ]);
         $menuItem = $this->createMenuItem($title, $price);
 
         $order = Order::query()->create([

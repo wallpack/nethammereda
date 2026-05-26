@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import {
     DialogClose,
     DialogContent,
@@ -9,8 +9,10 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Heart, History, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
+import { Input } from '@/components/ui/input';
+import { Heart, History, Loader2, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
     open: {
@@ -25,20 +27,53 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
+    profileSaving: {
+        type: Boolean,
+        default: false,
+    },
+    profileError: {
+        type: String,
+        default: '',
+    },
 });
 
-const emit = defineEmits(['close', 'logout', 'show-favorites', 'show-order', 'show-fridge', 'show-history']);
+const emit = defineEmits([
+    'close',
+    'logout',
+    'show-favorites',
+    'show-order',
+    'show-fridge',
+    'show-history',
+    'save-full-name',
+]);
 
 const displayName = computed(() => {
-    return props.user?.name || props.user?.full_name || props.user?.first_name || props.user?.email || 'Пользователь';
+    return props.user?.full_name || props.user?.name || props.user?.first_name || props.user?.email || 'Пользователь';
 });
 
 const identifier = computed(() => props.user?.email || props.user?.phone || props.user?.telegram_id || '');
+const fullName = ref('');
+
+watch(
+    () => [props.open, props.user?.full_name],
+    () => {
+        if (!props.open) {
+            return;
+        }
+
+        fullName.value = props.user?.full_name ?? '';
+    },
+    { immediate: true },
+);
 
 const closeWhenChanged = (open) => {
     if (!open) {
         emit('close');
     }
+};
+
+const saveFullName = () => {
+    emit('save-full-name', fullName.value);
 };
 </script>
 
@@ -78,6 +113,39 @@ const closeWhenChanged = (open) => {
                 </div>
 
                 <div class="mt-6 grid gap-2">
+                    <form class="mb-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4" @submit.prevent="saveFullName">
+                        <label class="grid gap-2">
+                            <span class="text-sm font-medium text-slate-700">ФИО</span>
+                            <Input
+                                v-model="fullName"
+                                data-testid="profile-full-name-input"
+                                maxlength="255"
+                                placeholder="Например: Чертова Е.Н."
+                                class="h-11 rounded-xl border-slate-200 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                            />
+                        </label>
+                        <p class="text-xs leading-5 text-slate-500">
+                            Укажите ФИО в формате: Фамилия и инициалы. Например: Иванов И.И.
+                        </p>
+                        <Alert
+                            v-if="profileError"
+                            variant="destructive"
+                            class="rounded-xl border-red-200 bg-red-50 text-red-700"
+                            role="alert"
+                        >
+                            <AlertDescription>{{ profileError }}</AlertDescription>
+                        </Alert>
+                        <Button
+                            type="submit"
+                            data-testid="profile-save-full-name"
+                            class="h-10 rounded-xl bg-blue-700 text-sm font-semibold text-white hover:bg-blue-800"
+                            :disabled="profileSaving"
+                        >
+                            <Loader2 v-if="profileSaving" aria-hidden="true" class="size-4 animate-spin" />
+                            Сохранить ФИО
+                        </Button>
+                    </form>
+
                     <Button
                         type="button"
                         variant="outline"
