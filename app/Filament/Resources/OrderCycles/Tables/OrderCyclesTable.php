@@ -23,6 +23,8 @@ class OrderCyclesTable
 {
     public static function configure(Table $table): Table
     {
+        $businessTimezone = config('lunch.business_timezone', config('app.timezone'));
+
         return $table
             ->columns([
                 TextColumn::make('title')
@@ -37,16 +39,16 @@ class OrderCyclesTable
                     ->sortable(),
                 TextColumn::make('starts_at')
                     ->label('Старт')
-                    ->dateTime()
+                    ->dateTime('d.m.Y, H:i', $businessTimezone)
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('closes_at')
                     ->label('Дедлайн')
-                    ->dateTime()
+                    ->dateTime('d.m.Y, H:i', $businessTimezone)
                     ->sortable(),
                 TextColumn::make('sent_to_supplier_at')
                     ->label('Дата отправки')
-                    ->dateTime()
+                    ->dateTime('d.m.Y, H:i', $businessTimezone)
                     ->placeholder('Не отправлен')
                     ->sortable(),
                 TextColumn::make('sentToSupplierBy.name')
@@ -56,7 +58,7 @@ class OrderCyclesTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('delivered_at')
                     ->label('Дата доставки')
-                    ->dateTime()
+                    ->dateTime('d.m.Y, H:i', $businessTimezone)
                     ->placeholder('Не отмечена')
                     ->sortable(),
                 TextColumn::make('deliveredBy.name')

@@ -21,7 +21,10 @@ use App\Models\OrderCycle;
 use App\Models\OrderItem;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\Test;
@@ -107,6 +110,63 @@ class OrderCycleResourceTest extends TestCase
             ->assertActionHidden(TestAction::make('sendToSupplier')->table($openCycle))
             ->assertActionVisible(TestAction::make('sendToSupplier')->table($closedCycle))
             ->assertActionHidden(TestAction::make('sendToSupplier')->table($sentCycle));
+    }
+
+    #[Test]
+    public function order_cycle_table_displays_deadline_in_business_timezone(): void
+    {
+        $this->actingAsAdmin();
+
+        $deadlineUtc = CarbonImmutable::create(2026, 5, 26, 12, 41, 0, 'UTC');
+        $cycle = OrderCycle::query()->create([
+            'title' => 'Timezone Week',
+            'starts_at' => $deadlineUtc->startOfWeek(),
+            'closes_at' => $deadlineUtc,
+            'status' => OrderCycleStatus::Open,
+        ]);
+
+        $businessTimezone = config('lunch.business_timezone', config('app.timezone'));
+        $expectedDeadline = $deadlineUtc->setTimezone($businessTimezone)->format('d.m.Y, H:i');
+
+        $tableColumn = Livewire::test(ListOrderCycles::class)
+            ->instance()
+            ->getTable()
+            ->getColumn('closes_at');
+
+        $this->assertInstanceOf(TextColumn::class, $tableColumn);
+        $this->assertSame($expectedDeadline, (string) $tableColumn->formatState($cycle->closes_at));
+    }
+
+    #[Test]
+    public function order_cycle_edit_form_and_table_use_same_business_timezone(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Open);
+
+        $businessTimezone = config('lunch.business_timezone', config('app.timezone'));
+
+        $tableColumn = Livewire::test(ListOrderCycles::class)
+            ->instance()
+            ->getTable()
+            ->getColumn('closes_at');
+
+        $form = Livewire::test(EditOrderCycle::class, ['record' => $cycle->id])
+            ->instance()
+            ->getSchema('form');
+
+        $startsAtField = $form?->getComponentByStatePath('starts_at');
+        $closesAtField = $form?->getComponentByStatePath('closes_at');
+
+        $this->assertInstanceOf(TextColumn::class, $tableColumn);
+        $this->assertInstanceOf(DateTimePicker::class, $startsAtField);
+        $this->assertInstanceOf(DateTimePicker::class, $closesAtField);
+        $this->assertSame($businessTimezone, $startsAtField->getTimezone());
+        $this->assertSame($businessTimezone, $closesAtField->getTimezone());
+
+        $deadlineUtc = CarbonImmutable::create(2026, 5, 26, 12, 41, 0, 'UTC');
+        $expectedDeadline = $deadlineUtc->setTimezone($businessTimezone)->format('d.m.Y, H:i');
+
+        $this->assertSame($expectedDeadline, (string) $tableColumn->formatState($deadlineUtc));
     }
 
     #[Test]
