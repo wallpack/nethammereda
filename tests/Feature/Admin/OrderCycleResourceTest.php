@@ -373,13 +373,17 @@ class OrderCycleResourceTest extends TestCase
             'full_name' => 'Тестов Т.Т.',
             'email' => 'admin@lunch.local',
         ]);
-        $this->createOrderItem($cycle, OrderStatus::Submitted, $user);
+        $orderItem = $this->createOrderItem($cycle, OrderStatus::Submitted, $user);
+        $orderItem->forceFill([
+            'title_snapshot' => 'Test Dish',
+            'supplier_name_snapshot' => 'Test Dish full name (260 г)',
+        ])->save();
 
         Livewire::test(ListOrderCycles::class)
             ->callAction(TestAction::make('exportCsv')->table($cycle))
             ->assertFileDownloaded(
                 "supplier-order-cycle-{$cycle->id}.csv",
-                content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Тестов Т.Т.\";\"Test Dish\";100;1;100\n",
+                content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Тестов Т.Т.\";\"Test Dish full name (260 г)\";100;1;100\n",
                 contentType: 'text/csv; charset=UTF-8',
             );
     }
@@ -468,6 +472,7 @@ class OrderCycleResourceTest extends TestCase
             'order_id' => $order->id,
             'menu_item_id' => $menuItem->id,
             'title_snapshot' => $menuItem->title,
+            'supplier_name_snapshot' => $menuItem->supplier_name ?? $menuItem->title,
             'price_snapshot' => $menuItem->price,
             'quantity' => 1,
             'status' => OrderItemStatus::Ordered,
@@ -487,6 +492,7 @@ class OrderCycleResourceTest extends TestCase
         return MenuItem::query()->create([
             'category_id' => $category->id,
             'title' => 'Test Dish',
+            'supplier_name' => 'Test Dish',
             'price' => 100,
             'is_active' => true,
         ]);

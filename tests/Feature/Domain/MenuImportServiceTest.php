@@ -51,6 +51,7 @@ class MenuImportServiceTest extends TestCase
 
         $this->assertTrue($category->is($menuItem->category));
         $this->assertSame('Борщ', $menuItem->title);
+        $this->assertSame('Борщ', $menuItem->supplier_name);
         $this->assertSame('210.50', $menuItem->price);
         $this->assertSame('350 г', $menuItem->weight);
         $this->assertSame(180, $menuItem->calories);
@@ -73,6 +74,7 @@ class MenuImportServiceTest extends TestCase
         $existing = MenuItem::query()->create([
             'category_id' => $category->id,
             'title' => 'Борщ старый',
+            'supplier_name' => 'Борщ старый',
             'price' => 190,
             'supplier_code' => 'SUP-001',
             'is_active' => true,
@@ -87,7 +89,65 @@ class MenuImportServiceTest extends TestCase
         $this->assertDatabaseHas('menu_items', [
             'id' => $existing->id,
             'title' => 'Борщ новый',
+            'supplier_name' => 'Борщ новый',
             'supplier_code' => 'SUP-001',
+        ]);
+    }
+
+    #[Test]
+    public function supplier_price_name_is_stored_as_supplier_name_while_title_becomes_laconic(): void
+    {
+        $this->importCsv([
+            'Категория;Наименование продукции;Цена',
+            'Супы;Суп "Борщ";210',
+            'Супы;Суп "Гороховый" (300г.) новинка;215',
+            'Выпечка;Блинчики Наслаждение (с творожным сыром и маком);95',
+            'Выпечка;"""Студенческий""с капустой и ветчиной";67',
+            'Выпечка;Хот дог "Мексика" (ГМС);90',
+            'Пирожное;Вафли "Гранд" с начинкой (сгущ.) (20шт);520',
+            'Вторые блюда;Сэндвич с копченой курицей (150 г.) (треугольный);120',
+            'Вторые блюда;Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г);125',
+        ]);
+
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Суп "Борщ"',
+            'title' => 'Борщ',
+            'price' => 210,
+        ]);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Суп "Гороховый" (300г.) новинка',
+            'title' => 'Гороховый суп',
+            'price' => 215,
+        ]);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Блинчики Наслаждение (с творожным сыром и маком)',
+            'title' => 'Блинчики с творожным сыром и маком',
+            'price' => 95,
+        ]);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => '"Студенческий"с капустой и ветчиной',
+            'title' => 'Студенческий с капустой и ветчиной',
+            'price' => 67,
+        ]);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Хот дог "Мексика" (ГМС)',
+            'title' => 'Хот-дог Мексика',
+            'price' => 90,
+        ]);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Сэндвич с копченой курицей (150 г.) (треугольный)',
+            'title' => 'Сэндвич с копченой курицей',
+            'price' => 120,
+        ]);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Вафли "Гранд" с начинкой (сгущ.) (20шт)',
+            'title' => 'Вафли Гранд со сгущёнкой',
+            'price' => 520,
+        ]);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)',
+            'title' => 'Котлета по-киевски с пюре',
+            'price' => 125,
         ]);
     }
 
@@ -299,7 +359,31 @@ class MenuImportServiceTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.title', 'Борщ')
             ->assertJsonPath('data.0.price', '210.00')
+            ->assertJsonMissingPath('data.0.supplier_name')
             ->assertJsonPath('data.0.image_url', 'https://example.com/borscht.jpg');
+    }
+
+    #[Test]
+    public function catalog_api_returns_catalog_title_and_does_not_expose_supplier_name(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Пирожное',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+
+        MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Вафли Гранд со сгущёнкой',
+            'supplier_name' => 'Вафли "Гранд" с начинкой (сгущ.) (20шт)',
+            'price' => 520,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/menu/items')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Вафли Гранд со сгущёнкой')
+            ->assertJsonMissingPath('data.0.supplier_name');
     }
 
     #[Test]

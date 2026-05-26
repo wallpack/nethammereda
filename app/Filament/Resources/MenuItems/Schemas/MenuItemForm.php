@@ -21,8 +21,12 @@ class MenuItemForm
                     ->searchable()
                     ->preload(),
                 TextInput::make('title')
-                    ->label('Название')
+                    ->label('Название в каталоге')
                     ->required()
+                    ->helperText('Название в каталоге видно пользователям, название для поставщика уходит в CSV.')
+                    ->maxLength(255),
+                TextInput::make('supplier_name')
+                    ->label('Название для поставщика')
                     ->maxLength(255),
                 Textarea::make('description')
                     ->label('Описание')

@@ -70,6 +70,7 @@ class SupplierOrderExport extends Model
      * @return array<int, array{
      *     full_name: string,
      *     title: string,
+     *     supplier_name: string,
      *     category: ?string,
      *     quantity: int,
      *     unit_price: float,
@@ -96,10 +97,13 @@ class SupplierOrderExport extends Model
                 $unitPrice = $unitPrice ?? ($quantity > 0 ? round($totalPrice / $quantity, 2) : 0.0);
                 $comment = $row['comment'] ?? $row['metadata'] ?? null;
                 $fullName = $row['full_name'] ?? $row['fio'] ?? '';
+                $supplierName = $row['supplier_name'] ?? $row['supplier_title'] ?? $row['title'] ?? $row['dish'] ?? '';
+                $title = $row['title'] ?? $row['dish'] ?? $supplierName;
 
                 return [
                     'full_name' => is_string($fullName) ? $fullName : '',
-                    'title' => (string) ($row['title'] ?? $row['dish'] ?? ''),
+                    'title' => (string) $title,
+                    'supplier_name' => is_string($supplierName) ? $supplierName : (string) $supplierName,
                     'category' => filled($row['category'] ?? null) ? (string) $row['category'] : null,
                     'quantity' => $quantity,
                     'unit_price' => round($unitPrice, 2),

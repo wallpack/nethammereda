@@ -65,12 +65,16 @@ class SupplierOrderExportService
                 users.name as user_name,
                 users.email as user_email,
                 order_items.title_snapshot,
+                order_items.supplier_name_snapshot,
+                menu_items.supplier_name as menu_item_supplier_name,
+                menu_items.title as menu_item_title,
                 order_items.price_snapshot,
                 SUM(order_items.quantity) as quantity_sum,
                 SUM(order_items.quantity * order_items.price_snapshot) as total_sum'
             )
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
             ->join('users', 'users.id', '=', 'orders.user_id')
+            ->leftJoin('menu_items', 'menu_items.id', '=', 'order_items.menu_item_id')
             ->where('orders.order_cycle_id', $cycle->id)
             ->where('orders.status', OrderStatus::Submitted->value)
             ->where('order_items.status', '!=', OrderItemStatus::Cancelled->value)
@@ -80,12 +84,21 @@ class SupplierOrderExportService
                 'users.name',
                 'users.email',
                 'order_items.title_snapshot',
+                'order_items.supplier_name_snapshot',
+                'menu_items.supplier_name',
+                'menu_items.title',
                 'order_items.price_snapshot',
             ])
             ->orderBy('orders.user_id')
             ->orderBy('order_items.title_snapshot')
             ->get()
             ->map(function (OrderItem $row): array {
+                $supplierName = $this->supplierNameForExport(
+                    $row->supplier_name_snapshot,
+                    $row->menu_item_supplier_name,
+                    $row->title_snapshot,
+                    $row->menu_item_title,
+                );
                 $fullName = $this->displayNameForExport(
                     (int) $row->user_id,
                     $row->user_full_name,
@@ -96,6 +109,7 @@ class SupplierOrderExportService
                 return [
                     'user_id' => (int) $row->user_id,
                     'full_name' => $fullName,
+                    'supplier_name' => $supplierName,
                     'title_snapshot' => (string) $row->title_snapshot,
                     'price_snapshot' => round((float) $row->price_snapshot, 2),
                     'quantity' => (int) $row->quantity_sum,
@@ -121,6 +135,8 @@ class SupplierOrderExportService
      *     rows: array<int, array{
      *         full_name: string,
      *         title: string,
+     *         supplier_name: string,
+     *         catalog_title: string,
      *         unit_price: float,
      *         quantity: int,
      *         total_price: float
@@ -133,7 +149,9 @@ class SupplierOrderExportService
         $rows = $this->rowsForCycle($cycle)
             ->map(fn (array $row): array => [
                 'full_name' => (string) $row['full_name'],
-                'title' => (string) $row['title_snapshot'],
+                'title' => (string) $row['supplier_name'],
+                'supplier_name' => (string) $row['supplier_name'],
+                'catalog_title' => (string) $row['title_snapshot'],
                 'unit_price' => round((float) $row['price_snapshot'], 2),
                 'quantity' => (int) $row['quantity'],
                 'total_price' => round((float) $row['total_sum'], 2),
@@ -176,6 +194,8 @@ class SupplierOrderExportService
      * @param  iterable<int, array{
      *     full_name?: mixed,
      *     title?: mixed,
+     *     supplier_name?: mixed,
+     *     catalog_title?: mixed,
      *     unit_price?: mixed,
      *     quantity?: mixed,
      *     total_price?: mixed
@@ -193,6 +213,12 @@ class SupplierOrderExportService
         fputcsv($handle, ['ФИО', 'Наименование', 'Цена', 'количество', 'Сумма'], self::CSV_DELIMITER);
 
         foreach ($rows as $row) {
+            $nameForSupplier = $this->supplierNameForExport(
+                is_scalar($row['supplier_name'] ?? null) ? (string) $row['supplier_name'] : null,
+                is_scalar($row['title'] ?? null) ? (string) $row['title'] : null,
+                is_scalar($row['catalog_title'] ?? null) ? (string) $row['catalog_title'] : null,
+                null,
+            );
             $quantity = (int) ($row['quantity'] ?? 0);
             $unitPrice = round((float) ($row['unit_price'] ?? 0), 2);
             $sum = array_key_exists('total_price', $row)
@@ -201,7 +227,7 @@ class SupplierOrderExportService
 
             fputcsv($handle, [
                 $this->escapeCsvCell((string) ($row['full_name'] ?? '')),
-                $this->escapeCsvCell((string) ($row['title'] ?? '')),
+                $this->escapeCsvCell($nameForSupplier),
                 $this->formatNumber($unitPrice),
                 (string) $quantity,
                 $this->formatNumber($sum),
@@ -255,5 +281,27 @@ class SupplierOrderExportService
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function supplierNameForExport(
+        ?string $supplierNameSnapshot,
+        ?string $menuItemSupplierName,
+        ?string $titleSnapshot,
+        ?string $menuItemTitle,
+    ): string {
+        $candidates = [
+            $this->trimToNullable($supplierNameSnapshot),
+            $this->trimToNullable($menuItemSupplierName),
+            $this->trimToNullable($titleSnapshot),
+            $this->trimToNullable($menuItemTitle),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== null) {
+                return $candidate;
+            }
+        }
+
+        return 'Без названия';
     }
 }

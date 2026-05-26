@@ -253,6 +253,82 @@ class SupplierOrderExportServiceTest extends TestCase
     }
 
     #[Test]
+    public function supplier_order_csv_uses_supplier_name_snapshot_in_name_column(): void
+    {
+        $cycle = $this->createCycle();
+        $user = User::factory()->create([
+            'full_name' => 'Новый Н.Н.',
+            'name' => 'Administrator',
+            'email' => 'admin@lunch.local',
+        ]);
+        $this->createOrderItem(
+            cycle: $cycle,
+            orderStatus: OrderStatus::Submitted,
+            user: $user,
+            title: 'Баветте с курицей и грибами',
+            quantity: 1,
+            price: 105,
+            menuSupplierName: 'Баветте с курицей и грибами в сливочном соусе (260 г)',
+            supplierSnapshot: 'Баветте с курицей и грибами в сливочном соусе (260 г)',
+        );
+
+        $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
+
+        $this->assertStringContainsString('"Новый Н.Н.";"Баветте с курицей и грибами в сливочном соусе (260 г)";105;1;105', $csv);
+        $this->assertStringNotContainsString('"Новый Н.Н.";"Баветте с курицей и грибами";105;1;105', $csv);
+    }
+
+    #[Test]
+    public function supplier_order_csv_falls_back_to_menu_item_supplier_name_for_legacy_order_items(): void
+    {
+        $cycle = $this->createCycle();
+        $user = User::factory()->create([
+            'full_name' => 'Петров П.П.',
+            'name' => 'Petrov',
+            'email' => 'petrov@example.com',
+        ]);
+        $this->createOrderItem(
+            cycle: $cycle,
+            orderStatus: OrderStatus::Submitted,
+            user: $user,
+            title: 'Котлета по-Киевски с пюре',
+            quantity: 1,
+            price: 110,
+            menuSupplierName: 'Котлета (по-Киевски) с картофельным пюре (260г)',
+            supplierSnapshot: null,
+        );
+
+        $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
+
+        $this->assertStringContainsString('"Петров П.П.";"Котлета (по-Киевски) с картофельным пюре (260г)";110;1;110', $csv);
+    }
+
+    #[Test]
+    public function supplier_order_csv_falls_back_to_title_snapshot_when_supplier_name_missing_everywhere(): void
+    {
+        $cycle = $this->createCycle();
+        $user = User::factory()->create([
+            'full_name' => 'Сидоров С.С.',
+            'name' => 'Sidorov',
+            'email' => 'sidorov@example.com',
+        ]);
+        $this->createOrderItem(
+            cycle: $cycle,
+            orderStatus: OrderStatus::Submitted,
+            user: $user,
+            title: 'Лазанья домашняя',
+            quantity: 1,
+            price: 100,
+            menuSupplierName: null,
+            supplierSnapshot: null,
+        );
+
+        $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
+
+        $this->assertStringContainsString('"Сидоров С.С.";"Лазанья домашняя";100;1;100', $csv);
+    }
+
+    #[Test]
     public function supplier_order_csv_data_row_is_delimited_by_semicolon_for_excel_locales(): void
     {
         $cycle = $this->createCycle();
@@ -268,6 +344,8 @@ class SupplierOrderExportServiceTest extends TestCase
             title: 'Тестовое блюдо',
             quantity: 2,
             price: 123,
+            menuSupplierName: 'Тестовое блюдо (123 г)',
+            supplierSnapshot: 'Тестовое блюдо (123 г)',
         );
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
@@ -315,9 +393,12 @@ class SupplierOrderExportServiceTest extends TestCase
         int $quantity = 1,
         int $price = 100,
         ?User $user = null,
+        ?string $menuSupplierName = null,
+        ?string $supplierSnapshot = null,
+        ?string $titleSnapshot = null,
     ): OrderItem {
         $user ??= User::factory()->create();
-        $menuItem = $this->createMenuItem($title, $price);
+        $menuItem = $this->createMenuItem($title, $price, $menuSupplierName);
 
         $order = Order::query()
             ->where('user_id', $user->id)
@@ -343,14 +424,15 @@ class SupplierOrderExportServiceTest extends TestCase
         return OrderItem::query()->create([
             'order_id' => $order->id,
             'menu_item_id' => $menuItem->id,
-            'title_snapshot' => $menuItem->title,
+            'title_snapshot' => $titleSnapshot ?? $menuItem->title,
+            'supplier_name_snapshot' => $supplierSnapshot,
             'price_snapshot' => $menuItem->price,
             'quantity' => $quantity,
             'status' => $itemStatus,
         ]);
     }
 
-    private function createMenuItem(string $title, int $price): MenuItem
+    private function createMenuItem(string $title, int $price, ?string $supplierName = null): MenuItem
     {
         $category = MenuCategory::query()->firstOrCreate(
             ['name' => 'Test Category'],
@@ -363,6 +445,7 @@ class SupplierOrderExportServiceTest extends TestCase
         return MenuItem::query()->create([
             'category_id' => $category->id,
             'title' => $title,
+            'supplier_name' => $supplierName ?? $title,
             'price' => $price,
             'is_active' => true,
         ]);

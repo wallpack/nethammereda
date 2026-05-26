@@ -93,6 +93,7 @@ class OrderServiceTest extends TestCase
     public function user_item_addition_can_change_draft_order(): void
     {
         [$order, $menuItem] = $this->createDraftOrder();
+        $menuItem->forceFill(['supplier_name' => 'Draft Dish (260 г)'])->save();
 
         $updated = app(OrderService::class)->addItemForUser($order, $menuItem, 2);
 
@@ -100,6 +101,8 @@ class OrderServiceTest extends TestCase
         $this->assertDatabaseHas('order_items', [
             'order_id' => $order->id,
             'menu_item_id' => $menuItem->id,
+            'title_snapshot' => 'Draft Dish',
+            'supplier_name_snapshot' => 'Draft Dish (260 г)',
             'quantity' => 2,
         ]);
         $this->assertDatabaseHas('orders', [
@@ -122,6 +125,51 @@ class OrderServiceTest extends TestCase
             'status' => OrderStatus::Submitted->value,
             'total_price' => 250,
         ]);
+    }
+
+    #[Test]
+    public function adding_item_stores_supplier_name_snapshot_with_fallback_to_title(): void
+    {
+        [$order, $menuItem] = $this->createDraftOrder();
+        $menuItem->forceFill([
+            'title' => 'Котлета по-Киевски с пюре',
+            'supplier_name' => 'Котлета (по-Киевски) с картофельным пюре (260г)',
+        ])->save();
+
+        app(OrderService::class)->addItemForUser($order, $menuItem, 1);
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $order->id,
+            'menu_item_id' => $menuItem->id,
+            'title_snapshot' => 'Котлета по-Киевски с пюре',
+            'supplier_name_snapshot' => 'Котлета (по-Киевски) с картофельным пюре (260г)',
+            'quantity' => 1,
+        ]);
+    }
+
+    #[Test]
+    public function increasing_existing_item_quantity_does_not_overwrite_snapshots(): void
+    {
+        [$order, $orderItem] = $this->createDraftOrderWithItem(quantity: 1, price: 100);
+        $menuItem = $orderItem->menuItem()->firstOrFail();
+
+        $orderItem->forceFill([
+            'title_snapshot' => 'Старое короткое название',
+            'supplier_name_snapshot' => 'Старое полное название (260г)',
+        ])->save();
+
+        $menuItem->forceFill([
+            'title' => 'Новое короткое название',
+            'supplier_name' => 'Новое полное название (260г)',
+        ])->save();
+
+        app(OrderService::class)->addItemForUser($order, $menuItem, 2);
+
+        $orderItem->refresh();
+
+        $this->assertSame('Старое короткое название', $orderItem->title_snapshot);
+        $this->assertSame('Старое полное название (260г)', $orderItem->supplier_name_snapshot);
+        $this->assertSame(3, $orderItem->quantity);
     }
 
     #[Test]
@@ -277,6 +325,7 @@ class OrderServiceTest extends TestCase
             'order_id' => $order->id,
             'menu_item_id' => $existingItem->id,
             'title_snapshot' => $existingItem->title,
+            'supplier_name_snapshot' => $existingItem->supplier_name ?? $existingItem->title,
             'price_snapshot' => $existingItem->price,
             'quantity' => 1,
             'status' => OrderItemStatus::Ordered,
@@ -321,6 +370,7 @@ class OrderServiceTest extends TestCase
             'order_id' => $order->id,
             'menu_item_id' => $menuItem->id,
             'title_snapshot' => $menuItem->title,
+            'supplier_name_snapshot' => $menuItem->supplier_name ?? $menuItem->title,
             'price_snapshot' => $menuItem->price,
             'quantity' => $quantity,
             'status' => OrderItemStatus::Ordered,
@@ -346,6 +396,7 @@ class OrderServiceTest extends TestCase
         return MenuItem::query()->create([
             'category_id' => $category->id,
             'title' => $title,
+            'supplier_name' => $title.' (260 г)',
             'price' => 100,
             'is_active' => true,
         ]);

@@ -70,10 +70,16 @@ class SupplierOrderExportResourceTest extends TestCase
     public function csv_download_uses_stored_snapshot_instead_of_current_orders(): void
     {
         $this->actingAsAdmin();
-        [$export, $orderItem] = $this->createSupplierExportWithOrderItem(title: 'Stored Soup', quantity: 2, price: 120);
+        [$export, $orderItem] = $this->createSupplierExportWithOrderItem(
+            title: 'Stored Soup',
+            quantity: 2,
+            price: 120,
+            supplierName: 'Stored Soup full name (260 г)',
+        );
 
         $orderItem->forceFill([
             'title_snapshot' => 'Changed Soup',
+            'supplier_name_snapshot' => 'Changed Soup full name (260 г)',
             'quantity' => 7,
             'price_snapshot' => 999,
         ])->save();
@@ -82,7 +88,7 @@ class SupplierOrderExportResourceTest extends TestCase
             ->callAction(TestAction::make('downloadCsv')->table($export))
             ->assertFileDownloaded(
                 "supplier-order-export-{$export->id}.csv",
-                content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Чертова Е.Н.\";\"Stored Soup\";120;2;240\n",
+                content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Чертова Е.Н.\";\"Stored Soup full name (260 г)\";120;2;240\n",
                 contentType: 'text/csv; charset=UTF-8',
             );
     }
@@ -119,8 +125,9 @@ class SupplierOrderExportResourceTest extends TestCase
         string $title = 'Test Dish',
         int $quantity = 1,
         int $price = 100,
+        ?string $supplierName = null,
     ): SupplierOrderExport {
-        return $this->createSupplierExportWithOrderItem($title, $quantity, $price)[0];
+        return $this->createSupplierExportWithOrderItem($title, $quantity, $price, $supplierName)[0];
     }
 
     /**
@@ -130,6 +137,7 @@ class SupplierOrderExportResourceTest extends TestCase
         string $title = 'Test Dish',
         int $quantity = 1,
         int $price = 100,
+        ?string $supplierName = null,
     ): array {
         $cycle = OrderCycle::query()->create([
             'title' => 'Test Week',
@@ -144,20 +152,20 @@ class SupplierOrderExportResourceTest extends TestCase
             'is_active' => true,
         ]);
 
-        $orderItem = $this->createOrderItem($cycle, $title, $quantity, $price);
+        $orderItem = $this->createOrderItem($cycle, $title, $quantity, $price, $supplierName);
         $export = app(SupplierOrderExportService::class)->sendToSupplier($cycle, $admin);
 
         return [$export->fresh(['orderCycle', 'exportedBy']), $orderItem->fresh()];
     }
 
-    private function createOrderItem(OrderCycle $cycle, string $title, int $quantity, int $price): OrderItem
+    private function createOrderItem(OrderCycle $cycle, string $title, int $quantity, int $price, ?string $supplierName = null): OrderItem
     {
         $user = User::factory()->create([
             'full_name' => 'Чертова Е.Н.',
             'name' => 'Chertova',
             'email' => 'chertova@example.com',
         ]);
-        $menuItem = $this->createMenuItem($title, $price);
+        $menuItem = $this->createMenuItem($title, $price, $supplierName);
 
         $order = Order::query()->create([
             'user_id' => $user->id,
@@ -171,13 +179,14 @@ class SupplierOrderExportResourceTest extends TestCase
             'order_id' => $order->id,
             'menu_item_id' => $menuItem->id,
             'title_snapshot' => $menuItem->title,
+            'supplier_name_snapshot' => $supplierName ?? $menuItem->supplier_name ?? $menuItem->title,
             'price_snapshot' => $menuItem->price,
             'quantity' => $quantity,
             'status' => OrderItemStatus::Ordered,
         ]);
     }
 
-    private function createMenuItem(string $title, int $price): MenuItem
+    private function createMenuItem(string $title, int $price, ?string $supplierName = null): MenuItem
     {
         $category = MenuCategory::query()->firstOrCreate(
             ['name' => 'Test Category'],
@@ -190,6 +199,7 @@ class SupplierOrderExportResourceTest extends TestCase
         return MenuItem::query()->create([
             'category_id' => $category->id,
             'title' => $title,
+            'supplier_name' => $supplierName ?? $title,
             'price' => $price,
             'is_active' => true,
         ]);

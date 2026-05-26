@@ -7,6 +7,7 @@ use App\Enums\MenuImportStatus;
 use App\Models\MenuCategory;
 use App\Models\MenuImport;
 use App\Models\MenuItem;
+use App\Support\MenuCatalogTitleFormatter;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -21,6 +22,7 @@ class MenuImportService
     public function __construct(
         private readonly MenuImportParser $parser,
         private readonly MenuImportRowValidator $validator,
+        private readonly MenuCatalogTitleFormatter $titleFormatter,
     ) {}
 
     /**
@@ -135,8 +137,8 @@ class MenuImportService
     private function applyRow(array $row): void
     {
         $category = $this->findOrCreateCategory($row['category']);
-        $menuItem = $this->findMenuItem($row, $category);
         $attributes = $this->attributesForRow($row, $category);
+        $menuItem = $this->findMenuItem($row, $category, $attributes);
 
         if ($menuItem instanceof MenuItem) {
             $menuItem->fill($attributes);
@@ -176,8 +178,9 @@ class MenuImportService
      *     price: float,
      *     fields: array<string, mixed>
      * }  $row
+     * @param  array<string, mixed>  $attributes
      */
-    private function findMenuItem(array $row, MenuCategory $category): ?MenuItem
+    private function findMenuItem(array $row, MenuCategory $category, array $attributes): ?MenuItem
     {
         $fields = $row['fields'];
 
@@ -193,9 +196,20 @@ class MenuImportService
                 ->first();
         }
 
+        if (filled($attributes['supplier_name'] ?? null)) {
+            $bySupplierName = MenuItem::query()
+                ->where('category_id', $category->id)
+                ->where('supplier_name', (string) $attributes['supplier_name'])
+                ->first();
+
+            if ($bySupplierName instanceof MenuItem) {
+                return $bySupplierName;
+            }
+        }
+
         return MenuItem::query()
             ->where('category_id', $category->id)
-            ->where('title', $row['name'])
+            ->where('title', (string) $attributes['title'])
             ->first();
     }
 
@@ -211,9 +225,14 @@ class MenuImportService
     private function attributesForRow(array $row, MenuCategory $category): array
     {
         $fields = $row['fields'];
+        $supplierName = $this->titleFormatter->supplierName((string) ($fields['supplier_name'] ?? $row['name']));
+        $catalogTitle = $this->titleFormatter->catalogTitle($supplierName);
+        $catalogTitle = $catalogTitle !== '' ? $catalogTitle : (string) $row['name'];
+
         $attributes = [
             'category_id' => $category->id,
-            'title' => $row['name'],
+            'title' => $catalogTitle,
+            'supplier_name' => $supplierName,
             'price' => $row['price'],
             'is_active' => array_key_exists('is_active', $fields)
                 ? (bool) ($fields['is_active'] ?? false)

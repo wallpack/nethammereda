@@ -41,11 +41,20 @@ class OrderService
                 'menu_item_id' => $menuItem->id,
             ]);
 
-            $item->fill([
-                'title_snapshot' => $menuItem->title,
-                'price_snapshot' => $menuItem->price,
-                'status' => OrderItemStatus::Ordered,
-            ]);
+            if (! $item->exists) {
+                $item->fill([
+                    'title_snapshot' => $menuItem->title,
+                    'supplier_name_snapshot' => $this->supplierNameSnapshotForMenuItem($menuItem),
+                    'price_snapshot' => $menuItem->price,
+                    'status' => OrderItemStatus::Ordered,
+                ]);
+            } else {
+                $item->status = OrderItemStatus::Ordered;
+
+                if (! filled($item->supplier_name_snapshot)) {
+                    $item->supplier_name_snapshot = $this->supplierNameSnapshotForMenuItem($menuItem);
+                }
+            }
 
             $item->quantity = $item->exists ? $item->quantity + $quantity : $quantity;
             $item->save();
@@ -166,5 +175,15 @@ class OrderService
     public function recalculate(Order $order): void
     {
         $order->recalculateTotal();
+    }
+
+    private function supplierNameSnapshotForMenuItem(MenuItem $menuItem): string
+    {
+        $supplierName = is_string($menuItem->supplier_name ?? null)
+            ? trim($menuItem->supplier_name)
+            : '';
+        $title = trim((string) $menuItem->title);
+
+        return $supplierName !== '' ? $supplierName : $title;
     }
 }

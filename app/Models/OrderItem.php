@@ -16,6 +16,7 @@ class OrderItem extends Model
         'order_id',
         'menu_item_id',
         'title_snapshot',
+        'supplier_name_snapshot',
         'price_snapshot',
         'quantity',
         'status',

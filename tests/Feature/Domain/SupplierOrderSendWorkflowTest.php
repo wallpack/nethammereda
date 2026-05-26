@@ -104,9 +104,11 @@ class SupplierOrderSendWorkflowTest extends TestCase
             [
                 'full_name' => 'Чертова Е.Н.',
                 'title' => 'Cutlet',
-                'unit_price' => 150.0,
+                'supplier_name' => 'Cutlet',
+                'catalog_title' => 'Cutlet',
+                'unit_price' => 150,
                 'quantity' => 2,
-                'total_price' => 300.0,
+                'total_price' => 300,
             ],
         ], $export->snapshot_json['rows']);
         $this->assertEquals([
@@ -143,9 +145,11 @@ class SupplierOrderSendWorkflowTest extends TestCase
             [
                 'full_name' => 'Чертова Е.Н.',
                 'title' => 'Cutlet',
-                'unit_price' => 150.0,
+                'supplier_name' => 'Cutlet',
+                'catalog_title' => 'Cutlet',
+                'unit_price' => 150,
                 'quantity' => 2,
-                'total_price' => 300.0,
+                'total_price' => 300,
             ],
         ], $export->snapshot_json['rows']);
         $this->assertEquals([

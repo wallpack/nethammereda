@@ -11,7 +11,7 @@ class MenuImportRowValidator
      */
     private const HEADER_ALIASES = [
         'category' => ['category', 'категория'],
-        'name' => ['name', 'title', 'название', 'блюдо'],
+        'name' => ['name', 'title', 'название', 'блюдо', 'наименование', 'наименование продукции'],
         'price' => ['price', 'цена'],
         'weight' => ['weight', 'вес'],
         'calories' => ['calories', 'calorie', 'ккал', 'калории'],
@@ -22,6 +22,7 @@ class MenuImportRowValidator
         'image_url' => ['image_url', 'image url', 'ссылка на изображение', 'изображение', 'картинка'],
         'external_id' => ['external_id', 'external id', 'внешний id', 'внешний идентификатор'],
         'supplier_code' => ['supplier_code', 'supplier code', 'код поставщика', 'артикул'],
+        'supplier_name' => ['supplier_name', 'название для поставщика', 'наименование для поставщика'],
         'is_active' => ['is_active', 'active', 'активно', 'доступно'],
     ];
 
@@ -228,7 +229,7 @@ class MenuImportRowValidator
     {
         $fields = [];
 
-        foreach (['weight', 'description', 'external_id', 'supplier_code'] as $field) {
+        foreach (['weight', 'description', 'external_id', 'supplier_code', 'supplier_name'] as $field) {
             if (array_key_exists($field, $headerMap)) {
                 $fields[$field] = $this->nullableText($cells[$headerMap[$field]] ?? '');
             }
