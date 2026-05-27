@@ -30,7 +30,7 @@ describe('CategorySidebar', () => {
         expectClasses(categoryButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
     });
 
-    it('keeps mobile category chips in a horizontal scroll row', () => {
+    it('prepares mobile chip row wrapping without forcing horizontal page overflow', () => {
         const wrapper = mount(CategorySidebar, {
             props: {
                 categories: [
@@ -50,7 +50,7 @@ describe('CategorySidebar', () => {
         const nav = wrapper.get('nav');
         const row = wrapper.get('[data-testid="category-chip-row"]');
 
-        expectClasses(nav, ['overflow-x-auto']);
-        expectClasses(row, ['w-max', 'min-w-full', 'max-[639px]:flex-nowrap']);
+        expectClasses(nav, ['max-[639px]:overflow-x-clip']);
+        expectClasses(row, ['max-[639px]:w-full', 'max-[639px]:min-w-0', 'max-[639px]:flex-wrap']);
     });
 });
