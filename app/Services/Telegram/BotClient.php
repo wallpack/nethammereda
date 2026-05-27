@@ -2,8 +2,9 @@
 
 namespace App\Services\Telegram;
 
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class BotClient
 {
@@ -26,9 +27,18 @@ class BotClient
             $payload['reply_markup'] = $replyMarkup;
         }
 
-        $response = Http::withOptions([
-            'verify' => (bool) config('services.telegram.verify_ssl', true),
-        ])->asJson()->post("https://api.telegram.org/bot{$token}/sendMessage", $payload);
+        try {
+            $response = $this->request()
+                ->asJson()
+                ->post("https://api.telegram.org/bot{$token}/sendMessage", $payload);
+        } catch (Throwable $e) {
+            Log::warning('Telegram sendMessage transport failed', [
+                'exception' => $e::class,
+                'chat_id' => $chatId,
+            ]);
+
+            return;
+        }
 
         if (! $response->ok() || ($response->json('ok') === false)) {
             Log::warning('Telegram sendMessage failed', [
@@ -54,9 +64,18 @@ class BotClient
             $payload['text'] = $text;
         }
 
-        $response = Http::withOptions([
-            'verify' => (bool) config('services.telegram.verify_ssl', true),
-        ])->asJson()->post("https://api.telegram.org/bot{$token}/answerCallbackQuery", $payload);
+        try {
+            $response = $this->request()
+                ->asJson()
+                ->post("https://api.telegram.org/bot{$token}/answerCallbackQuery", $payload);
+        } catch (Throwable $e) {
+            Log::warning('Telegram answerCallbackQuery transport failed', [
+                'exception' => $e::class,
+                'callback_query_id' => $callbackQueryId,
+            ]);
+
+            return;
+        }
 
         if (! $response->ok() || ($response->json('ok') === false)) {
             Log::warning('Telegram answerCallbackQuery failed', [
@@ -65,5 +84,10 @@ class BotClient
                 'callback_query_id' => $callbackQueryId,
             ]);
         }
+    }
+
+    private function request(): PendingRequest
+    {
+        return app(TelegramHttpClientFactory::class)->make();
     }
 }

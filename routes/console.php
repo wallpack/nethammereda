@@ -1,16 +1,23 @@
 <?php
 
 use App\Services\FridgeExpiryService;
+use App\Services\Telegram\TelegramHttpClientFactory;
 use App\Services\Telegram\UpdateHandler;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+if (! function_exists('telegram_http_request')) {
+    function telegram_http_request()
+    {
+        return app(TelegramHttpClientFactory::class)->make();
+    }
+}
 
 Artisan::command('telegram:webhook:info', function () {
     $token = (string) config('services.telegram.bot_token');
@@ -21,9 +28,13 @@ Artisan::command('telegram:webhook:info', function () {
         return 1;
     }
 
-    $response = Http::withOptions([
-        'verify' => (bool) config('services.telegram.verify_ssl', true),
-    ])->get("https://api.telegram.org/bot{$token}/getWebhookInfo");
+    try {
+        $response = telegram_http_request()->get("https://api.telegram.org/bot{$token}/getWebhookInfo");
+    } catch (\Throwable $e) {
+        $this->error('Ошибка getWebhookInfo: transport timeout/connection error');
+
+        return 1;
+    }
 
     if (! $response->ok()) {
         $this->error("Ошибка getWebhookInfo: HTTP {$response->status()}");
@@ -67,9 +78,15 @@ Artisan::command('telegram:webhook:set {url}', function (string $url) {
         $payload['secret_token'] = $secret;
     }
 
-    $response = Http::withOptions([
-        'verify' => (bool) config('services.telegram.verify_ssl', true),
-    ])->asJson()->post("https://api.telegram.org/bot{$token}/setWebhook", $payload);
+    try {
+        $response = telegram_http_request()
+            ->asJson()
+            ->post("https://api.telegram.org/bot{$token}/setWebhook", $payload);
+    } catch (\Throwable $e) {
+        $this->error('Ошибка setWebhook: transport timeout/connection error');
+
+        return 1;
+    }
 
     if (! $response->ok()) {
         $this->error("Ошибка setWebhook: HTTP {$response->status()}");
@@ -91,11 +108,17 @@ Artisan::command('telegram:webhook:clear', function () {
         return 1;
     }
 
-    $response = Http::withOptions([
-        'verify' => (bool) config('services.telegram.verify_ssl', true),
-    ])->asJson()->post("https://api.telegram.org/bot{$token}/deleteWebhook", [
-        'drop_pending_updates' => false,
-    ]);
+    try {
+        $response = telegram_http_request()
+            ->asJson()
+            ->post("https://api.telegram.org/bot{$token}/deleteWebhook", [
+                'drop_pending_updates' => false,
+            ]);
+    } catch (\Throwable $e) {
+        $this->error('Ошибка deleteWebhook: transport timeout/connection error');
+
+        return 1;
+    }
 
     if (! $response->ok()) {
         $this->error("Ошибка deleteWebhook: HTTP {$response->status()}");
@@ -128,13 +151,17 @@ Artisan::command('telegram:poll {--once}', function () {
     $this->info("Запуск Telegram polling с offset {$offset}");
 
     $processBatch = function () use ($token, &$offset, $offsetDisk, $offsetPath) {
-        $response = Http::withOptions([
-            'verify' => (bool) config('services.telegram.verify_ssl', true),
-        ])->get("https://api.telegram.org/bot{$token}/getUpdates", [
-            'offset' => $offset,
-            'timeout' => 25,
-            'allowed_updates' => json_encode(['message', 'callback_query']),
-        ]);
+        try {
+            $response = telegram_http_request()->get("https://api.telegram.org/bot{$token}/getUpdates", [
+                'offset' => $offset,
+                'timeout' => 25,
+                'allowed_updates' => json_encode(['message', 'callback_query']),
+            ]);
+        } catch (\Throwable $e) {
+            $this->error('Telegram getUpdates transport timeout/connection error');
+
+            return 0;
+        }
 
         if (! $response->ok()) {
             $this->error("Telegram getUpdates вернул HTTP {$response->status()}");
