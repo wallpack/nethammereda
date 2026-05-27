@@ -740,7 +740,6 @@ describe('catalog auth UX', () => {
 
         const selectedCategorySummary = document.querySelector('[data-testid="menu-selected-category-summary"]');
         expect(selectedCategorySummary?.textContent ?? '').toContain(secondCategory.name);
-        expect(selectedCategorySummary?.textContent ?? '').toContain('1 блюдо');
     });
 
     it('filters the catalog to locally selected favorites', async () => {
@@ -1199,7 +1198,7 @@ describe('catalog auth UX', () => {
         expect(panel).toBeTruthy();
         expect(panel?.getAttribute('aria-label')).toBe('Панель корзины');
         expect(panel?.className).toContain('xl:sticky');
-        expect(panel?.className).toContain('xl:mt-[7.25rem]');
+        expect(panel?.className).toContain('xl:mt-[9.75rem]');
         expect(panel?.className).toContain('xl:h-[calc(100dvh-18.75rem)]');
     });
 

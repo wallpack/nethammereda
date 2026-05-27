@@ -98,22 +98,6 @@ const selectedCategoryKey = computed(() => (
 
 const showCategorySections = computed(() => selectedCategoryKey.value === null);
 
-const formatDishesCountLabel = (count) => {
-    const normalizedCount = Math.max(0, Number(count) || 0);
-    const mod10 = normalizedCount % 10;
-    const mod100 = normalizedCount % 100;
-
-    if (mod10 === 1 && mod100 !== 11) {
-        return `${normalizedCount} блюдо`;
-    }
-
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-        return `${normalizedCount} блюда`;
-    }
-
-    return `${normalizedCount} блюд`;
-};
-
 const groupedFilteredItems = computed(() => {
     const groupsByKey = new Map();
     const orderedCategoryKeys = [];
@@ -163,7 +147,6 @@ const selectedCategorySummary = computed(() => {
 
     return {
         name: category?.name || fallbackName,
-        count: props.filteredItems.length,
     };
 });
 
@@ -312,15 +295,12 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                 class="space-y-3"
             >
                 <header
-                    class="flex items-end justify-between gap-3"
+                    class="flex items-end gap-3"
                     :data-testid="showCategorySections ? undefined : 'menu-selected-category-summary'"
                 >
                     <h3 data-testid="menu-category-heading" class="text-balance text-lg font-semibold tracking-[-0.02em] text-slate-900 sm:text-xl">
                         {{ group.name }}
                     </h3>
-                    <p data-testid="menu-category-count" class="shrink-0 text-sm font-medium text-slate-500">
-                        {{ formatDishesCountLabel(group.items.length) }}
-                    </p>
                 </header>
 
                 <div class="dishes-grid">
