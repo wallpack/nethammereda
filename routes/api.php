@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MyOrderItemController;
 use App\Http\Controllers\Api\MyProfileController;
 use App\Http\Controllers\Api\PasswordLoginController;
 use App\Http\Controllers\Api\TelegramAuthController;
+use App\Http\Controllers\Api\TelegramLinkController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Middleware\VerifyTelegramWebhookSecret;
 use Illuminate\Http\Request;
@@ -62,4 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/my-fridge/items/{fridgeItem}/eat-one', [MyFridgeController::class, 'eatOne']);
     Route::patch('/my-fridge/items/{fridgeItem}/eat-all', [MyFridgeController::class, 'eatAll']);
     Route::patch('/my-fridge/items/{fridgeItem}/discard', [MyFridgeController::class, 'discard']);
+
+    Route::get('/telegram/link-status', [TelegramLinkController::class, 'status']);
+    Route::post('/telegram/link-token', [TelegramLinkController::class, 'createToken']);
 });

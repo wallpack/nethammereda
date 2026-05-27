@@ -12,7 +12,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Heart, History, Loader2, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
+import { Heart, History, Link2, Loader2, LogOut, MessageCircle, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
     open: {
@@ -35,6 +35,18 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    telegramLinked: {
+        type: Boolean,
+        default: false,
+    },
+    telegramLinkAvailable: {
+        type: Boolean,
+        default: false,
+    },
+    telegramLoading: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits([
@@ -45,6 +57,8 @@ const emit = defineEmits([
     'show-fridge',
     'show-history',
     'save-full-name',
+    'telegram-link',
+    'telegram-open-bot',
 ]);
 
 const displayName = computed(() => {
@@ -191,6 +205,49 @@ const saveFullName = () => {
                         <History aria-hidden="true" class="size-5 text-blue-700" />
                         История питания
                     </Button>
+
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Telegram</p>
+                        <p
+                            v-if="telegramLinked"
+                            class="mt-1 text-sm font-medium text-emerald-700"
+                            data-testid="profile-telegram-linked"
+                        >
+                            Telegram привязан
+                        </p>
+                        <p
+                            v-else
+                            class="mt-1 text-sm text-slate-600"
+                            data-testid="profile-telegram-unlinked"
+                        >
+                            Привяжите Telegram для команд /order, /fridge и /history.
+                        </p>
+
+                        <Button
+                            v-if="telegramLinked"
+                            type="button"
+                            variant="outline"
+                            class="mt-3 h-11 w-full justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                            data-testid="profile-telegram-open-bot"
+                            :disabled="!telegramLinkAvailable"
+                            @click="emit('telegram-open-bot')"
+                        >
+                            <MessageCircle aria-hidden="true" class="size-5 text-blue-700" />
+                            Открыть бота
+                        </Button>
+                        <Button
+                            v-else
+                            type="button"
+                            variant="outline"
+                            class="mt-3 h-11 w-full justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                            data-testid="profile-telegram-link"
+                            :disabled="!telegramLinkAvailable || telegramLoading"
+                            @click="emit('telegram-link')"
+                        >
+                            <Link2 aria-hidden="true" class="size-5 text-blue-700" />
+                            {{ telegramLoading ? 'Готовим ссылку...' : 'Привязать Telegram' }}
+                        </Button>
+                    </div>
                 </div>
 
                 <Button

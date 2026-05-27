@@ -8,6 +8,7 @@ const user = {
     id: 7,
     name: 'Тестовый пользователь',
     email: 'user@lunch.local',
+    telegram_id: null,
     role: 'user',
 };
 
@@ -127,6 +128,12 @@ const createFetchMock = ({
     fridgePatchStatus = 200,
     menuItems = [menuItem],
     menuCategories = [category],
+    telegramLinkStatus = {
+        linked: false,
+        link_available: true,
+        bot_link: 'https://t.me/lunch_demo_bot',
+        bot_username: 'lunch_demo_bot',
+    },
 } = {}) => {
     let currentOrder = order;
     let currentFridgeItems = [...fridgeItems];
@@ -224,6 +231,20 @@ const createFetchMock = ({
 
         if (path === '/auth/logout' && method === 'POST') {
             return jsonResponse({ data: { ok: true } });
+        }
+
+        if (path === '/telegram/link-status' && method === 'GET') {
+            return jsonResponse({ data: telegramLinkStatus });
+        }
+
+        if (path === '/telegram/link-token' && method === 'POST') {
+            return jsonResponse({
+                data: {
+                    deep_link: 'https://t.me/lunch_demo_bot?start=link_test_token',
+                    bot_link: 'https://t.me/lunch_demo_bot',
+                    expires_at: '2026-05-25T12:10:00.000000Z',
+                },
+            }, 201);
         }
 
         return jsonResponse({ data: null });
@@ -489,6 +510,7 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Холодильник');
         expect(document.body.textContent).toContain('История питания');
         expect(document.body.textContent).toContain('Укажите ФИО в формате: Фамилия и инициалы. Например: Иванов И.И.');
+        expect(document.body.textContent).toContain('Привязать Telegram');
         expect(document.body.textContent).not.toContain('Настройки');
         expect(buttonByText('Выйти')).toBeTruthy();
     });
@@ -533,6 +555,25 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Профиль обновлен.');
         expect(document.querySelector('[data-testid="profile-name"]')?.textContent).toContain('Иванов И.И.');
         expect(buttonByText('Иванов И.И.')).toBeTruthy();
+    });
+
+    it('shows telegram linked state with open bot action', async () => {
+        await mountApp({
+            authenticated: true,
+            authenticatedUser: { ...user, telegram_id: '9551' },
+            telegramLinkStatus: {
+                linked: true,
+                link_available: true,
+                bot_link: 'https://t.me/lunch_demo_bot',
+                bot_username: 'lunch_demo_bot',
+            },
+        });
+
+        await click(buttonByText(user.name));
+
+        expect(document.querySelector('[data-testid="profile-telegram-linked"]')?.textContent).toContain('Telegram привязан');
+        expect(document.querySelector('[data-testid="profile-telegram-open-bot"]')).toBeTruthy();
+        expect(document.querySelector('[data-testid="profile-telegram-link"]')).toBeNull();
     });
 
     it('handles a long user name in the header and profile surface', async () => {

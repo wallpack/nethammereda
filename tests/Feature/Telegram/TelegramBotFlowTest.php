@@ -12,6 +12,7 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderCycle;
 use App\Models\OrderItem;
+use App\Models\TelegramLinkToken;
 use App\Models\User;
 use App\Services\CurrentOrderCycleResolver;
 use App\Services\FridgeItemService;
@@ -19,6 +20,7 @@ use App\Services\FridgeSummaryFormatter;
 use App\Services\OrderSummaryFormatter;
 use App\Services\Telegram\BotClient;
 use App\Services\Telegram\KeyboardBuilder;
+use App\Services\Telegram\TelegramLinkService;
 use App\Services\Telegram\UpdateHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -39,10 +41,12 @@ class TelegramBotFlowTest extends TestCase
 
         $this->assertCount(1, $bot->messages);
         $this->assertStringContainsString('NethammerEda', $bot->messages[0]['text']);
-        $this->assertStringContainsString('войдите через Telegram', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Привязать Telegram', $bot->messages[0]['text']);
+        $this->assertStringContainsString('не запрашивает пароль', $bot->messages[0]['text']);
 
         $keyboard = $bot->messages[0]['reply_markup']['keyboard'] ?? [];
         $labels = collect($keyboard)->flatten(1)->pluck('text')->all();
+        $this->assertCount(6, $labels);
 
         $this->assertContains('Открыть каталог', $labels);
         $this->assertContains('Мой заказ', $labels);
@@ -59,6 +63,128 @@ class TelegramBotFlowTest extends TestCase
     }
 
     #[Test]
+    public function start_link_token_links_telegram_id_to_user_and_invalidates_token(): void
+    {
+        $user = User::factory()->create(['telegram_id' => null]);
+        $issued = app(TelegramLinkService::class)->issueForUser($user);
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle(
+            $this->message('/start link_'.$issued['token'], telegramId: 931),
+        );
+
+        $this->assertCount(1, $bot->messages);
+        $this->assertStringContainsString('Telegram привязан к вашему аккаунту', $bot->messages[0]['text']);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'telegram_id' => '931',
+        ]);
+        $this->assertDatabaseHas('telegram_link_tokens', [
+            'user_id' => $user->id,
+            'token_hash' => hash('sha256', $issued['token']),
+        ]);
+        $this->assertNotNull(
+            TelegramLinkToken::query()
+                ->where('user_id', $user->id)
+                ->where('token_hash', hash('sha256', $issued['token']))
+                ->value('used_at'),
+        );
+    }
+
+    #[Test]
+    public function start_link_token_cannot_be_reused(): void
+    {
+        $user = User::factory()->create(['telegram_id' => null]);
+        $issued = app(TelegramLinkService::class)->issueForUser($user);
+
+        $bot = new CapturingTelegramBot;
+        $handler = $this->handler($bot);
+        $handler->handle($this->message('/start link_'.$issued['token'], telegramId: 932));
+        $handler->handle($this->message('/start link_'.$issued['token'], telegramId: 932));
+
+        $this->assertCount(2, $bot->messages);
+        $this->assertStringContainsString('Telegram привязан к вашему аккаунту', $bot->messages[0]['text']);
+        $this->assertStringContainsString('уже использована', $bot->messages[1]['text']);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'telegram_id' => '932',
+        ]);
+    }
+
+    #[Test]
+    public function expired_start_link_token_is_rejected(): void
+    {
+        $user = User::factory()->create(['telegram_id' => null]);
+        $issued = app(TelegramLinkService::class)->issueForUser($user);
+
+        TelegramLinkToken::query()
+            ->where('user_id', $user->id)
+            ->where('token_hash', hash('sha256', $issued['token']))
+            ->update(['expires_at' => now()->subMinute()]);
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/start link_'.$issued['token'], telegramId: 933));
+
+        $this->assertCount(1, $bot->messages);
+        $this->assertStringContainsString('Срок действия ссылки истек', $bot->messages[0]['text']);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'telegram_id' => null,
+        ]);
+    }
+
+    #[Test]
+    public function start_link_token_rejects_conflicting_telegram_id_linked_to_another_user(): void
+    {
+        $userToLink = User::factory()->create(['telegram_id' => null]);
+        User::factory()->create(['telegram_id' => '934']);
+        $issued = app(TelegramLinkService::class)->issueForUser($userToLink);
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/start link_'.$issued['token'], telegramId: 934));
+
+        $this->assertCount(1, $bot->messages);
+        $this->assertStringContainsString('уже привязан к другому аккаунту', $bot->messages[0]['text']);
+        $this->assertDatabaseHas('users', [
+            'id' => $userToLink->id,
+            'telegram_id' => null,
+        ]);
+        $this->assertNull(
+            TelegramLinkToken::query()
+                ->where('user_id', $userToLink->id)
+                ->where('token_hash', hash('sha256', $issued['token']))
+                ->value('used_at'),
+        );
+    }
+
+    #[Test]
+    public function start_link_token_rejects_a_deactivated_user_account(): void
+    {
+        $user = User::factory()->create([
+            'telegram_id' => null,
+            'is_active' => false,
+        ]);
+        $issued = app(TelegramLinkService::class)->issueForUser($user);
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/start link_'.$issued['token'], telegramId: 935));
+
+        $this->assertCount(1, $bot->messages);
+        $this->assertStringContainsString('деактивирован', mb_strtolower($bot->messages[0]['text']));
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'telegram_id' => null,
+            'is_active' => false,
+        ]);
+        $this->assertNull(
+            TelegramLinkToken::query()
+                ->where('user_id', $user->id)
+                ->where('token_hash', hash('sha256', $issued['token']))
+                ->value('used_at'),
+        );
+    }
+
+    #[Test]
     public function help_explains_user_actions_without_creating_an_unlinked_user(): void
     {
         $bot = new CapturingTelegramBot;
@@ -67,12 +193,15 @@ class TelegramBotFlowTest extends TestCase
         $this->assertCount(1, $bot->messages);
         $text = $bot->messages[0]['text'];
 
+        $this->assertStringContainsString('/start', $text);
         $this->assertStringContainsString('/menu', $text);
+        $this->assertStringContainsString('/status', $text);
         $this->assertStringContainsString('/order', $text);
         $this->assertStringContainsString('/fridge', $text);
         $this->assertStringContainsString('/history', $text);
         $this->assertStringContainsString('холодильник', $text);
         $this->assertStringContainsString('не отображается', $text);
+        $this->assertStringNotContainsString('Введите пароль', $text);
         $this->assertNotEmpty($bot->messages[0]['reply_markup']['keyboard'] ?? []);
         $this->assertDatabaseMissing('users', [
             'telegram_id' => '778',
@@ -105,8 +234,10 @@ class TelegramBotFlowTest extends TestCase
     {
         config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
         $user = User::factory()->create(['telegram_id' => '801']);
+        $otherUser = User::factory()->create(['telegram_id' => '1801']);
         $cycle = $this->createCycle(OrderCycleStatus::Open, now()->addDay());
         $this->createOrderItem($user, $cycle, quantity: 2, price: 250);
+        $this->createOrderItem($otherUser, $cycle, quantity: 4, price: 300);
 
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/order', telegramId: 801));
@@ -117,11 +248,33 @@ class TelegramBotFlowTest extends TestCase
         $this->assertStringContainsString('Статус: Черновик', $text);
         $this->assertStringContainsString('Лазанья ×2', $text);
         $this->assertStringContainsString('500.00 ₽', $text);
+        $this->assertStringNotContainsString('Лазанья ×4', $text);
+        $this->assertStringNotContainsString('1200.00 ₽', $text);
         $this->assertSame(
             'Открыть мой заказ',
             $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
         );
-        $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseCount('orders', 2);
+    }
+
+    #[Test]
+    public function unlinked_user_receives_clear_linking_steps_for_personal_commands(): void
+    {
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/order', telegramId: 899));
+
+        $this->assertCount(1, $bot->messages);
+        $text = $bot->messages[0]['text'];
+
+        $this->assertStringContainsString('1)', $text);
+        $this->assertStringContainsString('2)', $text);
+        $this->assertStringContainsString('3)', $text);
+        $this->assertStringContainsString('Telegram', $text);
+        $this->assertStringContainsString('Привязать Telegram', $text);
+        $this->assertNotEmpty($bot->messages[0]['reply_markup']['keyboard'] ?? []);
+        $this->assertDatabaseMissing('users', [
+            'telegram_id' => '899',
+        ]);
     }
 
     #[Test]
@@ -443,6 +596,7 @@ class TelegramBotFlowTest extends TestCase
         return new UpdateHandler(
             $bot,
             app(KeyboardBuilder::class),
+            app(TelegramLinkService::class),
             app(CurrentOrderCycleResolver::class),
             app(OrderSummaryFormatter::class),
             app(FridgeSummaryFormatter::class),

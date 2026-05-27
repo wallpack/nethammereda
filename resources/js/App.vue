@@ -14,6 +14,7 @@ import MobilePanelSheet from '@/components/MobilePanelSheet.vue';
 import OrderPanel from '@/components/OrderPanel.vue';
 import UserProfileModal from '@/components/UserProfileModal.vue';
 import WeekStatus from '@/components/WeekStatus.vue';
+import { createTelegramLinkToken, fetchTelegramLinkStatus } from '@/api/auth';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
 import { useFridgeStore } from '@/stores/fridge';
@@ -92,6 +93,13 @@ if (activeSidebarTab.value !== 'catalog') {
 
 const menuSkeletonRows = Array.from({ length: 6 }, (_, index) => index + 1);
 const orderSkeletonRows = Array.from({ length: 3 }, (_, index) => index + 1);
+const telegramLinkStatus = ref({
+    linked: false,
+    bot_link: null,
+    bot_username: null,
+    link_available: false,
+});
+const telegramLinkLoading = ref(false);
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
@@ -322,6 +330,73 @@ const closeAuthModal = () => {
     ui.closeAuthModal();
 };
 
+const resetTelegramLinkStatus = () => {
+    telegramLinkStatus.value = {
+        linked: false,
+        bot_link: null,
+        bot_username: null,
+        link_available: false,
+    };
+};
+
+const loadTelegramLinkStatus = async () => {
+    if (!auth.token) {
+        resetTelegramLinkStatus();
+        return;
+    }
+
+    try {
+        const response = await fetchTelegramLinkStatus(auth.token);
+        telegramLinkStatus.value = {
+            linked: Boolean(response.data?.linked),
+            bot_link: response.data?.bot_link ?? null,
+            bot_username: response.data?.bot_username ?? null,
+            link_available: Boolean(response.data?.link_available),
+        };
+    } catch {
+        resetTelegramLinkStatus();
+    }
+};
+
+const openTelegramBotLink = () => {
+    const botLink = telegramLinkStatus.value.bot_link;
+
+    if (!botLink) {
+        ui.error = 'Ссылка на Telegram-бота не настроена.';
+        return;
+    }
+
+    window.open(botLink, '_blank', 'noopener,noreferrer');
+};
+
+const linkTelegramFromProfile = async () => {
+    if (!auth.token) {
+        openAuthModal('Войдите, чтобы привязать Telegram.');
+        return;
+    }
+
+    telegramLinkLoading.value = true;
+    ui.error = '';
+    ui.info = '';
+
+    try {
+        const response = await createTelegramLinkToken(auth.token);
+        const deepLink = response.data?.deep_link ?? '';
+
+        if (!deepLink) {
+            throw new Error('Не удалось получить ссылку для Telegram.');
+        }
+
+        window.open(deepLink, '_blank', 'noopener,noreferrer');
+        ui.info = 'Откройте Telegram и подтвердите привязку в боте.';
+        await loadTelegramLinkStatus();
+    } catch (e) {
+        ui.error = e.message;
+    } finally {
+        telegramLinkLoading.value = false;
+    }
+};
+
 const loadData = async () => {
     ui.loading = true;
     ui.error = '';
@@ -333,10 +408,12 @@ const loadData = async () => {
             await Promise.all([
                 orderStore.loadCurrentOrder(auth.token),
                 fridge.loadFridgeData(auth.token),
+                loadTelegramLinkStatus(),
             ]);
         } else {
             orderStore.resetOrder();
             fridge.resetFridge();
+            resetTelegramLinkStatus();
         }
     } catch (e) {
         ui.error = e.message;
@@ -424,6 +501,7 @@ const logout = async () => {
 
     auth.clearAuth();
     resetProtectedState();
+    resetTelegramLinkStatus();
     ui.closeProfileModal();
     ui.error = '';
     ui.info = '';
@@ -928,12 +1006,17 @@ onBeforeUnmount(() => {
             :profile-saving="profileSaving"
             :profile-error="profileError"
             @close="closeProfileModal"
+            :telegram-linked="telegramLinkStatus.linked"
+            :telegram-link-available="telegramLinkStatus.link_available"
+            :telegram-loading="telegramLinkLoading"
             @logout="logout"
             @show-favorites="showFavoritesFromProfile"
             @show-order="openPanelFromProfile('order')"
             @show-fridge="openPanelFromProfile('fridge')"
             @show-history="openPanelFromProfile('history')"
             @save-full-name="saveProfileFullName"
+            @telegram-link="linkTelegramFromProfile"
+            @telegram-open-bot="openTelegramBotLink"
         />
     </div>
 </template>

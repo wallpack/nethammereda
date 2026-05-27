@@ -23,3 +23,10 @@ export const logoutUser = (token) => apiRequest('/auth/logout', {
     method: 'POST',
     token,
 });
+
+export const fetchTelegramLinkStatus = (token) => apiRequest('/telegram/link-status', { token });
+
+export const createTelegramLinkToken = (token) => apiRequest('/telegram/link-token', {
+    method: 'POST',
+    token,
+});

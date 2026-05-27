@@ -18,6 +18,7 @@ class UpdateHandler
     public function __construct(
         private readonly BotClient $botClient,
         private readonly KeyboardBuilder $keyboardBuilder,
+        private readonly TelegramLinkService $telegramLinkService,
         private readonly CurrentOrderCycleResolver $resolver,
         private readonly OrderSummaryFormatter $summaryFormatter,
         private readonly FridgeSummaryFormatter $fridgeSummaryFormatter,
@@ -56,8 +57,20 @@ class UpdateHandler
             $command = $aliasCommand;
         }
 
+        if ($command !== '') {
+            Log::info('Telegram command received', [
+                'telegram_id' => (string) ($from['id'] ?? ''),
+                'chat_id' => $chatId,
+                'command' => $command,
+            ]);
+        }
+
         if ($command === '/start') {
-            $this->handleStartCommand($chatId, $this->findTelegramUser($from));
+            $this->handleStartCommand(
+                $chatId,
+                $from,
+                $this->extractStartPayload($text),
+            );
 
             return;
         }
@@ -85,14 +98,6 @@ class UpdateHandler
             $this->sendLoginRequired($chatId);
 
             return;
-        }
-
-        if ($command !== '') {
-            Log::info('Telegram command received', [
-                'telegram_id' => $user->telegram_id,
-                'chat_id' => $chatId,
-                'command' => $command,
-            ]);
         }
 
         if (in_array($command, ['/order', '/my_order'], true)) {
@@ -263,15 +268,67 @@ class UpdateHandler
         return "Неделя: {$cycle->title}\n{$state}\nДедлайн: {$cycle->closes_at->format('d.m.Y H:i')}";
     }
 
-    private function handleStartCommand(int|string $chatId, ?User $user): void
+    /**
+     * @param  array<string, mixed>  $from
+     */
+    private function handleStartCommand(int|string $chatId, array $from, ?string $startPayload): void
     {
-        $text = "NethammerEda: бот корпоративных обедов.\n\n".
-            "Здесь можно открыть каталог, посмотреть заказ и проверить холодильник.";
+        $telegramId = (string) ($from['id'] ?? '');
+        $isLinkPayload = $startPayload !== null
+            && str_starts_with(strtolower(trim($startPayload)), TelegramLinkService::START_PREFIX);
+
+        if ($isLinkPayload) {
+            $linkToken = $this->telegramLinkService->extractTokenFromStartPayload($startPayload);
+
+            if ($linkToken === null || $telegramId === '') {
+                $this->botClient->sendMessage(
+                    $chatId,
+                    'Ссылка привязки недействительна. Откройте сайт, нажмите «Привязать Telegram» и получите новую ссылку.',
+                    $this->keyboardBuilder->navigation(),
+                );
+
+                return;
+            }
+
+            $this->handleTelegramLinkStart($chatId, $linkToken, $telegramId);
+
+            return;
+        }
+
+        $user = $this->findTelegramUser($from);
+
+        $text = "NethammerEda - бот корпоративных обедов.\n\n".
+            "Команды:\n".
+            "/menu - открыть каталог\n".
+            "/status - посмотреть статус недели и дедлайн\n".
+            "/order (/my_order) - посмотреть ваш заказ\n".
+            "/fridge - открыть активный холодильник\n".
+            "/history - посмотреть историю холодильника";
 
         if ($user === null) {
-            $text .= "\n\nЧтобы увидеть личные данные, откройте каталог и войдите через Telegram. ".
-                'Если у вас уже есть рабочий аккаунт, попросите администратора привязать Telegram.';
+            $text .= "\n\nЧтобы увидеть личные данные:\n".
+                "1) Войдите на сайте в свой рабочий аккаунт\n".
+                "2) Откройте Профиль -> «Привязать Telegram»\n".
+                "3) Перейдите по ссылке в бота и снова отправьте /order или /fridge\n\n".
+                'Бот никогда не запрашивает пароль.';
         }
+
+        $this->botClient->sendMessage($chatId, $text, $this->keyboardBuilder->navigation());
+    }
+
+    private function handleTelegramLinkStart(int|string $chatId, string $linkToken, string $telegramId): void
+    {
+        $result = $this->telegramLinkService->consumeToken($linkToken, $telegramId);
+
+        $text = match ($result) {
+            'linked' => 'Готово! Telegram привязан к вашему аккаунту. Теперь доступны /menu, /order, /fridge, /history.',
+            'used' => 'Эта ссылка уже использована. Откройте сайт и запросите новую привязку.',
+            'expired' => 'Срок действия ссылки истек. Откройте сайт и запросите новую привязку.',
+            'telegram_conflict' => 'Этот Telegram уже привязан к другому аккаунту. Обратитесь к администратору.',
+            'user_already_linked' => 'Ваш аккаунт уже привязан к другому Telegram. Обратитесь к администратору.',
+            'user_inactive' => 'Ваш аккаунт деактивирован. Обратитесь к администратору.',
+            default => 'Ссылка привязки недействительна. Откройте сайт и получите новую ссылку.',
+        };
 
         $this->botClient->sendMessage($chatId, $text, $this->keyboardBuilder->navigation());
     }
@@ -281,13 +338,14 @@ class UpdateHandler
         $this->botClient->sendMessage(
             $chatId,
             "Как пользоваться NethammerEda:\n\n".
-            "/menu: открыть каталог и выбрать блюда.\n".
-            "/order: посмотреть текущий заказ. Команда /my_order тоже работает.\n".
-            "/fridge: открыть холодильник с доставленной едой и отметить, что вы съели или выбросили.\n".
-            "/history: посмотреть съеденные, выброшенные и просроченные позиции.\n\n".
-            "Открывайте каталог кнопкой ниже: внутри можно войти через Telegram и оформить заказ.\n\n".
-            "Если заказ не отображается, проверьте, что вы вошли через Telegram в каталоге, ".
-            'или попросите администратора привязать ваш аккаунт.',
+            "/start - короткая инструкция и быстрые кнопки.\n".
+            "/menu - открыть каталог и выбрать блюда.\n".
+            "/status - проверить статус текущей недели и дедлайн.\n".
+            "/order - посмотреть текущий заказ (команда /my_order работает так же).\n".
+            "/fridge - открыть холодильник с доставленной едой и отметить, что вы съели или выбросили.\n".
+            "/history - посмотреть съеденные, выброшенные и просроченные позиции.\n\n".
+            "Для входа откройте каталог кнопкой ниже и авторизуйтесь через Telegram.\n".
+            'Если заказ не отображается или холодильник недоступен, попросите администратора привязать ваш Telegram к рабочему аккаунту.',
             $this->keyboardBuilder->navigation(),
         );
     }
@@ -296,8 +354,11 @@ class UpdateHandler
     {
         $this->botClient->sendMessage(
             $chatId,
-            "Чтобы увидеть свой заказ и холодильник, откройте каталог и войдите через Telegram.\n".
-            'Если у вас уже есть рабочий аккаунт, попросите администратора привязать Telegram.',
+            "Чтобы увидеть свой заказ и холодильник:\n".
+            "1) Войдите на сайте в рабочий аккаунт\n".
+            "2) В Профиле нажмите «Привязать Telegram»\n".
+            "3) Перейдите по ссылке в бота и повторите команду\n\n".
+            'Бот никогда не запрашивает пароль.',
             $this->keyboardBuilder->navigation(),
         );
     }
@@ -499,6 +560,18 @@ class UpdateHandler
         }
 
         return '';
+    }
+
+    private function extractStartPayload(string $text): ?string
+    {
+        $parts = preg_split('/\s+/', trim($text));
+        if (! is_array($parts) || count($parts) < 2) {
+            return null;
+        }
+
+        $payload = trim((string) $parts[1]);
+
+        return $payload === '' ? null : $payload;
     }
 
     private function extractAliasCommand(string $text): ?string
