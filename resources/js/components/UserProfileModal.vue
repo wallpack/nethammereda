@@ -9,10 +9,9 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Heart, History, Link2, Loader2, LogOut, MessageCircle, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
+import { Check, CheckCircle2, Heart, History, Link2, Loader2, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
     open: {
@@ -47,6 +46,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    telegramError: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits([
@@ -66,6 +69,25 @@ const displayName = computed(() => {
 });
 
 const identifier = computed(() => props.user?.email || props.user?.phone || props.user?.telegram_id || '');
+const telegramIdentity = computed(() => {
+    if (!props.telegramLinked) {
+        return '';
+    }
+
+    const telegramUsername = props.user?.telegram_username;
+
+    if (telegramUsername) {
+        return telegramUsername.startsWith('@') ? telegramUsername : `@${telegramUsername}`;
+    }
+
+    const telegramId = props.user?.telegram_id;
+
+    if (!telegramId) {
+        return '';
+    }
+
+    return `ID: ${telegramId}`;
+});
 const fullName = ref('');
 
 watch(
@@ -206,46 +228,113 @@ const saveFullName = () => {
                         История питания
                     </Button>
 
-                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Telegram</p>
+                    <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
+                        <div class="flex items-start gap-3">
+                            <div class="relative mt-0.5">
+                                <span class="grid size-10 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-600">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 fill-current">
+                                        <path d="M21.2 4.6 18.2 18.8c-.2 1-1 1.2-1.8.8l-4.6-3.4-2.2 2.1c-.2.2-.4.4-.8.4l.3-4.7 8.7-7.9c.4-.3-.1-.5-.5-.2l-10.8 6.8-4.6-1.4c-1-.3-1-1 .2-1.4L19.5 3c.8-.3 2 .2 1.7 1.6Z" />
+                                    </svg>
+                                </span>
+                                <span
+                                    v-if="telegramLinked"
+                                    class="absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-emerald-500 text-white"
+                                >
+                                    <Check aria-hidden="true" class="size-3" />
+                                </span>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-semibold text-slate-900">Telegram-бот</p>
+                                <p
+                                    v-if="telegramLinked"
+                                    class="mt-1 text-sm text-slate-700"
+                                    data-testid="profile-telegram-linked-text"
+                                >
+                                    Telegram подключён. Вы будете получать уведомления и сможете быстро открыть меню.
+                                </p>
+                                <p
+                                    v-else
+                                    class="mt-1 text-sm text-slate-600"
+                                    data-testid="profile-telegram-unlinked"
+                                >
+                                    Получайте уведомления о заказах и быстро открывайте меню прямо из Telegram.
+                                </p>
+                                <p
+                                    v-if="telegramLinked"
+                                    class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+                                    data-testid="profile-telegram-linked"
+                                >
+                                    <CheckCircle2 aria-hidden="true" class="size-3.5" />
+                                    Подключён
+                                </p>
+                                <p
+                                    v-if="telegramLinked && telegramIdentity"
+                                    class="mt-2 text-xs text-slate-500"
+                                    data-testid="profile-telegram-identity"
+                                >
+                                    {{ telegramIdentity }}
+                                </p>
+                                <p
+                                    v-else
+                                    class="mt-2 text-xs text-slate-500"
+                                    data-testid="profile-telegram-helper"
+                                >
+                                    Привязка занимает несколько секунд.
+                                </p>
+                            </div>
+                        </div>
+
                         <p
-                            v-if="telegramLinked"
-                            class="mt-1 text-sm font-medium text-emerald-700"
-                            data-testid="profile-telegram-linked"
+                            v-if="!telegramLinked && !telegramLinkAvailable"
+                            class="mt-3 text-sm font-medium text-slate-700"
+                            data-testid="profile-telegram-unavailable"
                         >
-                            Telegram привязан
+                            Привязка временно недоступна.
                         </p>
                         <p
-                            v-else
-                            class="mt-1 text-sm text-slate-600"
-                            data-testid="profile-telegram-unlinked"
+                            v-if="!telegramLinked && !telegramLinkAvailable"
+                            class="mt-1 text-xs text-slate-500"
+                            data-testid="profile-telegram-unavailable-hint"
                         >
-                            Привяжите Telegram для команд /order, /fridge и /history.
+                            Обратитесь к администратору.
+                        </p>
+                        <p
+                            v-if="!telegramLinked && telegramLinkAvailable && telegramError"
+                            class="mt-2 text-xs text-rose-600"
+                            data-testid="profile-telegram-error"
+                        >
+                            {{ telegramError }}
                         </p>
 
                         <Button
                             v-if="telegramLinked"
                             type="button"
                             variant="outline"
-                            class="mt-3 h-11 w-full justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                            class="mt-3 h-10 w-full justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-white/90 sm:w-auto"
                             data-testid="profile-telegram-open-bot"
                             :disabled="!telegramLinkAvailable"
                             @click="emit('telegram-open-bot')"
                         >
-                            <MessageCircle aria-hidden="true" class="size-5 text-blue-700" />
-                            Открыть бота
+                            <svg aria-hidden="true" viewBox="0 0 24 24" class="size-4 fill-current text-sky-600">
+                                <path d="M21.2 4.6 18.2 18.8c-.2 1-1 1.2-1.8.8l-4.6-3.4-2.2 2.1c-.2.2-.4.4-.8.4l.3-4.7 8.7-7.9c.4-.3-.1-.5-.5-.2l-10.8 6.8-4.6-1.4c-1-.3-1-1 .2-1.4L19.5 3c.8-.3 2 .2 1.7 1.6Z" />
+                            </svg>
+                            Открыть Telegram
                         </Button>
                         <Button
-                            v-else
+                            v-else-if="telegramLinkAvailable"
                             type="button"
-                            variant="outline"
-                            class="mt-3 h-11 w-full justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                            class="mt-3 h-10 w-full justify-start rounded-xl bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
                             data-testid="profile-telegram-link"
-                            :disabled="!telegramLinkAvailable || telegramLoading"
+                            :disabled="telegramLoading"
                             @click="emit('telegram-link')"
                         >
-                            <Link2 aria-hidden="true" class="size-5 text-blue-700" />
-                            {{ telegramLoading ? 'Готовим ссылку...' : 'Привязать Telegram' }}
+                            <span class="inline-flex w-4 items-center justify-center">
+                                <Loader2 v-if="telegramLoading" aria-hidden="true" class="size-4 animate-spin" />
+                                <Link2 v-else aria-hidden="true" class="size-4" />
+                            </span>
+                            <span class="inline-block min-w-[12rem] text-left">
+                                {{ telegramLoading ? 'Создаём ссылку...' : 'Привязать Telegram' }}
+                            </span>
                         </Button>
                     </div>
                 </div>

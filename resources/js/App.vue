@@ -100,6 +100,7 @@ const telegramLinkStatus = ref({
     link_available: false,
 });
 const telegramLinkLoading = ref(false);
+const telegramLinkError = ref('');
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
@@ -337,6 +338,7 @@ const resetTelegramLinkStatus = () => {
         bot_username: null,
         link_available: false,
     };
+    telegramLinkError.value = '';
 };
 
 const loadTelegramLinkStatus = async () => {
@@ -362,10 +364,11 @@ const openTelegramBotLink = () => {
     const botLink = telegramLinkStatus.value.bot_link;
 
     if (!botLink) {
-        ui.error = 'Ссылка на Telegram-бота не настроена.';
+        telegramLinkError.value = 'Привязка временно недоступна.';
         return;
     }
 
+    telegramLinkError.value = '';
     window.open(botLink, '_blank', 'noopener,noreferrer');
 };
 
@@ -376,6 +379,7 @@ const linkTelegramFromProfile = async () => {
     }
 
     telegramLinkLoading.value = true;
+    telegramLinkError.value = '';
     ui.error = '';
     ui.info = '';
 
@@ -384,14 +388,14 @@ const linkTelegramFromProfile = async () => {
         const deepLink = response.data?.deep_link ?? '';
 
         if (!deepLink) {
-            throw new Error('Не удалось получить ссылку для Telegram.');
+            throw new Error('empty_deep_link');
         }
 
         window.open(deepLink, '_blank', 'noopener,noreferrer');
         ui.info = 'Откройте Telegram и подтвердите привязку в боте.';
         await loadTelegramLinkStatus();
-    } catch (e) {
-        ui.error = e.message;
+    } catch {
+        telegramLinkError.value = 'Не удалось создать ссылку. Попробуйте ещё раз.';
     } finally {
         telegramLinkLoading.value = false;
     }
@@ -510,6 +514,7 @@ const logout = async () => {
 
 const closeProfileModal = () => {
     auth.profileError = '';
+    telegramLinkError.value = '';
     ui.closeProfileModal();
 };
 
@@ -1009,6 +1014,7 @@ onBeforeUnmount(() => {
             :telegram-linked="telegramLinkStatus.linked"
             :telegram-link-available="telegramLinkStatus.link_available"
             :telegram-loading="telegramLinkLoading"
+            :telegram-error="telegramLinkError"
             @logout="logout"
             @show-favorites="showFavoritesFromProfile"
             @show-order="openPanelFromProfile('order')"

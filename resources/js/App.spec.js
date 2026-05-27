@@ -134,6 +134,9 @@ const createFetchMock = ({
         bot_link: 'https://t.me/lunch_demo_bot',
         bot_username: 'lunch_demo_bot',
     },
+    telegramLinkTokenStatus = 201,
+    telegramLinkTokenMessage = 'Не удалось подготовить ссылку Telegram.',
+    telegramLinkTokenPending = false,
 } = {}) => {
     let currentOrder = order;
     let currentFridgeItems = [...fridgeItems];
@@ -238,13 +241,21 @@ const createFetchMock = ({
         }
 
         if (path === '/telegram/link-token' && method === 'POST') {
+            if (telegramLinkTokenPending) {
+                return new Promise(() => {});
+            }
+
+            if (telegramLinkTokenStatus >= 400) {
+                return jsonResponse({ message: telegramLinkTokenMessage }, telegramLinkTokenStatus);
+            }
+
             return jsonResponse({
                 data: {
                     deep_link: 'https://t.me/lunch_demo_bot?start=link_test_token',
                     bot_link: 'https://t.me/lunch_demo_bot',
                     expires_at: '2026-05-25T12:10:00.000000Z',
                 },
-            }, 201);
+            }, telegramLinkTokenStatus);
         }
 
         return jsonResponse({ data: null });
@@ -510,7 +521,11 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Холодильник');
         expect(document.body.textContent).toContain('История питания');
         expect(document.body.textContent).toContain('Укажите ФИО в формате: Фамилия и инициалы. Например: Иванов И.И.');
+        expect(document.body.textContent).toContain('Telegram-бот');
+        expect(document.body.textContent).toContain('Получайте уведомления о заказах и быстро открывайте меню прямо из Telegram.');
+        expect(document.body.textContent).toContain('Привязка занимает несколько секунд.');
         expect(document.body.textContent).toContain('Привязать Telegram');
+        expect(document.body.textContent).not.toContain('/order, /fridge, /history');
         expect(document.body.textContent).not.toContain('Настройки');
         expect(buttonByText('Выйти')).toBeTruthy();
     });
@@ -571,9 +586,57 @@ describe('catalog auth UX', () => {
 
         await click(buttonByText(user.name));
 
-        expect(document.querySelector('[data-testid="profile-telegram-linked"]')?.textContent).toContain('Telegram привязан');
+        expect(document.querySelector('[data-testid="profile-telegram-linked-text"]')?.textContent).toContain('Telegram подключён');
+        expect(document.querySelector('[data-testid="profile-telegram-linked"]')?.textContent).toContain('Подключён');
         expect(document.querySelector('[data-testid="profile-telegram-open-bot"]')).toBeTruthy();
+        expect(document.querySelector('[data-testid="profile-telegram-open-bot"]')?.textContent).toContain('Открыть Telegram');
         expect(document.querySelector('[data-testid="profile-telegram-link"]')).toBeNull();
+        expect(document.querySelector('[data-testid="profile-telegram-identity"]')?.textContent).toContain('9551');
+    });
+
+    it('shows compact unavailable hint when telegram linking is disabled', async () => {
+        await mountApp({
+            authenticated: true,
+            telegramLinkStatus: {
+                linked: false,
+                link_available: false,
+                bot_link: null,
+                bot_username: null,
+            },
+        });
+
+        await click(buttonByText(user.name));
+
+        expect(document.querySelector('[data-testid="profile-telegram-link"]')).toBeNull();
+        expect(document.querySelector('[data-testid="profile-telegram-unavailable"]')?.textContent).toContain('Привязка временно недоступна.');
+        expect(document.querySelector('[data-testid="profile-telegram-unavailable-hint"]')?.textContent).toContain('Обратитесь к администратору.');
+    });
+
+    it('shows telegram link loading state while token is being created', async () => {
+        await mountApp({
+            authenticated: true,
+            telegramLinkTokenPending: true,
+        });
+
+        await click(buttonByText(user.name));
+        await click(document.querySelector('[data-testid="profile-telegram-link"]'));
+
+        const button = document.querySelector('[data-testid="profile-telegram-link"]');
+        expect(button?.textContent).toContain('Создаём ссылку...');
+        expect(button?.disabled).toBe(true);
+    });
+
+    it('shows telegram link error inside profile block when token creation fails', async () => {
+        await mountApp({
+            authenticated: true,
+            telegramLinkTokenStatus: 422,
+            telegramLinkTokenMessage: 'Сервис Telegram временно недоступен.',
+        });
+
+        await click(buttonByText(user.name));
+        await click(document.querySelector('[data-testid="profile-telegram-link"]'));
+
+        expect(document.querySelector('[data-testid="profile-telegram-error"]')?.textContent).toContain('Не удалось создать ссылку. Попробуйте ещё раз.');
     });
 
     it('handles a long user name in the header and profile surface', async () => {
