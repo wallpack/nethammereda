@@ -23,7 +23,7 @@ class TelegramWebhookController extends Controller
             $handler->handle($update);
         } catch (Throwable $e) {
             Log::error('Telegram webhook update failed', [
-                'exception' => $e->getMessage(),
+                'exception' => $e::class,
                 'update_id' => $update['update_id'] ?? null,
             ]);
         }
