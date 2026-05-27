@@ -30,7 +30,7 @@ const categoryItemCount = (categoryId) => {
 
 <template>
     <nav
-        class="scrollbar-none max-w-full overflow-x-auto py-1 max-[639px]:overflow-x-clip"
+        class="scrollbar-none max-w-full overflow-x-auto py-1"
         aria-label="Категории блюд"
     >
         <div v-if="loading" class="flex gap-2" aria-busy="true">
@@ -39,7 +39,7 @@ const categoryItemCount = (categoryId) => {
         <div
             v-else
             data-testid="category-chip-row"
-            class="flex w-max min-w-full items-center gap-2 max-[639px]:w-full max-[639px]:min-w-0 max-[639px]:flex-wrap max-[639px]:items-start"
+            class="flex w-max min-w-full items-center gap-2 max-[639px]:flex-nowrap"
         >
             <button
                 type="button"

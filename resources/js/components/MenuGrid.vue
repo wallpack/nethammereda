@@ -90,6 +90,98 @@ const searchModel = computed({
     set: (value) => emit('update:search', value),
 });
 
+const selectedCategoryKey = computed(() => (
+    props.selectedCategory === null || props.selectedCategory === undefined
+        ? null
+        : String(props.selectedCategory)
+));
+
+const showCategorySections = computed(() => selectedCategoryKey.value === null);
+
+const formatDishesCountLabel = (count) => {
+    const normalizedCount = Math.max(0, Number(count) || 0);
+    const mod10 = normalizedCount % 10;
+    const mod100 = normalizedCount % 100;
+
+    if (mod10 === 1 && mod100 !== 11) {
+        return `${normalizedCount} блюдо`;
+    }
+
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+        return `${normalizedCount} блюда`;
+    }
+
+    return `${normalizedCount} блюд`;
+};
+
+const groupedFilteredItems = computed(() => {
+    const groupsByKey = new Map();
+    const orderedCategoryKeys = [];
+    const fallbackKeys = [];
+
+    props.categories.forEach((category) => {
+        const key = String(category.id);
+        orderedCategoryKeys.push(key);
+        groupsByKey.set(key, {
+            key,
+            id: category.id,
+            name: category.name,
+            items: [],
+        });
+    });
+
+    props.filteredItems.forEach((item) => {
+        const key = item.category_id === null || item.category_id === undefined
+            ? `fallback:${item.category?.name ?? 'Без категории'}`
+            : String(item.category_id);
+
+        if (!groupsByKey.has(key)) {
+            fallbackKeys.push(key);
+            groupsByKey.set(key, {
+                key,
+                id: item.category_id ?? key,
+                name: item.category?.name?.trim() || 'Без категории',
+                items: [],
+            });
+        }
+
+        groupsByKey.get(key).items.push(item);
+    });
+
+    return [...orderedCategoryKeys, ...fallbackKeys]
+        .map((key) => groupsByKey.get(key))
+        .filter((group) => group && group.items.length > 0);
+});
+
+const selectedCategorySummary = computed(() => {
+    if (showCategorySections.value) {
+        return null;
+    }
+
+    const category = props.categories.find((entry) => String(entry.id) === selectedCategoryKey.value);
+    const fallbackName = props.filteredItems[0]?.category?.name || 'Категория';
+
+    return {
+        name: category?.name || fallbackName,
+        count: props.filteredItems.length,
+    };
+});
+
+const renderGroups = computed(() => {
+    if (showCategorySections.value) {
+        return groupedFilteredItems.value;
+    }
+
+    return [
+        {
+            key: selectedCategoryKey.value ?? 'selected',
+            id: selectedCategoryKey.value ?? 'selected',
+            name: selectedCategorySummary.value?.name || 'Категория',
+            items: props.filteredItems,
+        },
+    ];
+});
+
 const emptyTitle = computed(() => {
     if (props.favoritesOnly && props.favoritesCount === 0) {
         return 'В избранном пока ничего нет.';
@@ -212,21 +304,42 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
             </CardContent>
         </Card>
 
-        <div v-else class="dishes-grid">
-            <MenuItemCard
-                v-for="item in filteredItems"
-                :key="item.id"
-                :item="item"
-                :order-item="orderItemFor(item.id)"
-                :is-favorite="isFavorite(item.id)"
-                :is-authenticated="isAuthenticated"
-                :can-edit-order="canEditOrder"
-                :disabled-reason="disabledReason"
-                :action-loading="actionLoading"
-                @toggle-favorite="emit('toggle-favorite', $event)"
-                @add-item="emit('add-item', $event)"
-                @change-quantity="(...args) => emit('change-quantity', ...args)"
-            />
+        <div v-else class="space-y-6 sm:space-y-7">
+            <section
+                v-for="group in renderGroups"
+                :key="group.key"
+                data-testid="menu-category-section"
+                class="space-y-3"
+            >
+                <header
+                    class="flex items-end justify-between gap-3"
+                    :data-testid="showCategorySections ? undefined : 'menu-selected-category-summary'"
+                >
+                    <h3 data-testid="menu-category-heading" class="text-balance text-lg font-semibold tracking-[-0.02em] text-slate-900 sm:text-xl">
+                        {{ group.name }}
+                    </h3>
+                    <p data-testid="menu-category-count" class="shrink-0 text-sm font-medium text-slate-500">
+                        {{ formatDishesCountLabel(group.items.length) }}
+                    </p>
+                </header>
+
+                <div class="dishes-grid">
+                    <MenuItemCard
+                        v-for="item in group.items"
+                        :key="item.id"
+                        :item="item"
+                        :order-item="orderItemFor(item.id)"
+                        :is-favorite="isFavorite(item.id)"
+                        :is-authenticated="isAuthenticated"
+                        :can-edit-order="canEditOrder"
+                        :disabled-reason="disabledReason"
+                        :action-loading="actionLoading"
+                        @toggle-favorite="emit('toggle-favorite', $event)"
+                        @add-item="emit('add-item', $event)"
+                        @change-quantity="(...args) => emit('change-quantity', ...args)"
+                    />
+                </div>
+            </section>
         </div>
     </section>
 </template>

@@ -717,6 +717,7 @@ describe('catalog auth UX', () => {
 
         expect(document.body.textContent).toContain(menuItem.title);
         expect(document.body.textContent).toContain(secondMenuItem.title);
+        expect(document.querySelectorAll('[data-testid="menu-category-section"]')).toHaveLength(2);
 
         const searchInput = document.querySelector('#menu-search');
         searchInput.value = 'котлета';
@@ -725,6 +726,10 @@ describe('catalog auth UX', () => {
 
         expect(document.body.textContent).not.toContain(menuItem.title);
         expect(document.body.textContent).toContain(secondMenuItem.title);
+        expect(document.querySelectorAll('[data-testid="menu-category-section"]')).toHaveLength(1);
+
+        const filteredCategoryHeading = document.querySelector('[data-testid="menu-category-heading"]');
+        expect(filteredCategoryHeading?.textContent ?? '').toContain(secondCategory.name);
 
         searchInput.value = '';
         searchInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -732,6 +737,10 @@ describe('catalog auth UX', () => {
 
         expect(document.body.textContent).not.toContain(menuItem.title);
         expect(document.body.textContent).toContain(secondMenuItem.title);
+
+        const selectedCategorySummary = document.querySelector('[data-testid="menu-selected-category-summary"]');
+        expect(selectedCategorySummary?.textContent ?? '').toContain(secondCategory.name);
+        expect(selectedCategorySummary?.textContent ?? '').toContain('1 блюдо');
     });
 
     it('filters the catalog to locally selected favorites', async () => {
