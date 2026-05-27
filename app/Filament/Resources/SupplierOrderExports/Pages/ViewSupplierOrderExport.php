@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SupplierOrderExports\Pages;
 
 use App\Filament\Resources\Concerns\HasCleanResourceBreadcrumbs;
 use App\Filament\Resources\SupplierOrderExports\Actions\DownloadSupplierOrderExportCsvAction;
+use App\Filament\Resources\SupplierOrderExports\Actions\DownloadSupplierOrderExportXlsxAction;
 use App\Filament\Resources\SupplierOrderExports\SupplierOrderExportResource;
 use Filament\Resources\Pages\ViewRecord;
 
@@ -21,6 +22,7 @@ class ViewSupplierOrderExport extends ViewRecord
     {
         return [
             DownloadSupplierOrderExportCsvAction::make(),
+            DownloadSupplierOrderExportXlsxAction::make(),
         ];
     }
 }

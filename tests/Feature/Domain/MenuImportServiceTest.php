@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -387,6 +388,7 @@ class MenuImportServiceTest extends TestCase
     }
 
     #[Test]
+    #[RunInSeparateProcess]
     public function successful_xlsx_import_creates_menu_items(): void
     {
         Storage::fake('local');
@@ -396,24 +398,29 @@ class MenuImportServiceTest extends TestCase
         }
 
         $spreadsheet = new Spreadsheet;
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->fromArray([
-            ['category', 'name', 'price'],
-            ['Супы', 'Рассольник', 230],
-        ]);
-        (new Xlsx($spreadsheet))->save($path);
 
-        $import = app(MenuImportService::class)->importStoredFile(
-            storedPath: 'menu-imports/menu.xlsx',
-            originalFilename: 'menu.xlsx',
-            importedBy: User::factory()->create(),
-        );
+        try {
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->fromArray([
+                ['category', 'name', 'price'],
+                ['Супы', 'Рассольник', 230],
+            ]);
+            (new Xlsx($spreadsheet))->save($path);
 
-        $this->assertSame(MenuImportStatus::Imported, $import->status);
-        $this->assertDatabaseHas('menu_items', [
-            'title' => 'Рассольник',
-            'price' => 230,
-        ]);
+            $import = app(MenuImportService::class)->importStoredFile(
+                storedPath: 'menu-imports/menu.xlsx',
+                originalFilename: 'menu.xlsx',
+                importedBy: User::factory()->create(),
+            );
+
+            $this->assertSame(MenuImportStatus::Imported, $import->status);
+            $this->assertDatabaseHas('menu_items', [
+                'title' => 'Рассольник',
+                'price' => 230,
+            ]);
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
     }
 
     /**

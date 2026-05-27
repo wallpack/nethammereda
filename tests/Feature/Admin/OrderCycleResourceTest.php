@@ -27,6 +27,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -385,6 +386,31 @@ class OrderCycleResourceTest extends TestCase
                 "supplier-order-cycle-{$cycle->id}.csv",
                 content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Тестов Т.Т.\";\"Test Dish full name (260 г)\";100;1;100\n",
                 contentType: 'text/csv; charset=UTF-8',
+            );
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    public function direct_cycle_xlsx_export_downloads_formatted_file(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Closed);
+        $user = User::factory()->create([
+            'name' => 'Administrator',
+            'full_name' => 'Тестов Т.Т.',
+            'email' => 'admin@lunch.local',
+        ]);
+        $orderItem = $this->createOrderItem($cycle, OrderStatus::Submitted, $user);
+        $orderItem->forceFill([
+            'title_snapshot' => 'Test Dish',
+            'supplier_name_snapshot' => 'Test Dish full name (260 г)',
+        ])->save();
+
+        Livewire::test(ListOrderCycles::class)
+            ->callAction(TestAction::make('exportXlsx')->table($cycle))
+            ->assertFileDownloaded(
+                "supplier-order-cycle-{$cycle->id}.xlsx",
+                contentType: SupplierOrderExportService::xlsxMimeType(),
             );
     }
 

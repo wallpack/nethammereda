@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\SupplierOrderExports\Tables;
 
 use App\Filament\Resources\SupplierOrderExports\Actions\DownloadSupplierOrderExportCsvAction;
+use App\Filament\Resources\SupplierOrderExports\Actions\DownloadSupplierOrderExportXlsxAction;
 use App\Models\SupplierOrderExport;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -61,6 +62,7 @@ class SupplierOrderExportsTable
                 ViewAction::make()
                     ->label('Открыть'),
                 DownloadSupplierOrderExportCsvAction::make(),
+                DownloadSupplierOrderExportXlsxAction::make(),
             ])
             ->emptyStateHeading('Отправок поставщику пока нет')
             ->emptyStateDescription('История появится здесь после действия «Отправить поставщику» в недельном цикле.');

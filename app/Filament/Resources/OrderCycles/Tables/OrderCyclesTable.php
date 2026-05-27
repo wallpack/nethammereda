@@ -139,6 +139,22 @@ class OrderCyclesTable
                             ['Content-Type' => 'text/csv; charset=UTF-8'],
                         );
                     }),
+                Action::make('exportXlsx')
+                    ->label('Экспорт XLSX')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(function (OrderCycle $record) {
+                        $xlsx = app(SupplierOrderExportService::class)->xlsxForCycle($record);
+
+                        $filename = "supplier-order-cycle-{$record->id}.xlsx";
+
+                        return response()->streamDownload(
+                            function () use ($xlsx): void {
+                                echo $xlsx;
+                            },
+                            $filename,
+                            ['Content-Type' => SupplierOrderExportService::xlsxMimeType()],
+                        );
+                    }),
                 DeleteAction::make()
                     ->label('Удалить'),
             ])

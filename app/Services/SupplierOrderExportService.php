@@ -12,10 +12,15 @@ use App\Models\SupplierOrderExport;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class SupplierOrderExportService
 {
     private const CSV_DELIMITER = ';';
+    private const XLSX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    private const EXPORT_HEADERS = ['ФИО', 'Наименование', 'Цена', 'количество', 'Сумма'];
 
     public function sendToSupplier(OrderCycle $cycle, ?User $exportedBy = null, string $format = 'csv'): SupplierOrderExport
     {
@@ -190,6 +195,21 @@ class SupplierOrderExportService
         return $this->csvFromRows($export->snapshotRows());
     }
 
+    public function xlsxForCycle(OrderCycle $cycle): string
+    {
+        return $this->xlsxFromRows($this->snapshotForCycle($cycle)['rows']);
+    }
+
+    public function xlsxForExport(SupplierOrderExport $export): string
+    {
+        return $this->xlsxFromRows($export->snapshotRows());
+    }
+
+    public static function xlsxMimeType(): string
+    {
+        return self::XLSX_MIME_TYPE;
+    }
+
     /**
      * @param  iterable<int, array{
      *     full_name?: mixed,
@@ -239,6 +259,90 @@ class SupplierOrderExportService
         fclose($handle);
 
         return $contents === false ? '' : $contents;
+    }
+
+    /**
+     * @param  iterable<int, array{
+     *     full_name?: mixed,
+     *     title?: mixed,
+     *     supplier_name?: mixed,
+     *     catalog_title?: mixed,
+     *     unit_price?: mixed,
+     *     quantity?: mixed,
+     *     total_price?: mixed
+     * }>  $rows
+     */
+    private function xlsxFromRows(iterable $rows): string
+    {
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $content = null;
+
+        try {
+            $sheet->setCellValueExplicit('A1', self::EXPORT_HEADERS[0], DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('B1', self::EXPORT_HEADERS[1], DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('C1', self::EXPORT_HEADERS[2], DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('D1', self::EXPORT_HEADERS[3], DataType::TYPE_STRING);
+            $sheet->setCellValueExplicit('E1', self::EXPORT_HEADERS[4], DataType::TYPE_STRING);
+
+            $sheet->getColumnDimension('A')->setWidth(24);
+            $sheet->getColumnDimension('B')->setWidth(75);
+            $sheet->getColumnDimension('C')->setWidth(12);
+            $sheet->getColumnDimension('D')->setWidth(14);
+            $sheet->getColumnDimension('E')->setWidth(14);
+            $sheet->freezePane('A2');
+            $sheet->getStyle('A1:E1')->getFont()->setBold(true);
+
+            $rowNumber = 2;
+            $totalSum = 0.0;
+
+            foreach ($rows as $row) {
+                $nameForSupplier = $this->supplierNameForExport(
+                    is_scalar($row['supplier_name'] ?? null) ? (string) $row['supplier_name'] : null,
+                    is_scalar($row['title'] ?? null) ? (string) $row['title'] : null,
+                    is_scalar($row['catalog_title'] ?? null) ? (string) $row['catalog_title'] : null,
+                    null,
+                );
+                $quantity = (int) ($row['quantity'] ?? 0);
+                $unitPrice = round((float) ($row['unit_price'] ?? 0), 2);
+                $sum = array_key_exists('total_price', $row)
+                    ? round((float) ($row['total_price'] ?? 0), 2)
+                    : round($unitPrice * $quantity, 2);
+
+                $sheet->setCellValueExplicit("A{$rowNumber}", (string) ($row['full_name'] ?? ''), DataType::TYPE_STRING);
+                $sheet->setCellValueExplicit("B{$rowNumber}", $nameForSupplier, DataType::TYPE_STRING);
+                $sheet->setCellValue("C{$rowNumber}", $unitPrice);
+                $sheet->setCellValue("D{$rowNumber}", $quantity);
+                $sheet->setCellValue("E{$rowNumber}", $sum);
+
+                $totalSum += $sum;
+                $rowNumber++;
+            }
+
+            $totalRow = $rowNumber;
+            $sheet->setCellValueExplicit("D{$totalRow}", 'Итого', DataType::TYPE_STRING);
+            $sheet->setCellValue("E{$totalRow}", round($totalSum, 2));
+            $lastDataRow = max(1, $totalRow - 1);
+            $sheet->setAutoFilter("A1:E{$lastDataRow}");
+
+            $sheet->getStyle("B2:B{$totalRow}")->getAlignment()->setWrapText(true);
+            $sheet->getStyle("C2:C{$totalRow}")
+                ->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle("E2:E{$totalRow}")
+                ->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle("D{$totalRow}:E{$totalRow}")->getFont()->setBold(true);
+
+            $writer = new Xlsx($spreadsheet);
+            ob_start();
+            $writer->save('php://output');
+            $content = ob_get_clean();
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+
+        return is_string($content) ? $content : '';
     }
 
     private function escapeCsvCell(string $value): string

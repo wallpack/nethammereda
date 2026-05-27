@@ -13,7 +13,9 @@ use App\Models\OrderItem;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class SupplierOrderExportServiceTest extends TestCase
@@ -353,6 +355,66 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $this->assertCount(5, str_getcsv($lines[1], ';'));
         $this->assertSame(1, count(str_getcsv($lines[1], ',')));
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    public function supplier_order_xlsx_has_expected_formatting_and_totals_row(): void
+    {
+        $cycle = $this->createCycle();
+        $user = User::factory()->create([
+            'full_name' => 'Ivanov I.I.',
+            'name' => 'Ivanov',
+            'email' => 'ivanov@example.com',
+        ]);
+        $this->createOrderItem(
+            cycle: $cycle,
+            orderStatus: OrderStatus::Submitted,
+            user: $user,
+            title: 'Very long dish name for wrap text verification in xlsx export',
+            quantity: 2,
+            price: 150,
+            menuSupplierName: 'Very long supplier dish name for wrap text verification in xlsx export',
+            supplierSnapshot: 'Very long supplier dish name for wrap text verification in xlsx export',
+        );
+
+        $xlsx = app(SupplierOrderExportService::class)->xlsxForCycle($cycle);
+
+        $path = tempnam(sys_get_temp_dir(), 'supplier-xlsx-');
+        $this->assertNotFalse($path);
+        file_put_contents($path, $xlsx);
+
+        try {
+            $spreadsheet = IOFactory::load($path);
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $this->assertSame("\u{0424}\u{0418}\u{041E}", (string) $sheet->getCell('A1')->getValue());
+            $this->assertSame("\u{041D}\u{0430}\u{0438}\u{043C}\u{0435}\u{043D}\u{043E}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}", (string) $sheet->getCell('B1')->getValue());
+            $this->assertSame("\u{0426}\u{0435}\u{043D}\u{0430}", (string) $sheet->getCell('C1')->getValue());
+            $this->assertSame("\u{043A}\u{043E}\u{043B}\u{0438}\u{0447}\u{0435}\u{0441}\u{0442}\u{0432}\u{043E}", (string) $sheet->getCell('D1')->getValue());
+            $this->assertSame("\u{0421}\u{0443}\u{043C}\u{043C}\u{0430}", (string) $sheet->getCell('E1')->getValue());
+            $this->assertSame(24.0, $sheet->getColumnDimension('A')->getWidth());
+            $this->assertSame(75.0, $sheet->getColumnDimension('B')->getWidth());
+            $this->assertSame(12.0, $sheet->getColumnDimension('C')->getWidth());
+            $this->assertSame(14.0, $sheet->getColumnDimension('D')->getWidth());
+            $this->assertSame(14.0, $sheet->getColumnDimension('E')->getWidth());
+            $this->assertSame('A2', $sheet->getFreezePane());
+            $this->assertSame('A1:E2', $sheet->getAutoFilter()->getRange());
+            $this->assertTrue($sheet->getStyle('A1')->getFont()->getBold());
+            $this->assertTrue($sheet->getStyle('B2')->getAlignment()->getWrapText());
+            $this->assertStringContainsString('0.00', $sheet->getStyle('C2')->getNumberFormat()->getFormatCode());
+            $this->assertStringContainsString('0.00', $sheet->getStyle('E2')->getNumberFormat()->getFormatCode());
+            $this->assertSame("\u{0418}\u{0442}\u{043E}\u{0433}\u{043E}", (string) $sheet->getCell('D3')->getValue());
+            $this->assertSame(300.0, (float) $sheet->getCell('E3')->getCalculatedValue());
+        } finally {
+            if (isset($spreadsheet)) {
+                $spreadsheet->disconnectWorksheets();
+            }
+
+            if (is_string($path) && file_exists($path)) {
+                @unlink($path);
+            }
+        }
     }
 
     /**

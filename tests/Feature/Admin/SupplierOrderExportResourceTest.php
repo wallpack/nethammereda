@@ -20,6 +20,7 @@ use App\Services\SupplierOrderExportService;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -90,6 +91,26 @@ class SupplierOrderExportResourceTest extends TestCase
                 "supplier-order-export-{$export->id}.csv",
                 content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Чертова Е.Н.\";\"Stored Soup full name (260 г)\";120;2;240\n",
                 contentType: 'text/csv; charset=UTF-8',
+            );
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    public function xlsx_download_action_is_available_and_downloads_file(): void
+    {
+        $this->actingAsAdmin();
+        [$export] = $this->createSupplierExportWithOrderItem(
+            title: 'Stored Soup',
+            quantity: 2,
+            price: 120,
+            supplierName: 'Stored Soup full name (260 г)',
+        );
+
+        Livewire::test(ListSupplierOrderExports::class)
+            ->callAction(TestAction::make('downloadXlsx')->table($export))
+            ->assertFileDownloaded(
+                "supplier-order-export-{$export->id}.xlsx",
+                contentType: SupplierOrderExportService::xlsxMimeType(),
             );
     }
 
