@@ -54,13 +54,29 @@ class TelegramBotFlowTest extends TestCase
         $this->assertContains('Холодильник', $labels);
         $this->assertContains('История', $labels);
         $this->assertContains('Помощь', $labels);
-        $this->assertSame(
-            'https://lunch.example.test',
-            $keyboard[0][0]['web_app']['url'] ?? null,
-        );
+        $this->assertArrayNotHasKey('web_app', $keyboard[0][0] ?? []);
         $this->assertDatabaseMissing('users', [
             'telegram_id' => '777',
         ]);
+    }
+
+    #[Test]
+    public function open_menu_reply_button_text_uses_the_same_webapp_flow_as_menu_command(): void
+    {
+        config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
+
+        $bot = new CapturingTelegramBot;
+        $handler = $this->handler($bot);
+
+        $handler->handle($this->message('/start', telegramId: 821));
+        $handler->handle($this->message('Открыть меню', telegramId: 821));
+
+        $this->assertCount(2, $bot->messages);
+        $this->assertStringContainsString('Открыть меню', $bot->messages[1]['text']);
+        $this->assertSame(
+            'https://lunch.example.test',
+            $bot->messages[1]['reply_markup']['inline_keyboard'][0][0]['web_app']['url'] ?? null,
+        );
     }
 
     #[Test]
@@ -697,6 +713,7 @@ class TelegramBotFlowTest extends TestCase
             'discarded_at' => $status === FridgeItemStatus::Discarded ? now() : null,
         ]);
     }
+
 }
 
 class CapturingTelegramBot extends BotClient

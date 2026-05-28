@@ -14,14 +14,9 @@ class KeyboardBuilder
      */
     public function menuReplyButton(): array
     {
-        $button = ['text' => $this->menuLabel()];
-        $webAppUrl = $this->secureWebAppUrl();
-
-        if ($webAppUrl !== null) {
-            $button['web_app'] = ['url' => $webAppUrl];
-        }
-
-        return $button;
+        // Reply keyboard button intentionally sends text command.
+        // Telegram may open keyboard-launched Mini Apps without initData.
+        return ['text' => $this->menuLabel()];
     }
 
     /**
