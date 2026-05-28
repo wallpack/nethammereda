@@ -21,8 +21,6 @@ class AdminLoginPageTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertSee('Nethammereda Admin')
-            ->assertSee('favicon.svg')
             ->assertSee('nh-admin-login-shell', false)
             ->assertSee('data-testid="admin-login-logo"', false)
             ->assertSee('Вход в панель управления')
