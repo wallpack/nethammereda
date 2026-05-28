@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+﻿import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import CategorySidebar from './CategorySidebar.vue';
 
@@ -30,7 +30,7 @@ describe('CategorySidebar', () => {
         expectClasses(categoryButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
     });
 
-    it('prepares mobile chip row wrapping without forcing horizontal page overflow', () => {
+    it('keeps categories row wrapping-safe without layout-breaking width classes', () => {
         const wrapper = mount(CategorySidebar, {
             props: {
                 categories: [
@@ -50,7 +50,25 @@ describe('CategorySidebar', () => {
         const nav = wrapper.get('nav');
         const row = wrapper.get('[data-testid="category-chip-row"]');
 
-        expectClasses(nav, ['max-[639px]:overflow-x-clip']);
-        expectClasses(row, ['max-[639px]:w-full', 'max-[639px]:min-w-0', 'max-[639px]:flex-wrap']);
+        expectClasses(nav, ['max-w-full', 'min-w-0']);
+        expectClasses(row, ['flex-wrap', 'max-w-full', 'min-w-0']);
+        expect(row.classes()).not.toEqual(expect.arrayContaining(['w-max', 'min-w-full', 'flex-nowrap']));
+    });
+
+    it('renders one appended favorite chip in the shared flow', () => {
+        const wrapper = mount(CategorySidebar, {
+            props: {
+                categories: [{ id: 1, name: 'Soups' }],
+                items: [{ id: 11, category_id: 1 }],
+                selectedCategory: null,
+            },
+            slots: {
+                append: '<button data-testid="menu-favorites-chip">Избранное</button>',
+            },
+        });
+
+        const favoriteChips = wrapper.findAll('[data-testid="menu-favorites-chip"]');
+
+        expect(favoriteChips).toHaveLength(1);
     });
 });

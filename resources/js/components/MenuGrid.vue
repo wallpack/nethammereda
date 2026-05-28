@@ -199,49 +199,45 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
 
 <template>
     <section class="min-w-0" aria-labelledby="menu-heading">
-        <div class="mb-4 flex flex-col gap-3 sm:mb-5 lg:flex-row lg:items-end lg:justify-between">
-            <div class="min-w-0">
-                <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold tracking-[-0.03em] text-slate-950 outline-none sm:text-3xl">
-                    Каталог
-                </h2>
-                <div class="mt-3">
-                    <CategorySidebar
-                        :loading="loading"
-                        :categories="categories"
-                        :items="items"
-                        :selected-category="selectedCategory"
-                        @update:selected-category="emit('update:selectedCategory', $event)"
-                    />
-                </div>
-            </div>
+        <div class="mb-4 flex flex-col gap-3 sm:mb-5">
+            <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold tracking-[-0.03em] text-slate-950 outline-none sm:text-3xl">
+                Каталог
+            </h2>
+            <CategorySidebar
+                :loading="loading"
+                :categories="categories"
+                :items="items"
+                :selected-category="selectedCategory"
+                @update:selected-category="emit('update:selectedCategory', $event)"
+            >
+                <template #append>
+                    <button
+                        v-if="isAuthenticated"
+                        type="button"
+                        data-testid="menu-favorites-chip"
+                        class="inline-flex h-9 max-w-full flex-none shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 text-[11px] font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] max-[639px]:px-2.5 sm:h-10 sm:px-4 sm:text-sm"
+                        :class="favoritesOnly ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'"
+                        :aria-pressed="favoritesOnly"
+                        @click="emit('toggle-favorites-filter')"
+                    >
+                        <Heart aria-hidden="true" class="size-4" :class="favoritesOnly ? 'fill-current' : ''" />
+                        Избранное
+                        <span v-if="favoritesCount" class="tabular-nums text-xs opacity-75">{{ favoritesCount }}</span>
+                    </button>
+                </template>
+            </CategorySidebar>
 
-            <div class="flex flex-col gap-2 sm:flex-row lg:max-w-md lg:flex-1 lg:justify-end">
-                <label class="relative min-w-0 flex-1 md:hidden">
-                    <span class="sr-only">Найти блюдо</span>
-                    <Search aria-hidden="true" class="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                    <Input
-                        id="menu-search"
-                        v-model="searchModel"
-                        type="search"
-                        placeholder="Название или состав"
-                        class="h-12 rounded-2xl border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
-                    />
-                </label>
-
-                <Button
-                    v-if="isAuthenticated"
-                    type="button"
-                    variant="outline"
-                    class="h-10 rounded-full border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 active:scale-[0.98] sm:h-11"
-                    :class="favoritesOnly ? 'border-blue-200 bg-blue-50 text-blue-700' : ''"
-                    :aria-pressed="favoritesOnly"
-                    @click="emit('toggle-favorites-filter')"
-                >
-                    <Heart aria-hidden="true" class="size-4" :class="favoritesOnly ? 'fill-current' : ''" />
-                    Избранное
-                    <span v-if="favoritesCount" class="tabular-nums text-xs opacity-75">{{ favoritesCount }}</span>
-                </Button>
-            </div>
+            <label class="relative min-w-0 md:hidden">
+                <span class="sr-only">Найти блюдо</span>
+                <Search aria-hidden="true" class="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                <Input
+                    id="menu-search"
+                    v-model="searchModel"
+                    type="search"
+                    placeholder="Название или состав"
+                    class="h-12 rounded-2xl border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                />
+            </label>
         </div>
 
         <div v-if="loading" class="dishes-grid" aria-busy="true" aria-label="Загрузка блюд">

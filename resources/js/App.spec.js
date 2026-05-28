@@ -963,6 +963,35 @@ describe('catalog auth UX', () => {
         expect(selectedCategorySummary?.textContent ?? '').toContain(secondCategory.name);
     });
 
+    it('renders wrapping-safe category chips with one visible favorites chip', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+        });
+
+        const row = document.querySelector('[data-testid="category-chip-row"]');
+        const favoriteChips = document.querySelectorAll('[data-testid="menu-favorites-chip"]');
+        const favoriteChip = favoriteChips[0];
+
+        expect(row).toBeTruthy();
+        expect(row?.className).toContain('flex-wrap');
+        expect(row?.className).toContain('max-w-full');
+        expect(row?.className).toContain('min-w-0');
+        expect(row?.className).not.toContain('w-max');
+        expect(row?.className).not.toContain('min-w-full');
+        expect(row?.className).not.toContain('flex-nowrap');
+
+        expect(favoriteChips).toHaveLength(1);
+        expect(favoriteChip?.textContent).toContain('Избранное');
+        expect(favoriteChip?.className).toContain('whitespace-nowrap');
+        expect(favoriteChip?.className).toContain('shrink-0');
+        expect(favoriteChip?.className).toContain('flex-none');
+        expect(favoriteChip?.className).not.toContain('min-w-max');
+        expect(favoriteChip?.className).not.toContain('w-screen');
+        expect(favoriteChip?.className).not.toContain('overflow-hidden');
+    });
+
     it('filters the catalog to locally selected favorites', async () => {
         await mountApp({
             authenticated: true,
