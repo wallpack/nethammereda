@@ -27,9 +27,24 @@ class TelegramSiteLoginWebTest extends TestCase
     {
         $this->get('/auth/telegram')
             ->assertOk()
+            ->assertSee('<title>Nethammereda — вход через Telegram</title>', false)
+            ->assertSee('Вход через Telegram')
+            ->assertSee('Быстрый вход в Nethammereda')
+            ->assertDontSee('Используйте официальный Telegram Login Widget.')
+            ->assertSee('Вернуться на сайт')
+            ->assertSee('data-testid="telegram-login-logo-mark"', false)
             ->assertSee('telegram-widget.js', false)
             ->assertSee('data-telegram-login="lunch_demo_bot"', false)
             ->assertSee('/auth/telegram/callback', false);
+    }
+
+    #[Test]
+    public function main_app_page_uses_branded_title_and_does_not_load_telegram_script_on_boot(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('<title>Nethammereda — корпоративное питание</title>', false)
+            ->assertDontSee('https://telegram.org/js/telegram-web-app.js');
     }
 
     #[Test]

@@ -556,18 +556,21 @@ describe('catalog auth UX', () => {
 
         expect(document.querySelector('[data-testid="week-status-loading"]')).toBeNull();
         expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+        expect(document.querySelector('script[src*="telegram-widget.js"], script[src*="telegram-web-app.js"]')).toBeNull();
         expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
         expect(requestCount(fetchMock, '/auth/telegram-login')).toBe(0);
     });
 
-    it('keeps email/password login modal and disables site telegram login in safe mode', async () => {
+    it('keeps email/password login modal and links telegram login to isolated page', async () => {
         const { fetchMock } = await mountApp();
 
         await click(buttonByText('Войти'));
 
         expect(document.querySelector('#auth-modal-email')).toBeTruthy();
         expect(document.querySelector('#auth-modal-password')).toBeTruthy();
-        expect(document.querySelector('[data-testid="telegram-site-login-button"]')).toBeNull();
+        const telegramLink = document.querySelector('[data-testid="telegram-site-login-link"]');
+        expect(telegramLink).toBeTruthy();
+        expect(telegramLink?.getAttribute('href')).toBe('/auth/telegram');
         expect(document.querySelector('[data-testid="telegram-site-login-disabled"]')?.textContent)
             .toContain('Вход через Telegram временно недоступен');
         expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
