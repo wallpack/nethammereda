@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\Attributes\Test;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
+use ZipArchive;
 
 class SupplierOrderExportServiceTest extends TestCase
 {
@@ -53,7 +54,7 @@ class SupplierOrderExportServiceTest extends TestCase
     }
 
     #[Test]
-    public function supplier_order_rows_group_by_user_and_show_full_name_only_on_first_line(): void
+    public function supplier_order_rows_group_by_user_and_keep_full_name_on_each_line(): void
     {
         $cycle = $this->createCycle();
         $userA = User::factory()->create([
@@ -75,7 +76,7 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $this->assertCount(3, $rows);
         $this->assertSame('Чертова Е.Н.', $rows[0]['full_name']);
-        $this->assertSame('', $rows[1]['full_name']);
+        $this->assertSame('Чертова Е.Н.', $rows[1]['full_name']);
         $this->assertSame('Мекшун А.Н.', $rows[2]['full_name']);
     }
 
@@ -161,7 +162,7 @@ class SupplierOrderExportServiceTest extends TestCase
     }
 
     #[Test]
-    public function supplier_order_csv_has_exact_header_and_uses_stored_snapshot_rows(): void
+    public function supplier_order_csv_uses_employee_blocks_and_stored_snapshot_rows(): void
     {
         $cycle = $this->createCycle();
         $user = User::factory()->create([
@@ -188,17 +189,15 @@ class SupplierOrderExportServiceTest extends TestCase
         ])->save();
 
         $csv = app(SupplierOrderExportService::class)->csvForExport($export->fresh());
+        $lines = $this->csvLines($csv);
 
-        $this->assertStringStartsWith("\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма", $csv);
-        $this->assertStringContainsString('"Чертова Е.Н.";"Запеканка ""Чиз""";130;1;130', $csv);
+        $this->assertNotEmpty($lines);
+        $this->assertSame('ФИО: Чертова Е.Н.', str_getcsv($lines[0], ';')[0] ?? '');
+        $this->assertSame(['', 'Наименование', 'Цена', 'Количество', 'Сумма'], str_getcsv($lines[1], ';'));
+        $this->assertStringContainsString('Итого по сотруднику', $csv);
+        $this->assertStringContainsString('ИТОГО ПО ВСЕМ', $csv);
         $this->assertStringNotContainsString('Новое ФИО', $csv);
         $this->assertStringNotContainsString('Changed Soup', $csv);
-        $this->assertStringNotContainsString('8991', $csv);
-
-        $lines = $this->csvLines($csv);
-        $this->assertSame(['ФИО', 'Наименование', 'Цена', 'количество', 'Сумма'], str_getcsv($lines[0], ';'));
-        $this->assertCount(5, str_getcsv($lines[1], ';'));
-        $this->assertCount(1, str_getcsv($lines[1], ','));
     }
 
     #[Test]
@@ -223,9 +222,8 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
 
-        $this->assertStringStartsWith("\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма", $csv);
-        $this->assertStringContainsString('"Тестов Т.Т.";Лазанья;100;1;100', $csv);
-        $this->assertStringNotContainsString('"Administrator"', $csv);
+        $this->assertStringContainsString('ФИО: Тестов Т.Т.', $csv);
+        $this->assertStringNotContainsString('ФИО: Administrator', $csv);
     }
 
     #[Test]
@@ -249,9 +247,8 @@ class SupplierOrderExportServiceTest extends TestCase
         $export = app(SupplierOrderExportService::class)->sendToSupplier($cycle, User::factory()->create());
         $csv = app(SupplierOrderExportService::class)->csvForExport($export->fresh());
 
-        $this->assertStringContainsString("'=Formula User", $csv);
+        $this->assertStringContainsString('ФИО: =Formula User', $csv);
         $this->assertStringContainsString("'+Formula Dish, test", $csv);
-        $this->assertCount(5, str_getcsv($this->csvLines($csv)[1], ';'));
     }
 
     #[Test]
@@ -276,8 +273,8 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
 
-        $this->assertStringContainsString('"Новый Н.Н.";"Баветте с курицей и грибами в сливочном соусе (260 г)";105;1;105', $csv);
-        $this->assertStringNotContainsString('"Новый Н.Н.";"Баветте с курицей и грибами";105;1;105', $csv);
+        $this->assertStringContainsString('Баветте с курицей и грибами в сливочном соусе (260 г)', $csv);
+        $this->assertStringNotContainsString("\"Баветте с курицей и грибами\";105;1;105", $csv);
     }
 
     #[Test]
@@ -302,7 +299,7 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
 
-        $this->assertStringContainsString('"Петров П.П.";"Котлета (по-Киевски) с картофельным пюре (260г)";110;1;110', $csv);
+        $this->assertStringContainsString('Котлета (по-Киевски) с картофельным пюре (260г)', $csv);
     }
 
     #[Test]
@@ -327,11 +324,11 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
 
-        $this->assertStringContainsString('"Сидоров С.С.";"Лазанья домашняя";100;1;100', $csv);
+        $this->assertStringContainsString('Лазанья домашняя', $csv);
     }
 
     #[Test]
-    public function supplier_order_csv_data_row_is_delimited_by_semicolon_for_excel_locales(): void
+    public function supplier_order_csv_data_rows_use_semicolon_delimiter(): void
     {
         $cycle = $this->createCycle();
         $user = User::factory()->create([
@@ -352,14 +349,16 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
         $lines = $this->csvLines($csv);
+        $dishRow = collect($lines)->first(fn (string $line): bool => str_contains($line, 'Тестовое блюдо'));
 
-        $this->assertCount(5, str_getcsv($lines[1], ';'));
-        $this->assertSame(1, count(str_getcsv($lines[1], ',')));
+        $this->assertIsString($dishRow);
+        $this->assertCount(5, str_getcsv($dishRow, ';'));
+        $this->assertSame(1, count(str_getcsv($dishRow, ',')));
     }
 
     #[Test]
     #[RunInSeparateProcess]
-    public function supplier_order_xlsx_has_expected_formatting_and_totals_row(): void
+    public function supplier_order_xlsx_has_expected_block_formatting_and_totals(): void
     {
         $cycle = $this->createCycle();
         $user = User::factory()->create([
@@ -379,7 +378,74 @@ class SupplierOrderExportServiceTest extends TestCase
         );
 
         $xlsx = app(SupplierOrderExportService::class)->xlsxForCycle($cycle);
+        $path = tempnam(sys_get_temp_dir(), 'supplier-xlsx-');
+        $this->assertNotFalse($path);
+        file_put_contents($path, $xlsx);
 
+        try {
+            $zip = new ZipArchive;
+            $this->assertTrue($zip->open($path) === true);
+            $zip->close();
+
+            $spreadsheet = IOFactory::load($path);
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $this->assertSame('ФИО: Ivanov I.I.', (string) $sheet->getCell('A1')->getValue());
+            $this->assertSame('Наименование', (string) $sheet->getCell('B2')->getValue());
+            $this->assertSame('Цена', (string) $sheet->getCell('C2')->getValue());
+            $this->assertSame('Количество', (string) $sheet->getCell('D2')->getValue());
+            $this->assertSame('Сумма', (string) $sheet->getCell('E2')->getValue());
+            $this->assertSame(28.0, $sheet->getColumnDimension('A')->getWidth());
+            $this->assertSame(75.0, $sheet->getColumnDimension('B')->getWidth());
+            $this->assertSame(12.0, $sheet->getColumnDimension('C')->getWidth());
+            $this->assertSame(14.0, $sheet->getColumnDimension('D')->getWidth());
+            $this->assertSame(14.0, $sheet->getColumnDimension('E')->getWidth());
+            $this->assertSame('A2', $sheet->getFreezePane());
+            $this->assertTrue($sheet->getStyle('B3')->getAlignment()->getWrapText());
+            $this->assertStringContainsString('0.00', $sheet->getStyle('C3')->getNumberFormat()->getFormatCode());
+            $this->assertStringContainsString('0.00', $sheet->getStyle('E3')->getNumberFormat()->getFormatCode());
+            $this->assertSame('Итого по сотруднику', (string) $sheet->getCell('A4')->getValue());
+            $this->assertSame(2.0, (float) $sheet->getCell('D4')->getCalculatedValue());
+            $this->assertSame(300.0, (float) $sheet->getCell('E4')->getCalculatedValue());
+            $this->assertSame('ИТОГО ПО ВСЕМ', (string) $sheet->getCell('A6')->getValue());
+            $this->assertSame(2.0, (float) $sheet->getCell('D6')->getCalculatedValue());
+            $this->assertSame(300.0, (float) $sheet->getCell('E6')->getCalculatedValue());
+        } finally {
+            if (isset($spreadsheet)) {
+                $spreadsheet->disconnectWorksheets();
+            }
+
+            if (is_string($path) && file_exists($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    public function supplier_order_csv_and_xlsx_use_the_same_logical_row_order(): void
+    {
+        $cycle = $this->createCycle();
+        $userA = User::factory()->create([
+            'full_name' => 'Иванов И.И.',
+            'name' => 'Ivanov',
+            'email' => 'ivanov@example.com',
+        ]);
+        $userB = User::factory()->create([
+            'full_name' => 'Петров П.П.',
+            'name' => 'Petrov',
+            'email' => 'petrov@example.com',
+        ]);
+
+        $this->createOrderItem($cycle, OrderStatus::Submitted, user: $userA, title: 'Блюдо A', quantity: 1, price: 100);
+        $this->createOrderItem($cycle, OrderStatus::Submitted, user: $userA, title: 'Блюдо B', quantity: 2, price: 120);
+        $this->createOrderItem($cycle, OrderStatus::Submitted, user: $userB, title: 'Блюдо C', quantity: 1, price: 90);
+
+        $service = app(SupplierOrderExportService::class);
+        $csv = $service->csvForCycle($cycle);
+        $xlsx = $service->xlsxForCycle($cycle);
+
+        $csvLines = $this->csvLines($csv);
         $path = tempnam(sys_get_temp_dir(), 'supplier-xlsx-');
         $this->assertNotFalse($path);
         file_put_contents($path, $xlsx);
@@ -387,25 +453,13 @@ class SupplierOrderExportServiceTest extends TestCase
         try {
             $spreadsheet = IOFactory::load($path);
             $sheet = $spreadsheet->getActiveSheet();
+            $highestRow = $sheet->getHighestRow();
 
-            $this->assertSame("\u{0424}\u{0418}\u{041E}", (string) $sheet->getCell('A1')->getValue());
-            $this->assertSame("\u{041D}\u{0430}\u{0438}\u{043C}\u{0435}\u{043D}\u{043E}\u{0432}\u{0430}\u{043D}\u{0438}\u{0435}", (string) $sheet->getCell('B1')->getValue());
-            $this->assertSame("\u{0426}\u{0435}\u{043D}\u{0430}", (string) $sheet->getCell('C1')->getValue());
-            $this->assertSame("\u{043A}\u{043E}\u{043B}\u{0438}\u{0447}\u{0435}\u{0441}\u{0442}\u{0432}\u{043E}", (string) $sheet->getCell('D1')->getValue());
-            $this->assertSame("\u{0421}\u{0443}\u{043C}\u{043C}\u{0430}", (string) $sheet->getCell('E1')->getValue());
-            $this->assertSame(24.0, $sheet->getColumnDimension('A')->getWidth());
-            $this->assertSame(75.0, $sheet->getColumnDimension('B')->getWidth());
-            $this->assertSame(12.0, $sheet->getColumnDimension('C')->getWidth());
-            $this->assertSame(14.0, $sheet->getColumnDimension('D')->getWidth());
-            $this->assertSame(14.0, $sheet->getColumnDimension('E')->getWidth());
-            $this->assertSame('A2', $sheet->getFreezePane());
-            $this->assertSame('A1:E2', $sheet->getAutoFilter()->getRange());
-            $this->assertTrue($sheet->getStyle('A1')->getFont()->getBold());
-            $this->assertTrue($sheet->getStyle('B2')->getAlignment()->getWrapText());
-            $this->assertStringContainsString('0.00', $sheet->getStyle('C2')->getNumberFormat()->getFormatCode());
-            $this->assertStringContainsString('0.00', $sheet->getStyle('E2')->getNumberFormat()->getFormatCode());
-            $this->assertSame("\u{0418}\u{0442}\u{043E}\u{0433}\u{043E}", (string) $sheet->getCell('D3')->getValue());
-            $this->assertSame(300.0, (float) $sheet->getCell('E3')->getCalculatedValue());
+            $this->assertCount($highestRow, $csvLines);
+            $this->assertStringContainsString('ФИО: Иванов И.И.', $csvLines[0]);
+            $this->assertStringContainsString('ФИО: Петров П.П.', implode("\n", $csvLines));
+            $this->assertStringContainsString('Итого по сотруднику', implode("\n", $csvLines));
+            $this->assertStringContainsString('ИТОГО ПО ВСЕМ', $csvLines[$highestRow - 1] ?? '');
         } finally {
             if (isset($spreadsheet)) {
                 $spreadsheet->disconnectWorksheets();

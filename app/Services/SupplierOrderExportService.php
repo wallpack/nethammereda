@@ -14,13 +14,15 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class SupplierOrderExportService
 {
     private const CSV_DELIMITER = ';';
     private const XLSX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    private const EXPORT_HEADERS = ['ФИО', 'Наименование', 'Цена', 'количество', 'Сумма'];
+    private const ITEM_TABLE_HEADERS = ['Наименование', 'Цена', 'Количество', 'Сумма'];
 
     public function sendToSupplier(OrderCycle $cycle, ?User $exportedBy = null, string $format = 'csv'): SupplierOrderExport
     {
@@ -63,7 +65,7 @@ class SupplierOrderExportService
 
     public function rowsForCycle(OrderCycle $cycle): Collection
     {
-        $rows = OrderItem::query()
+        return OrderItem::query()
             ->selectRaw(
                 'orders.user_id,
                 users.full_name as user_full_name,
@@ -122,16 +124,6 @@ class SupplierOrderExportService
                 ];
             })
             ->values();
-
-        $previousUserId = null;
-
-        return $rows->map(function (array $row) use (&$previousUserId): array {
-            $resolvedName = $row['full_name'];
-            $row['full_name'] = $previousUserId === $row['user_id'] ? '' : $resolvedName;
-            $previousUserId = $row['user_id'];
-
-            return $row;
-        });
     }
 
     /**
@@ -230,28 +222,9 @@ class SupplierOrderExportService
         }
 
         fwrite($handle, "\xEF\xBB\xBF");
-        fputcsv($handle, ['ФИО', 'Наименование', 'Цена', 'количество', 'Сумма'], self::CSV_DELIMITER);
 
-        foreach ($rows as $row) {
-            $nameForSupplier = $this->supplierNameForExport(
-                is_scalar($row['supplier_name'] ?? null) ? (string) $row['supplier_name'] : null,
-                is_scalar($row['title'] ?? null) ? (string) $row['title'] : null,
-                is_scalar($row['catalog_title'] ?? null) ? (string) $row['catalog_title'] : null,
-                null,
-            );
-            $quantity = (int) ($row['quantity'] ?? 0);
-            $unitPrice = round((float) ($row['unit_price'] ?? 0), 2);
-            $sum = array_key_exists('total_price', $row)
-                ? round((float) ($row['total_price'] ?? 0), 2)
-                : round($unitPrice * $quantity, 2);
-
-            fputcsv($handle, [
-                $this->escapeCsvCell((string) ($row['full_name'] ?? '')),
-                $this->escapeCsvCell($nameForSupplier),
-                $this->formatNumber($unitPrice),
-                (string) $quantity,
-                $this->formatNumber($sum),
-            ], self::CSV_DELIMITER);
+        foreach ($this->buildExportRows($rows) as $row) {
+            fputcsv($handle, $this->csvCellsForRow($row), self::CSV_DELIMITER);
         }
 
         rewind($handle);
@@ -279,60 +252,94 @@ class SupplierOrderExportService
         $content = null;
 
         try {
-            $sheet->setCellValueExplicit('A1', self::EXPORT_HEADERS[0], DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('B1', self::EXPORT_HEADERS[1], DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('C1', self::EXPORT_HEADERS[2], DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('D1', self::EXPORT_HEADERS[3], DataType::TYPE_STRING);
-            $sheet->setCellValueExplicit('E1', self::EXPORT_HEADERS[4], DataType::TYPE_STRING);
-
-            $sheet->getColumnDimension('A')->setWidth(24);
+            $sheet->getColumnDimension('A')->setWidth(28);
             $sheet->getColumnDimension('B')->setWidth(75);
             $sheet->getColumnDimension('C')->setWidth(12);
             $sheet->getColumnDimension('D')->setWidth(14);
             $sheet->getColumnDimension('E')->setWidth(14);
             $sheet->freezePane('A2');
-            $sheet->getStyle('A1:E1')->getFont()->setBold(true);
 
-            $rowNumber = 2;
-            $totalSum = 0.0;
+            $rowNumber = 1;
+            $tableStartRow = null;
+            $tableRanges = [];
 
-            foreach ($rows as $row) {
-                $nameForSupplier = $this->supplierNameForExport(
-                    is_scalar($row['supplier_name'] ?? null) ? (string) $row['supplier_name'] : null,
-                    is_scalar($row['title'] ?? null) ? (string) $row['title'] : null,
-                    is_scalar($row['catalog_title'] ?? null) ? (string) $row['catalog_title'] : null,
-                    null,
-                );
+            foreach ($this->buildExportRows($rows) as $row) {
+                $type = (string) ($row['type'] ?? '');
                 $quantity = (int) ($row['quantity'] ?? 0);
-                $unitPrice = round((float) ($row['unit_price'] ?? 0), 2);
-                $sum = array_key_exists('total_price', $row)
-                    ? round((float) ($row['total_price'] ?? 0), 2)
-                    : round($unitPrice * $quantity, 2);
+                $totalPrice = round((float) ($row['total_price'] ?? 0), 2);
 
-                $sheet->setCellValueExplicit("A{$rowNumber}", (string) ($row['full_name'] ?? ''), DataType::TYPE_STRING);
-                $sheet->setCellValueExplicit("B{$rowNumber}", $nameForSupplier, DataType::TYPE_STRING);
-                $sheet->setCellValue("C{$rowNumber}", $unitPrice);
-                $sheet->setCellValue("D{$rowNumber}", $quantity);
-                $sheet->setCellValue("E{$rowNumber}", $sum);
+                if ($type === 'employee_title') {
+                    $sheet->setCellValueExplicit(
+                        "A{$rowNumber}",
+                        'ФИО: '.(string) ($row['full_name'] ?? ''),
+                        DataType::TYPE_STRING,
+                    );
+                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")
+                        ->getFill()
+                        ->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()
+                        ->setARGB('FFEFF6FF');
+                }
 
-                $totalSum += $sum;
+                if ($type === 'table_header') {
+                    $sheet->setCellValueExplicit("B{$rowNumber}", self::ITEM_TABLE_HEADERS[0], DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit("C{$rowNumber}", self::ITEM_TABLE_HEADERS[1], DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit("D{$rowNumber}", self::ITEM_TABLE_HEADERS[2], DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit("E{$rowNumber}", self::ITEM_TABLE_HEADERS[3], DataType::TYPE_STRING);
+                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
+                    $tableStartRow = $rowNumber;
+                }
+
+                if ($type === 'item') {
+                    $sheet->setCellValueExplicit("B{$rowNumber}", (string) ($row['title'] ?? ''), DataType::TYPE_STRING);
+                    $sheet->setCellValue("C{$rowNumber}", round((float) ($row['unit_price'] ?? 0), 2));
+                    $sheet->setCellValue("D{$rowNumber}", $quantity);
+                    $sheet->setCellValue("E{$rowNumber}", $totalPrice);
+                }
+
+                if ($type === 'employee_total') {
+                    $sheet->setCellValueExplicit("A{$rowNumber}", 'Итого по сотруднику', DataType::TYPE_STRING);
+                    $sheet->setCellValue("D{$rowNumber}", $quantity);
+                    $sheet->setCellValue("E{$rowNumber}", $totalPrice);
+                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
+
+                    if (is_int($tableStartRow)) {
+                        $tableRanges[] = "A{$tableStartRow}:E{$rowNumber}";
+                        $tableStartRow = null;
+                    }
+                }
+
+                if ($type === 'grand_total') {
+                    $sheet->setCellValueExplicit("A{$rowNumber}", 'ИТОГО ПО ВСЕМ', DataType::TYPE_STRING);
+                    $sheet->setCellValue("D{$rowNumber}", $quantity);
+                    $sheet->setCellValue("E{$rowNumber}", $totalPrice);
+                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")
+                        ->getFill()
+                        ->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()
+                        ->setARGB('FFF8FAFC');
+                }
+
                 $rowNumber++;
             }
 
-            $totalRow = $rowNumber;
-            $sheet->setCellValueExplicit("D{$totalRow}", 'Итого', DataType::TYPE_STRING);
-            $sheet->setCellValue("E{$totalRow}", round($totalSum, 2));
-            $lastDataRow = max(1, $totalRow - 1);
-            $sheet->setAutoFilter("A1:E{$lastDataRow}");
+            $lastDataRow = max(1, $rowNumber - 1);
+            $sheet->getStyle("B1:B{$lastDataRow}")->getAlignment()->setWrapText(true);
+            $sheet->getStyle("C1:C{$lastDataRow}")
+                ->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle("E1:E{$lastDataRow}")
+                ->getNumberFormat()
+                ->setFormatCode('#,##0.00');
 
-            $sheet->getStyle("B2:B{$totalRow}")->getAlignment()->setWrapText(true);
-            $sheet->getStyle("C2:C{$totalRow}")
-                ->getNumberFormat()
-                ->setFormatCode('#,##0.00');
-            $sheet->getStyle("E2:E{$totalRow}")
-                ->getNumberFormat()
-                ->setFormatCode('#,##0.00');
-            $sheet->getStyle("D{$totalRow}:E{$totalRow}")->getFont()->setBold(true);
+            foreach ($tableRanges as $range) {
+                $sheet->getStyle($range)
+                    ->getBorders()
+                    ->getAllBorders()
+                    ->setBorderStyle(Border::BORDER_THIN);
+            }
 
             $writer = new Xlsx($spreadsheet);
             ob_start();
@@ -357,6 +364,206 @@ class SupplierOrderExportService
         $formatted = number_format($value, 2, '.', '');
 
         return rtrim(rtrim($formatted, '0'), '.');
+    }
+
+    /**
+     * @param  iterable<int, array{
+     *     full_name?: mixed,
+     *     title?: mixed,
+     *     supplier_name?: mixed,
+     *     catalog_title?: mixed,
+     *     unit_price?: mixed,
+     *     quantity?: mixed,
+     *     total_price?: mixed
+     * }>  $rows
+     * @return array<int, array{
+     *     type: string,
+     *     full_name?: string,
+     *     title?: string,
+     *     unit_price?: float,
+     *     quantity?: int,
+     *     total_price?: float
+     * }>
+     */
+    private function buildExportRows(iterable $rows): array
+    {
+        $normalizedRows = $this->normalizeExportSourceRows($rows);
+        $groups = [];
+        $orderedNames = [];
+        $grandQuantity = 0;
+        $grandTotal = 0.0;
+
+        foreach ($normalizedRows as $row) {
+            $fullName = $row['full_name'];
+
+            if (! array_key_exists($fullName, $groups)) {
+                $groups[$fullName] = [
+                    'items' => [],
+                    'quantity' => 0,
+                    'total_price' => 0.0,
+                ];
+                $orderedNames[] = $fullName;
+            }
+
+            $groups[$fullName]['items'][] = $row;
+            $groups[$fullName]['quantity'] += $row['quantity'];
+            $groups[$fullName]['total_price'] += $row['total_price'];
+            $grandQuantity += $row['quantity'];
+            $grandTotal += $row['total_price'];
+        }
+
+        $exportRows = [];
+
+        foreach ($orderedNames as $fullName) {
+            $group = $groups[$fullName];
+            $exportRows[] = [
+                'type' => 'employee_title',
+                'full_name' => $fullName,
+            ];
+            $exportRows[] = ['type' => 'table_header'];
+
+            foreach ($group['items'] as $item) {
+                $exportRows[] = [
+                    'type' => 'item',
+                    'title' => $item['title'],
+                    'unit_price' => $item['unit_price'],
+                    'quantity' => $item['quantity'],
+                    'total_price' => round((float) $item['total_price'], 2),
+                ];
+            }
+
+            $exportRows[] = [
+                'type' => 'employee_total',
+                'quantity' => (int) $group['quantity'],
+                'total_price' => round((float) $group['total_price'], 2),
+            ];
+            $exportRows[] = ['type' => 'separator'];
+        }
+
+        $exportRows[] = [
+            'type' => 'grand_total',
+            'quantity' => $grandQuantity,
+            'total_price' => round($grandTotal, 2),
+        ];
+
+        return $exportRows;
+    }
+
+    /**
+     * @param  iterable<int, array{
+     *     full_name?: mixed,
+     *     title?: mixed,
+     *     supplier_name?: mixed,
+     *     catalog_title?: mixed,
+     *     unit_price?: mixed,
+     *     quantity?: mixed,
+     *     total_price?: mixed
+     * }>  $rows
+     * @return array<int, array{
+     *     full_name: string,
+     *     title: string,
+     *     unit_price: float,
+     *     quantity: int,
+     *     total_price: float
+     * }>
+     */
+    private function normalizeExportSourceRows(iterable $rows): array
+    {
+        $normalized = [];
+        $previousFullName = null;
+
+        foreach ($rows as $row) {
+            $nameForSupplier = $this->supplierNameForExport(
+                is_scalar($row['supplier_name'] ?? null) ? (string) $row['supplier_name'] : null,
+                is_scalar($row['title'] ?? null) ? (string) $row['title'] : null,
+                is_scalar($row['catalog_title'] ?? null) ? (string) $row['catalog_title'] : null,
+                null,
+            );
+            $currentFullName = is_scalar($row['full_name'] ?? null)
+                ? $this->trimToNullable((string) $row['full_name'])
+                : null;
+
+            if ($currentFullName !== null) {
+                $previousFullName = $currentFullName;
+            }
+
+            $fullName = $currentFullName ?? $previousFullName ?? 'Пользователь';
+            $quantity = max(0, (int) ($row['quantity'] ?? 0));
+            $unitPrice = round((float) ($row['unit_price'] ?? 0), 2);
+            $sum = array_key_exists('total_price', $row)
+                ? round((float) ($row['total_price'] ?? 0), 2)
+                : round($unitPrice * $quantity, 2);
+
+            $normalized[] = [
+                'full_name' => $fullName,
+                'title' => $nameForSupplier,
+                'unit_price' => $unitPrice,
+                'quantity' => $quantity,
+                'total_price' => $sum,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param  array{
+     *     type: string,
+     *     full_name?: string,
+     *     title?: string,
+     *     unit_price?: float,
+     *     quantity?: int,
+     *     total_price?: float
+     * }  $row
+     * @return array{0: string, 1: string, 2: string, 3: string, 4: string}
+     */
+    private function csvCellsForRow(array $row): array
+    {
+        $type = (string) ($row['type'] ?? '');
+        $quantity = isset($row['quantity']) ? (string) ((int) $row['quantity']) : '';
+        $total = isset($row['total_price']) ? $this->formatNumber((float) $row['total_price']) : '';
+        $unitPrice = isset($row['unit_price']) ? $this->formatNumber((float) $row['unit_price']) : '';
+
+        $cells = match ($type) {
+            'employee_title' => [
+                'ФИО: '.(string) ($row['full_name'] ?? ''),
+                '',
+                '',
+                '',
+                '',
+            ],
+            'table_header' => [
+                '',
+                self::ITEM_TABLE_HEADERS[0],
+                self::ITEM_TABLE_HEADERS[1],
+                self::ITEM_TABLE_HEADERS[2],
+                self::ITEM_TABLE_HEADERS[3],
+            ],
+            'item' => [
+                '',
+                (string) ($row['title'] ?? ''),
+                $unitPrice,
+                $quantity,
+                $total,
+            ],
+            'employee_total' => [
+                'Итого по сотруднику',
+                '',
+                '',
+                $quantity,
+                $total,
+            ],
+            'grand_total' => [
+                'ИТОГО ПО ВСЕМ',
+                '',
+                '',
+                $quantity,
+                $total,
+            ],
+            default => ['', '', '', '', ''],
+        };
+
+        return array_map(fn (string $value): string => $this->escapeCsvCell($value), $cells);
     }
 
     private function displayNameForExport(int $userId, ?string $fullName, ?string $name, ?string $email): string

@@ -89,7 +89,7 @@ class SupplierOrderExportResourceTest extends TestCase
             ->callAction(TestAction::make('downloadCsv')->table($export))
             ->assertFileDownloaded(
                 "supplier-order-export-{$export->id}.csv",
-                content: "\xEF\xBB\xBFФИО;Наименование;Цена;количество;Сумма\n\"Чертова Е.Н.\";\"Stored Soup full name (260 г)\";120;2;240\n",
+                content: "\xEF\xBB\xBF\"ФИО: Чертова Е.Н.\";;;;\n;Наименование;Цена;Количество;Сумма\n;\"Stored Soup full name (260 г)\";120;2;240\n\"Итого по сотруднику\";;;2;240\n;;;;\n\"ИТОГО ПО ВСЕМ\";;;2;240\n",
                 contentType: 'text/csv; charset=UTF-8',
             );
     }
