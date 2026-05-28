@@ -139,7 +139,19 @@ const createFetchMock = ({
     telegramLinkTokenStatus = 201,
     telegramLinkTokenMessage = 'Не удалось подготовить ссылку Telegram.',
     telegramLinkTokenPending = false,
+    telegramLoginConfig = {
+        bot_username: 'lunch_demo_bot',
+        login_available: true,
+    },
+    telegramSiteLoginStatus = 200,
+    telegramSiteLoginMessage = 'Не удалось войти через Telegram. Попробуйте ещё раз.',
+    telegramSiteLoginUser = {
+        ...user,
+        telegram_id: '9001',
+        name: 'Telegram User',
+    },
 } = {}) => {
+    let isAuthenticated = authenticated;
     let currentOrder = order;
     let currentFridgeItems = [...fridgeItems];
     let currentUser = { ...authenticatedUser };
@@ -148,10 +160,41 @@ const createFetchMock = ({
         const path = String(input).replace('/api', '');
         const method = options.method ?? 'GET';
 
+        if (path === '/auth/telegram-login/config' && method === 'GET') {
+            return jsonResponse({ data: telegramLoginConfig });
+        }
+
         if (path === '/me') {
-            return authenticated
+            return isAuthenticated
                 ? jsonResponse({ data: currentUser })
                 : jsonResponse({ message: 'Unauthenticated.' }, 401);
+        }
+
+        if (path === '/auth/telegram-login' && method === 'POST') {
+            if (telegramSiteLoginStatus >= 400) {
+                return jsonResponse({ message: telegramSiteLoginMessage }, telegramSiteLoginStatus);
+            }
+
+            isAuthenticated = true;
+            currentUser = { ...telegramSiteLoginUser };
+
+            return jsonResponse({
+                data: {
+                    token: 'telegram-site-token',
+                    user: currentUser,
+                },
+            });
+        }
+
+        if (path === '/auth/login' && method === 'POST') {
+            isAuthenticated = true;
+
+            return jsonResponse({
+                data: {
+                    token: 'web-login-token',
+                    user: currentUser,
+                },
+            });
         }
 
         if (path === '/me/profile' && method === 'PATCH') {
@@ -274,8 +317,14 @@ const mountApp = async (options = {}) => {
         telegramInitData = '',
     } = options;
 
+    sessionStorage.removeItem('lunch_mvp_require_full_name');
+
     if (authenticated) {
         localStorage.setItem('lunch_mvp_token', 'test-token');
+    }
+
+    if (telegramInitData) {
+        sessionStorage.setItem('lunch_mvp_require_full_name', '1');
     }
 
     window.Telegram = telegramInitData
@@ -463,6 +512,115 @@ describe('catalog auth UX', () => {
         await click(document.querySelector('[aria-label="Закрыть окно входа"]'));
 
         expect(document.body.textContent).not.toContain('Вход в аккаунт');
+    });
+
+    it('shows telegram login block on login modal and keeps email/password fields', async () => {
+        await mountApp();
+
+        await click(buttonByText('Войти'));
+
+        expect(document.body.textContent).toContain('Войти через Telegram');
+        expect(document.querySelector('#auth-modal-email')).toBeTruthy();
+        expect(document.querySelector('#auth-modal-password')).toBeTruthy();
+    });
+
+    it('logs in via telegram widget callback and updates auth state', async () => {
+        const { fetchMock } = await mountApp({
+            telegramSiteLoginUser: {
+                ...user,
+                telegram_id: '9550',
+                name: 'Telegram User',
+                full_name: 'Иванов И.И.',
+            },
+        });
+
+        await click(buttonByText('Войти'));
+
+        expect(typeof window.__telegramSiteLoginCallback).toBe('function');
+
+        window.__telegramSiteLoginCallback({
+            id: 9550,
+            first_name: 'Telegram',
+            auth_date: 1717000000,
+            hash: 'test',
+        });
+
+        await flushPromises();
+        await flushPromises();
+
+        expect(postedTo(fetchMock, '/auth/telegram-login')).toBe(true);
+        expect(buttonByText('Иванов И.И.')).toBeTruthy();
+        expect(document.body.textContent).not.toContain('Вход в аккаунт');
+    });
+
+    it('shows friendly telegram login error when widget auth request fails', async () => {
+        await mountApp({
+            telegramSiteLoginStatus: 422,
+        });
+
+        await click(buttonByText('Войти'));
+
+        window.__telegramSiteLoginCallback({
+            id: 9551,
+            first_name: 'Telegram',
+            auth_date: 1717000000,
+            hash: 'bad',
+        });
+
+        await flushPromises();
+        await flushPromises();
+
+        expect(document.body.textContent).toContain('Не удалось войти через Telegram. Попробуйте ещё раз.');
+    });
+
+    it('shows required full-name modal after site telegram login when full_name is empty', async () => {
+        await mountApp({
+            telegramSiteLoginUser: {
+                ...user,
+                telegram_id: '9552',
+                name: 'Telegram User',
+                full_name: null,
+            },
+        });
+
+        await click(buttonByText('Войти'));
+
+        window.__telegramSiteLoginCallback({
+            id: 9552,
+            first_name: 'Telegram',
+            auth_date: 1717000000,
+            hash: 'ok',
+        });
+
+        await flushPromises();
+        await flushPromises();
+
+        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeTruthy();
+    });
+
+    it('does not show required full-name modal after site telegram login when full_name is set', async () => {
+        await mountApp({
+            telegramSiteLoginUser: {
+                ...user,
+                telegram_id: '9553',
+                name: 'Telegram User',
+                full_name: 'Иванов Иван',
+            },
+        });
+
+        await click(buttonByText('Войти'));
+
+        window.__telegramSiteLoginCallback({
+            id: 9553,
+            first_name: 'Telegram',
+            auth_date: 1717000000,
+            hash: 'ok',
+        });
+
+        await flushPromises();
+        await flushPromises();
+
+        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeNull();
     });
 
     it('shows guest cart with auth prompt instead of fake order items', async () => {

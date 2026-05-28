@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MyOrderItemController;
 use App\Http\Controllers\Api\MyProfileController;
 use App\Http\Controllers\Api\PasswordLoginController;
 use App\Http\Controllers\Api\TelegramAuthController;
+use App\Http\Controllers\Api\TelegramLoginController;
 use App\Http\Controllers\Api\TelegramLinkController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Middleware\VerifyTelegramWebhookSecret;
@@ -16,8 +17,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/telegram', [TelegramAuthController::class, 'store'])
     ->middleware('throttle:30,1');
+Route::post('/auth/telegram-login', [TelegramLoginController::class, 'store'])
+    ->middleware('throttle:30,1');
 Route::post('/auth/login', [PasswordLoginController::class, 'store'])
     ->middleware('throttle:10,1');
+Route::get('/auth/telegram-login/config', [TelegramLoginController::class, 'config']);
 Route::post('/telegram/webhook', TelegramWebhookController::class)
     ->middleware(VerifyTelegramWebhookSecret::class);
 

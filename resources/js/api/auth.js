@@ -19,6 +19,14 @@ export const loginWithTelegram = (initData, token = '') => apiRequest('/auth/tel
     body: { init_data: initData },
 });
 
+export const loginWithTelegramWidget = (payload, token = '') => apiRequest('/auth/telegram-login', {
+    method: 'POST',
+    token,
+    body: payload,
+});
+
+export const fetchTelegramLoginConfig = () => apiRequest('/auth/telegram-login/config');
+
 export const logoutUser = (token) => apiRequest('/auth/logout', {
     method: 'POST',
     token,

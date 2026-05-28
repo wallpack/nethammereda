@@ -4,16 +4,20 @@ import {
     fetchMe,
     loginWithPassword,
     loginWithTelegram,
+    loginWithTelegramWidget,
     logoutUser,
     updateMyProfile,
 } from '@/api/auth';
 
 const tokenKey = 'lunch_mvp_token';
+const requireFullNameKey = 'lunch_mvp_require_full_name';
 
 const storedToken = () => localStorage.getItem(tokenKey) ?? sessionStorage.getItem(tokenKey) ?? '';
+const storedRequireFullName = () => sessionStorage.getItem(requireFullNameKey) === '1';
 
 export const useAuthStore = defineStore('auth', () => {
     const token = ref(storedToken());
+    const requireFullName = ref(storedRequireFullName());
     const me = ref(null);
     const email = ref('');
     const password = ref('');
@@ -61,6 +65,17 @@ export const useAuthStore = defineStore('auth', () => {
         token.value = value ?? '';
     };
 
+    const setRequireFullName = (value) => {
+        requireFullName.value = value === true;
+
+        if (requireFullName.value) {
+            sessionStorage.setItem(requireFullNameKey, '1');
+            return;
+        }
+
+        sessionStorage.removeItem(requireFullNameKey);
+    };
+
     const hasTelegramInitData = () => {
         return Boolean(window.Telegram?.WebApp?.initData);
     };
@@ -68,6 +83,11 @@ export const useAuthStore = defineStore('auth', () => {
     const loadMe = async () => {
         const data = await fetchMe(token.value);
         me.value = data.data;
+
+        const fullName = typeof me.value?.full_name === 'string' ? me.value.full_name.trim() : '';
+        if (fullName !== '') {
+            setRequireFullName(false);
+        }
 
         return data;
     };
@@ -81,8 +101,29 @@ export const useAuthStore = defineStore('auth', () => {
 
         const response = await loginWithTelegram(initData, token.value);
         setToken(response.data.token);
+        me.value = response.data.user ?? me.value;
+        setRequireFullName(true);
+
+        const fullName = typeof me.value?.full_name === 'string' ? me.value.full_name.trim() : '';
+        if (fullName !== '') {
+            setRequireFullName(false);
+        }
 
         return true;
+    };
+
+    const authWithTelegramWidget = async (payload) => {
+        const response = await loginWithTelegramWidget(payload, token.value);
+        setToken(response.data.token);
+        me.value = response.data.user ?? me.value;
+        setRequireFullName(true);
+
+        const fullName = typeof me.value?.full_name === 'string' ? me.value.full_name.trim() : '';
+        if (fullName !== '') {
+            setRequireFullName(false);
+        }
+
+        return response;
     };
 
     const authWithPassword = async () => {
@@ -93,6 +134,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         setToken(response.data.token);
         me.value = response.data.user ?? me.value;
+        setRequireFullName(false);
 
         return response;
     };
@@ -108,6 +150,11 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await updateMyProfile({ full_name }, token.value);
             me.value = response.data ?? me.value;
+            const normalized = typeof me.value?.full_name === 'string' ? me.value.full_name.trim() : '';
+
+            if (normalized !== '') {
+                setRequireFullName(false);
+            }
 
             return response;
         } catch (error) {
@@ -120,12 +167,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     const clearAuth = () => {
         setToken('');
+        setRequireFullName(false);
         me.value = null;
         profileError.value = '';
     };
 
     return {
         token,
+        requireFullName,
         me,
         email,
         password,
@@ -140,9 +189,11 @@ export const useAuthStore = defineStore('auth', () => {
         hasTelegramInitData,
         loadMe,
         authWithTelegram,
+        authWithTelegramWidget,
         authWithPassword,
         updateProfile,
         requestLogout,
         clearAuth,
+        setRequireFullName,
     };
 });

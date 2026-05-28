@@ -15,7 +15,7 @@ import OrderPanel from '@/components/OrderPanel.vue';
 import RequiredFullNameModal from '@/components/RequiredFullNameModal.vue';
 import UserProfileModal from '@/components/UserProfileModal.vue';
 import WeekStatus from '@/components/WeekStatus.vue';
-import { createTelegramLinkToken, fetchTelegramLinkStatus } from '@/api/auth';
+import { createTelegramLinkToken, fetchTelegramLinkStatus, fetchTelegramLoginConfig } from '@/api/auth';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
 import { useFridgeStore } from '@/stores/fridge';
@@ -33,6 +33,7 @@ const deadlinePassedLocally = ref(false);
 let deadlineRefreshTimerId = null;
 
 const {
+    requireFullName,
     me,
     email,
     password,
@@ -99,6 +100,10 @@ const telegramLinkStatus = ref({
     bot_link: null,
     bot_username: null,
     link_available: false,
+});
+const telegramLoginConfig = ref({
+    bot_username: null,
+    login_available: false,
 });
 const telegramLinkLoading = ref(false);
 const telegramLinkError = ref('');
@@ -207,7 +212,7 @@ const requiredFullNameModalOpen = computed(() => {
         return false;
     }
 
-    if (!auth.hasTelegramInitData()) {
+    if (!requireFullName.value) {
         return false;
     }
 
@@ -396,6 +401,21 @@ const resetTelegramLinkStatus = () => {
     telegramLinkError.value = '';
 };
 
+const loadTelegramLoginWidgetConfig = async () => {
+    try {
+        const response = await fetchTelegramLoginConfig();
+        telegramLoginConfig.value = {
+            bot_username: response.data?.bot_username ?? null,
+            login_available: Boolean(response.data?.login_available),
+        };
+    } catch {
+        telegramLoginConfig.value = {
+            bot_username: null,
+            login_available: false,
+        };
+    }
+};
+
 const loadTelegramLinkStatus = async () => {
     if (!auth.token) {
         resetTelegramLinkStatus();
@@ -547,6 +567,28 @@ const loginFromTelegram = async () => {
     } finally {
         auth.authLoading = false;
     }
+};
+
+const loginFromTelegramWidget = async (telegramPayload) => {
+    auth.authLoading = true;
+    auth.authError = '';
+    ui.info = '';
+
+    try {
+        await auth.authWithTelegramWidget(telegramPayload);
+        await auth.loadMe();
+        await loadData();
+        ui.activeSidebarTab = 'catalog';
+        closeAuthModal();
+    } catch {
+        auth.authError = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
+    } finally {
+        auth.authLoading = false;
+    }
+};
+
+const handleTelegramWidgetError = () => {
+    auth.authError = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
 };
 
 const logout = async () => {
@@ -813,6 +855,7 @@ onMounted(async () => {
     window.Telegram?.WebApp?.ready();
     window.Telegram?.WebApp?.expand();
 
+    await loadTelegramLoginWidgetConfig();
     await ensureAuth();
     await loadData();
 
@@ -1075,9 +1118,13 @@ onBeforeUnmount(() => {
             :error="authError"
             :message="authModalMessage"
             :show-telegram="auth.hasTelegramInitData()"
+            :telegram-login-available="telegramLoginConfig.login_available"
+            :telegram-bot-username="telegramLoginConfig.bot_username ?? ''"
             @close="closeAuthModal"
             @submit="loginFromWeb"
             @telegram-login="loginFromTelegram"
+            @telegram-widget-auth="loginFromTelegramWidget"
+            @telegram-widget-error="handleTelegramWidgetError"
             @update:email="auth.email = $event"
             @update:password="auth.password = $event"
             @update:remember-me="auth.rememberMe = $event"

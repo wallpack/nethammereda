@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import TelegramLoginWidget from '@/components/TelegramLoginWidget.vue';
 import { Eye, EyeOff, Loader2, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -52,12 +53,22 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    telegramLoginAvailable: {
+        type: Boolean,
+        default: false,
+    },
+    telegramBotUsername: {
+        type: String,
+        default: '',
+    },
 });
 
 const emit = defineEmits([
     'close',
     'submit',
     'telegram-login',
+    'telegram-widget-auth',
+    'telegram-widget-error',
     'update:email',
     'update:password',
     'update:rememberMe',
@@ -204,6 +215,21 @@ const closeWhenChanged = (open) => {
                 >
                     Войти через Telegram
                 </Button>
+
+                <div
+                    v-else-if="telegramLoginAvailable"
+                    class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
+                >
+                    <p class="mb-3 text-center text-sm font-semibold text-slate-800">
+                        Войти через Telegram
+                    </p>
+                    <TelegramLoginWidget
+                        :bot-username="telegramBotUsername"
+                        :disabled="loading"
+                        @auth="emit('telegram-widget-auth', $event)"
+                        @error="emit('telegram-widget-error')"
+                    />
+                </div>
             </DialogContent>
         </DialogPortal>
     </DialogRoot>

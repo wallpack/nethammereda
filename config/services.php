@@ -41,6 +41,7 @@ return [
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
         'webapp_url' => env('TELEGRAM_WEBAPP_URL'),
         'webapp_auth_ttl' => env('TELEGRAM_WEBAPP_AUTH_TTL', 86400),
+        'login_auth_ttl' => env('TELEGRAM_LOGIN_AUTH_TTL', 86400),
         'link_token_ttl_minutes' => env('TELEGRAM_LINK_TOKEN_TTL_MINUTES', 10),
         'verify_ssl' => env('TELEGRAM_VERIFY_SSL', true),
         'ip_resolve' => env('TELEGRAM_IP_RESOLVE', ''),
