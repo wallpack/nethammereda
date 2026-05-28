@@ -204,28 +204,13 @@ class UpdateHandler
     private function handleMenuCommand(int|string $chatId): void
     {
         $webappUrl = trim((string) config('services.telegram.webapp_url'));
-        $secureWebAppUrl = $this->keyboardBuilder->secureWebAppUrl();
+        $menuInlineKeyboard = $this->keyboardBuilder->menuInlineKeyboard();
 
-        if ($secureWebAppUrl !== null) {
+        if ($menuInlineKeyboard !== null) {
             $this->botClient->sendMessage(
                 $chatId,
                 'Открыть меню 🍽️',
-                [
-                    'inline_keyboard' => [
-                        [
-                            [
-                                'text' => 'Открыть меню',
-                                'web_app' => ['url' => $secureWebAppUrl],
-                            ],
-                        ],
-                        [
-                            [
-                                'text' => 'Открыть ссылкой',
-                                'url' => $secureWebAppUrl,
-                            ],
-                        ],
-                    ],
-                ],
+                $menuInlineKeyboard,
             );
 
             return;

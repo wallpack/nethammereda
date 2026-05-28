@@ -69,10 +69,7 @@ class UpdateHandlerTest extends TestCase
             'https://example.localhost.run',
             $message['reply_markup']['inline_keyboard'][0][0]['web_app']['url'] ?? null,
         );
-        $this->assertSame(
-            'https://example.localhost.run',
-            $message['reply_markup']['inline_keyboard'][1][0]['url'] ?? null,
-        );
+        $this->assertCount(1, $message['reply_markup']['inline_keyboard'] ?? []);
     }
 
     #[Test]

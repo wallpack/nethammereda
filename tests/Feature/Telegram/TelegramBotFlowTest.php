@@ -221,6 +221,10 @@ class TelegramBotFlowTest extends TestCase
             'https://lunch.example.test',
             $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['web_app']['url'] ?? null,
         );
+        $this->assertArrayNotHasKey(
+            'url',
+            $bot->messages[0]['reply_markup']['inline_keyboard'][0][0] ?? [],
+        );
         $this->assertDatabaseMissing('users', [
             'telegram_id' => '779',
         ]);

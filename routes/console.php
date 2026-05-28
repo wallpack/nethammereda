@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\FridgeExpiryService;
+use App\Services\Telegram\KeyboardBuilder;
 use App\Services\Telegram\TelegramHttpClientFactory;
 use App\Services\Telegram\UpdateHandler;
 use Illuminate\Foundation\Inspiring;
@@ -130,6 +131,110 @@ Artisan::command('telegram:webhook:clear', function () {
 
     return 0;
 })->purpose('Отключить Telegram webhook');
+
+Artisan::command('telegram:menu-button:info {chat_id?}', function (?string $chatId = null) {
+    $token = (string) config('services.telegram.bot_token');
+
+    if ($token === '') {
+        $this->warn('TELEGRAM_BOT_TOKEN не задан.');
+
+        return 1;
+    }
+
+    $query = [];
+    $chatId = is_string($chatId) ? trim($chatId) : '';
+    if ($chatId !== '') {
+        $query['chat_id'] = $chatId;
+    }
+
+    try {
+        $response = telegram_http_request()
+            ->asJson()
+            ->get("https://api.telegram.org/bot{$token}/getChatMenuButton", $query);
+    } catch (\Throwable $e) {
+        $this->error('Ошибка getChatMenuButton: transport timeout/connection error');
+
+        return 1;
+    }
+
+    if (! $response->ok()) {
+        $this->error("Ошибка getChatMenuButton: HTTP {$response->status()}");
+
+        return 1;
+    }
+
+    $payload = $response->json();
+    if (! is_array($payload) || ! ($payload['ok'] ?? false)) {
+        $this->error('getChatMenuButton вернул некорректный payload');
+
+        return 1;
+    }
+
+    $result = $payload['result'] ?? [];
+    $this->line((string) json_encode(
+        $result,
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+    ));
+
+    return 0;
+})->purpose('Показать текущий Telegram menu button');
+
+Artisan::command('telegram:menu-button:set {chat_id?}', function (?string $chatId = null) {
+    $token = (string) config('services.telegram.bot_token');
+
+    if ($token === '') {
+        $this->warn('TELEGRAM_BOT_TOKEN не задан.');
+
+        return 1;
+    }
+
+    $menuButton = app(KeyboardBuilder::class)->menuButtonPayload();
+    if ($menuButton === null) {
+        $this->warn('services.telegram.webapp_url должен быть валидным HTTPS URL.');
+
+        return 1;
+    }
+
+    $payload = [
+        'menu_button' => $menuButton,
+    ];
+
+    $chatId = is_string($chatId) ? trim($chatId) : '';
+    if ($chatId !== '') {
+        $payload['chat_id'] = $chatId;
+    }
+
+    try {
+        $response = telegram_http_request()
+            ->asJson()
+            ->post("https://api.telegram.org/bot{$token}/setChatMenuButton", $payload);
+    } catch (\Throwable $e) {
+        $this->error('Ошибка setChatMenuButton: transport timeout/connection error');
+
+        return 1;
+    }
+
+    if (! $response->ok()) {
+        $this->error("Ошибка setChatMenuButton: HTTP {$response->status()}");
+
+        return 1;
+    }
+
+    $body = $response->json();
+    if (! is_array($body) || ! ($body['ok'] ?? false)) {
+        $this->error('setChatMenuButton вернул некорректный payload');
+
+        return 1;
+    }
+
+    if ($chatId !== '') {
+        $this->info("Menu button обновлена для chat_id {$chatId}.");
+    } else {
+        $this->info('Menu button по умолчанию обновлена.');
+    }
+
+    return 0;
+})->purpose('Установить Telegram menu button на WebApp');
 
 Artisan::command('telegram:poll {--once}', function () {
     $token = (string) config('services.telegram.bot_token');

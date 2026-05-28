@@ -4,6 +4,7 @@ namespace Tests\Feature\Telegram;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Request;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -61,5 +62,57 @@ class TelegramWebhookSecurityTest extends TestCase
             ->assertExitCode(1);
 
         Http::assertNothingSent();
+    }
+
+    #[Test]
+    public function menu_button_info_returns_current_button_payload(): void
+    {
+        config()->set('services.telegram.bot_token', 'test-bot-token');
+
+        Http::fake([
+            'https://api.telegram.org/bottest-bot-token/getChatMenuButton*' => Http::response([
+                'ok' => true,
+                'result' => [
+                    'type' => 'commands',
+                ],
+            ]),
+        ]);
+
+        $this->artisan('telegram:menu-button:info')
+            ->expectsOutput('{"type":"commands"}')
+            ->assertExitCode(0);
+    }
+
+    #[Test]
+    public function menu_button_set_uses_webapp_payload_with_https_url(): void
+    {
+        config()->set('services.telegram.bot_token', 'test-bot-token');
+        config()->set('services.telegram.webapp_url', 'https://nethammereda.ru');
+
+        Http::fake([
+            'https://api.telegram.org/bottest-bot-token/setChatMenuButton' => Http::response([
+                'ok' => true,
+                'result' => true,
+            ]),
+        ]);
+
+        $this->artisan('telegram:menu-button:set')
+            ->expectsOutput('Menu button по умолчанию обновлена.')
+            ->assertExitCode(0);
+
+        Http::assertSent(function (Request $request): bool {
+            if ($request->url() !== 'https://api.telegram.org/bottest-bot-token/setChatMenuButton') {
+                return false;
+            }
+
+            $menuButton = $request['menu_button'] ?? null;
+            if (! is_array($menuButton)) {
+                return false;
+            }
+
+            return ($menuButton['type'] ?? null) === 'web_app'
+                && ($menuButton['text'] ?? null) === 'Открыть меню'
+                && ($menuButton['web_app']['url'] ?? null) === 'https://nethammereda.ru';
+        });
     }
 }

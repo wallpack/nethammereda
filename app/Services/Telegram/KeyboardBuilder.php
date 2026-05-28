@@ -4,21 +4,77 @@ namespace App\Services\Telegram;
 
 class KeyboardBuilder
 {
+    public function menuLabel(): string
+    {
+        return 'Открыть меню';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function menuReplyButton(): array
+    {
+        $button = ['text' => $this->menuLabel()];
+        $webAppUrl = $this->secureWebAppUrl();
+
+        if ($webAppUrl !== null) {
+            $button['web_app'] = ['url' => $webAppUrl];
+        }
+
+        return $button;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function menuInlineKeyboard(): ?array
+    {
+        $url = $this->secureWebAppUrl();
+
+        if ($url === null) {
+            return null;
+        }
+
+        return [
+            'inline_keyboard' => [
+                [
+                    [
+                        'text' => $this->menuLabel(),
+                        'web_app' => ['url' => $url],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function menuButtonPayload(): ?array
+    {
+        $url = $this->secureWebAppUrl();
+
+        if ($url === null) {
+            return null;
+        }
+
+        return [
+            'type' => 'web_app',
+            'text' => $this->menuLabel(),
+            'web_app' => [
+                'url' => $url,
+            ],
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function navigation(): array
     {
-        $catalogButton = ['text' => 'Открыть меню'];
-        $webAppUrl = $this->secureWebAppUrl();
-
-        if ($webAppUrl !== null) {
-            $catalogButton['web_app'] = ['url' => $webAppUrl];
-        }
-
         return [
             'keyboard' => [
-                [$catalogButton],
+                [$this->menuReplyButton()],
                 [
                     ['text' => 'Мой заказ'],
                     ['text' => 'Холодильник'],
