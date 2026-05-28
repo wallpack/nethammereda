@@ -132,7 +132,7 @@ Artisan::command('telegram:webhook:clear', function () {
     return 0;
 })->purpose('Отключить Telegram webhook');
 
-Artisan::command('telegram:menu-button:info {chat_id?}', function (?string $chatId = null) {
+Artisan::command('telegram:menu-button:info {chat_id?}', function () {
     $token = (string) config('services.telegram.bot_token');
 
     if ($token === '') {
@@ -142,7 +142,7 @@ Artisan::command('telegram:menu-button:info {chat_id?}', function (?string $chat
     }
 
     $query = [];
-    $chatId = is_string($chatId) ? trim($chatId) : '';
+    $chatId = trim((string) ($this->argument('chat_id') ?? ''));
     if ($chatId !== '') {
         $query['chat_id'] = $chatId;
     }
@@ -179,7 +179,7 @@ Artisan::command('telegram:menu-button:info {chat_id?}', function (?string $chat
     return 0;
 })->purpose('Показать текущий Telegram menu button');
 
-Artisan::command('telegram:menu-button:set {chat_id?}', function (?string $chatId = null) {
+Artisan::command('telegram:menu-button:set {chat_id?}', function () {
     $token = (string) config('services.telegram.bot_token');
 
     if ($token === '') {
@@ -199,7 +199,7 @@ Artisan::command('telegram:menu-button:set {chat_id?}', function (?string $chatI
         'menu_button' => $menuButton,
     ];
 
-    $chatId = is_string($chatId) ? trim($chatId) : '';
+    $chatId = trim((string) ($this->argument('chat_id') ?? ''));
     if ($chatId !== '') {
         $payload['chat_id'] = $chatId;
     }
