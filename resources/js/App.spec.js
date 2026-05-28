@@ -121,6 +121,8 @@ const jsonResponse = (payload, status = 200) => Promise.resolve({
 const createFetchMock = ({
     authenticated = false,
     authenticatedUser = user,
+    profilePatchStatus = 200,
+    profilePatchMessage = 'Не удалось обновить профиль.',
     order = emptyOrder,
     currentCycle = cycle,
     fridgeItems = [],
@@ -153,6 +155,10 @@ const createFetchMock = ({
         }
 
         if (path === '/me/profile' && method === 'PATCH') {
+            if (profilePatchStatus >= 400) {
+                return jsonResponse({ message: profilePatchMessage }, profilePatchStatus);
+            }
+
             const payload = options.body ? JSON.parse(options.body) : {};
             const normalizedFullName = typeof payload.full_name === 'string'
                 ? payload.full_name.trim()
@@ -263,11 +269,24 @@ const createFetchMock = ({
 };
 
 const mountApp = async (options = {}) => {
-    const { authenticated = false } = options;
+    const {
+        authenticated = false,
+        telegramInitData = '',
+    } = options;
 
     if (authenticated) {
         localStorage.setItem('lunch_mvp_token', 'test-token');
     }
+
+    window.Telegram = telegramInitData
+        ? {
+            WebApp: {
+                initData: telegramInitData,
+                ready: vi.fn(),
+                expand: vi.fn(),
+            },
+        }
+        : undefined;
 
     const fetchMock = createFetchMock(options);
     global.fetch = fetchMock;
@@ -570,6 +589,83 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Профиль обновлен.');
         expect(document.querySelector('[data-testid="profile-name"]')?.textContent).toContain('Иванов И.И.');
         expect(buttonByText('Иванов И.И.')).toBeTruthy();
+    });
+
+    it('shows required full-name modal for telegram sessions with empty full_name', async () => {
+        await mountApp({
+            authenticated: true,
+            authenticatedUser: {
+                ...user,
+                name: 'Telegram User',
+                full_name: null,
+            },
+            telegramInitData: 'telegram_init_payload',
+        });
+
+        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeTruthy();
+        expect(document.querySelector('[data-testid="required-full-name-title"]')?.textContent).toContain('Введите ФИО');
+        expect(document.querySelector('[data-testid="required-full-name-example"]')?.textContent).toContain('Например: Иванов Иван Иванович');
+        expect(document.querySelector('[data-testid="required-full-name-input"]')?.getAttribute('placeholder')).toBe('Иванов Иван Иванович');
+        expect(document.querySelector('[data-testid="required-full-name-input"]')?.className).toContain('text-center');
+    });
+
+    it('does not show required full-name modal when telegram user already has full_name', async () => {
+        await mountApp({
+            authenticated: true,
+            authenticatedUser: {
+                ...user,
+                full_name: 'Иванов Иван',
+            },
+            telegramInitData: 'telegram_init_payload',
+        });
+
+        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeNull();
+    });
+
+    it('keeps required full-name modal open until a valid full_name is saved', async () => {
+        const { fetchMock } = await mountApp({
+            authenticated: true,
+            authenticatedUser: {
+                ...user,
+                name: 'Telegram User',
+                full_name: null,
+            },
+            telegramInitData: 'telegram_init_payload',
+        });
+
+        const requiredInput = document.querySelector('[data-testid="required-full-name-input"]');
+        await fillInput(requiredInput, 'Иванов');
+        await click(document.querySelector('[data-testid="required-full-name-save"]'));
+
+        expect(document.querySelector('[data-testid="required-full-name-error"]')?.textContent).toContain('Укажите минимум имя и фамилию.');
+        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeTruthy();
+
+        await fillInput(requiredInput, 'Иванов Иван');
+        await click(document.querySelector('[data-testid="required-full-name-save"]'));
+
+        expect(patchedTo(fetchMock, '/me/profile')).toBe(true);
+        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeNull();
+    });
+
+    it('shows api error in required full-name modal when saving fails', async () => {
+        await mountApp({
+            authenticated: true,
+            authenticatedUser: {
+                ...user,
+                name: 'Telegram User',
+                full_name: null,
+            },
+            telegramInitData: 'telegram_init_payload',
+            profilePatchStatus: 422,
+            profilePatchMessage: 'Некорректное ФИО.',
+        });
+
+        const requiredInput = document.querySelector('[data-testid="required-full-name-input"]');
+        await fillInput(requiredInput, 'Иванов Иван');
+        await click(document.querySelector('[data-testid="required-full-name-save"]'));
+
+        expect(document.querySelector('[data-testid="required-full-name-error"]')?.textContent).toContain('Некорректное ФИО.');
+        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeTruthy();
     });
 
     it('shows telegram linked state with open bot action', async () => {

@@ -12,6 +12,7 @@ import MenuGrid from '@/components/MenuGrid.vue';
 import MobileBottomNav from '@/components/MobileBottomNav.vue';
 import MobilePanelSheet from '@/components/MobilePanelSheet.vue';
 import OrderPanel from '@/components/OrderPanel.vue';
+import RequiredFullNameModal from '@/components/RequiredFullNameModal.vue';
 import UserProfileModal from '@/components/UserProfileModal.vue';
 import WeekStatus from '@/components/WeekStatus.vue';
 import { createTelegramLinkToken, fetchTelegramLinkStatus } from '@/api/auth';
@@ -101,6 +102,9 @@ const telegramLinkStatus = ref({
 });
 const telegramLinkLoading = ref(false);
 const telegramLinkError = ref('');
+const requiredFullNameDraft = ref('');
+const requiredFullNameSaving = ref(false);
+const requiredFullNameError = ref('');
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
@@ -189,6 +193,48 @@ const compactOrderStatusText = computed(() => {
 const orderPanelDescription = computed(() => {
     return compactOrderStatusText.value || orderReadOnlyReason.value;
 });
+
+const normalizeFullName = (value) => {
+    if (typeof value !== 'string') {
+        return '';
+    }
+
+    return value.trim().replace(/\s+/g, ' ');
+};
+
+const requiredFullNameModalOpen = computed(() => {
+    if (!isAuthenticated.value) {
+        return false;
+    }
+
+    if (!auth.hasTelegramInitData()) {
+        return false;
+    }
+
+    return normalizeFullName(me.value?.full_name ?? '') === '';
+});
+
+const validateRequiredFullName = (value) => {
+    const normalized = normalizeFullName(value);
+
+    if (normalized === '') {
+        return 'Введите ФИО.';
+    }
+
+    if (normalized.length < 5) {
+        return 'Минимум 5 символов.';
+    }
+
+    if (normalized.length > 120) {
+        return 'Максимум 120 символов.';
+    }
+
+    if (normalized.split(' ').filter(Boolean).length < 2) {
+        return 'Укажите минимум имя и фамилию.';
+    }
+
+    return '';
+};
 
 const parseDeadlineTimestamp = () => {
     if (!cycle.value?.closes_at) {
@@ -313,6 +359,15 @@ watch(
     },
     { immediate: true },
 );
+
+watch(requiredFullNameModalOpen, (open) => {
+    if (!open) {
+        return;
+    }
+
+    requiredFullNameDraft.value = normalizeFullName(me.value?.full_name ?? '');
+    requiredFullNameError.value = '';
+});
 
 const resetProtectedState = () => {
     orderStore.resetOrder();
@@ -532,6 +587,31 @@ const saveProfileFullName = async (fullName) => {
         ui.info = 'Профиль обновлен.';
     } catch {
         // Error text is set in the auth store.
+    }
+};
+
+const saveRequiredFullName = async (fullName) => {
+    if (!auth.token) {
+        return;
+    }
+
+    const validationError = validateRequiredFullName(fullName);
+
+    if (validationError) {
+        requiredFullNameError.value = validationError;
+        return;
+    }
+
+    requiredFullNameSaving.value = true;
+    requiredFullNameError.value = '';
+    auth.profileError = '';
+
+    try {
+        await auth.updateProfile({ full_name: normalizeFullName(fullName) });
+    } catch {
+        requiredFullNameError.value = auth.profileError || 'Не удалось сохранить ФИО.';
+    } finally {
+        requiredFullNameSaving.value = false;
     }
 };
 
@@ -1023,6 +1103,14 @@ onBeforeUnmount(() => {
             @save-full-name="saveProfileFullName"
             @telegram-link="linkTelegramFromProfile"
             @telegram-open-bot="openTelegramBotLink"
+        />
+
+        <RequiredFullNameModal
+            :open="requiredFullNameModalOpen"
+            :saving="requiredFullNameSaving"
+            :error="requiredFullNameError"
+            :initial-value="requiredFullNameDraft"
+            @save="saveRequiredFullName"
         />
     </div>
 </template>
