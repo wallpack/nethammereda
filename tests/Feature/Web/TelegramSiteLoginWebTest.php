@@ -29,10 +29,13 @@ class TelegramSiteLoginWebTest extends TestCase
             ->assertOk()
             ->assertSee('<title>Nethammereda — вход через Telegram</title>', false)
             ->assertSee('Вход через Telegram')
-            ->assertSee('Быстрый вход в Nethammereda')
+            ->assertDontSee('Быстрый вход в Nethammereda')
+            ->assertDontSee('NETHAMMEREDA — КОРПОРАТИВНОЕ ПИТАНИЕ')
             ->assertDontSee('Используйте официальный Telegram Login Widget.')
             ->assertSee('Вернуться на сайт')
-            ->assertSee('data-testid="telegram-login-logo-mark"', false)
+            ->assertDontSee('data-testid="telegram-login-logo-mark"', false)
+            ->assertDontSee('widget-shell', false)
+            ->assertSee('<link rel="icon" type="image/svg+xml" href="/favicon.svg">', false)
             ->assertSee('telegram-widget.js', false)
             ->assertSee('data-telegram-login="lunch_demo_bot"', false)
             ->assertSee('/auth/telegram/callback', false);
@@ -44,6 +47,7 @@ class TelegramSiteLoginWebTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('<title>Nethammereda — корпоративное питание</title>', false)
+            ->assertSee('<link rel="icon" type="image/svg+xml" href="/favicon.svg">', false)
             ->assertDontSee('https://telegram.org/js/telegram-web-app.js');
     }
 
@@ -58,8 +62,8 @@ class TelegramSiteLoginWebTest extends TestCase
 
         $payload = $this->signedWidgetPayload([
             'id' => '91001',
-            'first_name' => 'Иван',
-            'last_name' => 'Петров',
+            'first_name' => 'Ivan',
+            'last_name' => 'Petrov',
             'username' => 'ivan_petrov',
             'auth_date' => (string) now()->timestamp,
         ]);
@@ -85,8 +89,8 @@ class TelegramSiteLoginWebTest extends TestCase
     {
         $payload = $this->signedWidgetPayload([
             'id' => '91005',
-            'first_name' => 'Новый',
-            'last_name' => 'Пользователь',
+            'first_name' => 'New',
+            'last_name' => 'User',
             'auth_date' => (string) now()->timestamp,
         ]);
 
@@ -107,7 +111,7 @@ class TelegramSiteLoginWebTest extends TestCase
     {
         $payload = $this->signedWidgetPayload([
             'id' => '91002',
-            'first_name' => 'Иван',
+            'first_name' => 'Ivan',
             'auth_date' => (string) now()->timestamp,
         ]);
         $payload['hash'] = str_repeat('a', 64);
@@ -126,7 +130,7 @@ class TelegramSiteLoginWebTest extends TestCase
     {
         $payload = $this->signedWidgetPayload([
             'id' => '91003',
-            'first_name' => 'Иван',
+            'first_name' => 'Ivan',
             'auth_date' => (string) now()->subDays(2)->timestamp,
         ]);
 
