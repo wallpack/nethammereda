@@ -15,7 +15,7 @@ import OrderPanel from '@/components/OrderPanel.vue';
 import RequiredFullNameModal from '@/components/RequiredFullNameModal.vue';
 import UserProfileModal from '@/components/UserProfileModal.vue';
 import WeekStatus from '@/components/WeekStatus.vue';
-import { createTelegramLinkToken, fetchTelegramLinkStatus, fetchTelegramLoginConfig } from '@/api/auth';
+import { createTelegramLinkToken, fetchTelegramLinkStatus } from '@/api/auth';
 import { withTimeout } from '@/lib/async';
 import { useAuthStore } from '@/stores/auth';
 import { useCatalogStore } from '@/stores/catalog';
@@ -102,22 +102,12 @@ const telegramLinkStatus = ref({
     bot_username: null,
     link_available: false,
 });
-const telegramLoginConfig = ref({
-    bot_username: null,
-    bot_id: null,
-    login_available: false,
-});
-const telegramLoginConfigLoading = ref(false);
-const telegramLoginConfigLoaded = ref(false);
-const telegramSiteLoginError = ref('');
 const telegramLinkLoading = ref(false);
 const telegramLinkError = ref('');
 const requiredFullNameDraft = ref('');
 const requiredFullNameSaving = ref(false);
 const requiredFullNameError = ref('');
-const telegramLoginConfigTimeoutMs = 5000;
 const telegramLinkStatusTimeoutMs = 4000;
-let telegramLoginConfigRequestPromise = null;
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
@@ -389,27 +379,13 @@ const resetProtectedState = () => {
     reopenedForEditing.value = false;
 };
 
-const resetTelegramLoginConfig = () => {
-    telegramLoginConfig.value = {
-        bot_username: null,
-        bot_id: null,
-        login_available: false,
-    };
-};
-
 const openAuthModal = (message = '') => {
     auth.authError = '';
-    telegramSiteLoginError.value = '';
     ui.openAuthModal(message);
-
-    if (!auth.hasTelegramInitData()) {
-        void loadTelegramLoginWidgetConfig();
-    }
 };
 
 const closeAuthModal = () => {
     auth.authError = '';
-    telegramSiteLoginError.value = '';
     ui.closeAuthModal();
 };
 
@@ -421,47 +397,6 @@ const resetTelegramLinkStatus = () => {
         link_available: false,
     };
     telegramLinkError.value = '';
-};
-
-const loadTelegramLoginWidgetConfig = async ({ force = false } = {}) => {
-    if (telegramLoginConfigRequestPromise) {
-        return telegramLoginConfigRequestPromise;
-    }
-
-    if (telegramLoginConfigLoaded.value && !force) {
-        return telegramLoginConfig.value;
-    }
-
-    telegramLoginConfigLoading.value = true;
-    telegramSiteLoginError.value = '';
-
-    telegramLoginConfigRequestPromise = withTimeout(
-        fetchTelegramLoginConfig(),
-        telegramLoginConfigTimeoutMs,
-        'telegram_login_config_timeout',
-    )
-        .then((response) => {
-            telegramLoginConfig.value = {
-                bot_username: response.data?.bot_username ?? null,
-                bot_id: response.data?.bot_id ?? null,
-                login_available: Boolean(response.data?.login_available),
-            };
-            telegramLoginConfigLoaded.value = true;
-            console.info('telegram_site_login_config_loaded');
-            return telegramLoginConfig.value;
-        })
-        .catch(() => {
-            resetTelegramLoginConfig();
-            telegramLoginConfigLoaded.value = false;
-            telegramSiteLoginError.value = 'Не удалось загрузить вход через Telegram. Попробуйте позже.';
-            return telegramLoginConfig.value;
-        })
-        .finally(() => {
-            telegramLoginConfigLoading.value = false;
-            telegramLoginConfigRequestPromise = null;
-        });
-
-    return telegramLoginConfigRequestPromise;
 };
 
 const loadTelegramLinkStatus = async () => {
@@ -564,6 +499,8 @@ const ensureAuth = async () => {
         }
     }
 
+    await auth.waitForTelegramInitData();
+
     if (auth.hasTelegramInitData()) {
         try {
             const success = await auth.authWithTelegram();
@@ -582,7 +519,6 @@ const ensureAuth = async () => {
 const loginFromWeb = async () => {
     auth.authLoading = true;
     auth.authError = '';
-    telegramSiteLoginError.value = '';
     ui.info = '';
 
     try {
@@ -602,7 +538,6 @@ const loginFromWeb = async () => {
 const loginFromTelegram = async () => {
     auth.authLoading = true;
     auth.authError = '';
-    telegramSiteLoginError.value = '';
     ui.info = '';
 
     try {
@@ -621,41 +556,6 @@ const loginFromTelegram = async () => {
     } finally {
         auth.authLoading = false;
     }
-};
-
-const loginFromTelegramWidget = async (telegramPayload) => {
-    auth.authLoading = true;
-    auth.authError = '';
-    telegramSiteLoginError.value = '';
-    ui.info = '';
-
-    try {
-        await auth.authWithTelegramWidget(telegramPayload);
-        await auth.loadMe();
-        await loadData();
-        ui.activeSidebarTab = 'catalog';
-        closeAuthModal();
-    } catch {
-        telegramSiteLoginError.value = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
-    } finally {
-        auth.authLoading = false;
-    }
-};
-
-const handleTelegramWidgetError = (payload = {}) => {
-    const reason = typeof payload?.reason === 'string' ? payload.reason : '';
-
-    if (
-        reason === 'telegram_script_load_error'
-        || reason === 'telegram_script_timeout'
-        || reason === 'telegram_api_unavailable'
-        || reason === 'telegram_env_unavailable'
-    ) {
-        telegramSiteLoginError.value = 'Не удалось загрузить вход через Telegram. Попробуйте позже.';
-        return;
-    }
-
-    telegramSiteLoginError.value = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
 };
 
 const logout = async () => {
@@ -1184,15 +1084,9 @@ onBeforeUnmount(() => {
             :error="authError"
             :message="authModalMessage"
             :show-telegram="auth.hasTelegramInitData()"
-            :telegram-login-available="telegramLoginConfig.login_available"
-            :telegram-config-loading="telegramLoginConfigLoading"
-            :telegram-bot-id="telegramLoginConfig.bot_id"
-            :telegram-error="telegramSiteLoginError"
             @close="closeAuthModal"
             @submit="loginFromWeb"
             @telegram-login="loginFromTelegram"
-            @telegram-widget-auth="loginFromTelegramWidget"
-            @telegram-widget-error="handleTelegramWidgetError"
             @update:email="auth.email = $event"
             @update:password="auth.password = $event"
             @update:remember-me="auth.rememberMe = $event"

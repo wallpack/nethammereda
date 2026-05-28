@@ -548,147 +548,30 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain('Вход в аккаунт');
     });
 
-    it('loads telegram login config lazily when login modal opens', async () => {
-        const { fetchMock } = await mountApp();
-
-        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
-
-        await click(buttonByText('Войти'));
-
-        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(1);
-        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
-    });
-
-    it('renders catalog and clears loading even when telegram config request fails', async () => {
+    it('renders catalog even when telegram site-login endpoints fail', async () => {
         const { fetchMock } = await mountApp({
             telegramLoginConfigStatus: 503,
+            telegramSiteLoginStatus: 422,
         });
 
         expect(document.querySelector('[data-testid="week-status-loading"]')).toBeNull();
         expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
-
-        await click(buttonByText('Войти'));
-
-        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(1);
-        expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
-            .toContain('Не удалось загрузить вход через Telegram. Попробуйте позже.');
-        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
+        expect(requestCount(fetchMock, '/auth/telegram-login')).toBe(0);
     });
 
-    it('shows exactly one custom telegram login button on login modal and keeps email/password fields', async () => {
-        await mountApp();
+    it('keeps email/password login modal and disables site telegram login in safe mode', async () => {
+        const { fetchMock } = await mountApp();
 
         await click(buttonByText('Войти'));
 
-        const telegramButton = document.querySelector('[data-testid="telegram-site-login-button"]');
-        const visibleTelegramTextCount = (document.body.textContent.match(/Войти через Telegram/g) ?? []).length;
-
-        expect(telegramButton).toBeTruthy();
-        expect(document.querySelectorAll('[data-testid="telegram-site-login-button"]')).toHaveLength(1);
-        expect(document.body.textContent).toContain('Войти через Telegram');
-        expect(visibleTelegramTextCount).toBe(1);
         expect(document.querySelector('#auth-modal-email')).toBeTruthy();
         expect(document.querySelector('#auth-modal-password')).toBeTruthy();
-    });
-
-    it('shows friendly telegram loading error when widget script fails', async () => {
-        await mountApp();
-
-        const appendSpy = vi.spyOn(document.head, 'appendChild').mockImplementation((node) => {
-            if (node && typeof node.onerror === 'function') {
-                node.onerror(new Event('error'));
-            }
-
-            return node;
-        });
-
-        await click(buttonByText('Войти'));
-        await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
-
-        await flushPromises();
-        await flushPromises();
-
-        expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
-            .toContain('Не удалось загрузить вход через Telegram. Попробуйте позже.');
-
-        appendSpy.mockRestore();
-    });
-
-    it('shows friendly telegram loading error when widget script load hangs', async () => {
-        vi.useFakeTimers();
-
-        try {
-            await mountApp();
-
-            const appendSpy = vi.spyOn(document.head, 'appendChild').mockImplementation((node) => node);
-
-            await click(buttonByText('Войти'));
-            await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
-
-            await vi.advanceTimersByTimeAsync(5100);
-            await flushPromises();
-
-            expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
-                .toContain('Не удалось загрузить вход через Telegram. Попробуйте позже.');
-
-            appendSpy.mockRestore();
-        } finally {
-            vi.useRealTimers();
-        }
-    });
-
-    it('logs in via custom telegram button and updates auth state', async () => {
-        const { fetchMock } = await mountApp({
-            telegramSiteLoginUser: {
-                ...user,
-                telegram_id: '9550',
-                name: 'Telegram User',
-                full_name: 'Иванов И.И.',
-            },
-        });
-
-        const authPayload = {
-            id: 9550,
-            first_name: 'Telegram',
-            auth_date: 1717000000,
-            hash: 'test',
-        };
-        const loginAuthMock = installTelegramLoginMock(authPayload);
-
-        await click(buttonByText('Войти'));
-
-        await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
-
-        await flushPromises();
-        await flushPromises();
-
-        expect(loginAuthMock).toHaveBeenCalledTimes(1);
-        expect(postedTo(fetchMock, '/auth/telegram-login')).toBe(true);
-        expect(buttonByText('Иванов И.И.')).toBeTruthy();
-        expect(document.body.textContent).not.toContain('Вход в аккаунт');
-    });
-
-    it('shows friendly telegram login error when auth request fails', async () => {
-        await mountApp({
-            telegramSiteLoginStatus: 422,
-        });
-
-        installTelegramLoginMock({
-            id: 9551,
-            first_name: 'Telegram',
-            auth_date: 1717000000,
-            hash: 'bad',
-        });
-
-        await click(buttonByText('Войти'));
-
-        await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
-
-        await flushPromises();
-        await flushPromises();
-
-        expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
-            .toContain('Не удалось войти через Telegram. Попробуйте ещё раз.');
+        expect(document.querySelector('[data-testid="telegram-site-login-button"]')).toBeNull();
+        expect(document.querySelector('[data-testid="telegram-site-login-disabled"]')?.textContent)
+            .toContain('Вход через Telegram временно недоступен');
+        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
+        expect(requestCount(fetchMock, '/auth/telegram-login')).toBe(0);
     });
 
     it('submits email/password login and closes modal on success', async () => {
@@ -702,60 +585,6 @@ describe('catalog auth UX', () => {
         expect(postedTo(fetchMock, '/auth/login')).toBe(true);
         expect(document.body.textContent).not.toContain('Вход в аккаунт');
         expect(buttonByText(user.name)).toBeTruthy();
-    });
-
-    it('shows required full-name modal after site telegram login when full_name is empty', async () => {
-        await mountApp({
-            telegramSiteLoginUser: {
-                ...user,
-                telegram_id: '9552',
-                name: 'Telegram User',
-                full_name: null,
-            },
-        });
-
-        installTelegramLoginMock({
-            id: 9552,
-            first_name: 'Telegram',
-            auth_date: 1717000000,
-            hash: 'ok',
-        });
-
-        await click(buttonByText('Войти'));
-
-        await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
-
-        await flushPromises();
-        await flushPromises();
-
-        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeTruthy();
-    });
-
-    it('does not show required full-name modal after site telegram login when full_name is set', async () => {
-        await mountApp({
-            telegramSiteLoginUser: {
-                ...user,
-                telegram_id: '9553',
-                name: 'Telegram User',
-                full_name: 'Иванов Иван',
-            },
-        });
-
-        installTelegramLoginMock({
-            id: 9553,
-            first_name: 'Telegram',
-            auth_date: 1717000000,
-            hash: 'ok',
-        });
-
-        await click(buttonByText('Войти'));
-
-        await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
-
-        await flushPromises();
-        await flushPromises();
-
-        expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeNull();
     });
 
     it('shows guest cart with auth prompt instead of fake order items', async () => {

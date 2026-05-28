@@ -80,6 +80,37 @@ export const useAuthStore = defineStore('auth', () => {
         return Boolean(window.Telegram?.WebApp?.initData);
     };
 
+    const waitForTelegramInitData = async (timeoutMs = 2500) => {
+        if (hasTelegramInitData()) {
+            return true;
+        }
+
+        if (typeof window === 'undefined') {
+            return false;
+        }
+
+        const userAgent = window.navigator?.userAgent ?? '';
+        const maybeTelegramContext = /Telegram/i.test(userAgent)
+            || window.location.search.includes('tgWebAppData=')
+            || window.location.hash.includes('tgWebAppData=');
+
+        if (!maybeTelegramContext) {
+            return false;
+        }
+
+        const startedAt = Date.now();
+
+        while ((Date.now() - startedAt) < timeoutMs) {
+            if (hasTelegramInitData()) {
+                return true;
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        return hasTelegramInitData();
+    };
+
     const loadMe = async () => {
         const data = await fetchMe(token.value);
         me.value = data.data;
@@ -187,6 +218,7 @@ export const useAuthStore = defineStore('auth', () => {
         isAuthenticated,
         displayUserName,
         hasTelegramInitData,
+        waitForTelegramInitData,
         loadMe,
         authWithTelegram,
         authWithTelegramWidget,

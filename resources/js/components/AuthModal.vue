@@ -13,7 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import TelegramLoginWidget from '@/components/TelegramLoginWidget.vue';
 import { Eye, EyeOff, Loader2, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -53,30 +52,12 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    telegramLoginAvailable: {
-        type: Boolean,
-        default: false,
-    },
-    telegramConfigLoading: {
-        type: Boolean,
-        default: false,
-    },
-    telegramBotId: {
-        type: [Number, String, null],
-        default: null,
-    },
-    telegramError: {
-        type: String,
-        default: '',
-    },
 });
 
 const emit = defineEmits([
     'close',
     'submit',
     'telegram-login',
-    'telegram-widget-auth',
-    'telegram-widget-error',
     'update:email',
     'update:password',
     'update:remember-me',
@@ -224,31 +205,9 @@ const closeWhenChanged = (open) => {
                     Войти через Telegram
                 </Button>
 
-                <div v-else-if="telegramLoginAvailable || telegramConfigLoading || telegramError" class="mt-4">
-                    <div class="mb-3 flex items-center gap-3" aria-hidden="true">
-                        <span class="h-px flex-1 bg-slate-200" />
-                        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">или</span>
-                        <span class="h-px flex-1 bg-slate-200" />
-                    </div>
-                    <Button
-                        v-if="telegramConfigLoading"
-                        type="button"
-                        class="mt-1 h-12 w-full rounded-xl bg-[#229ED9] px-4 text-sm font-semibold text-white opacity-80"
-                        disabled
-                    >
-                        Открываем Telegram...
-                    </Button>
-                    <TelegramLoginWidget
-                        v-else
-                        :bot-id="telegramBotId"
-                        :disabled="loading"
-                        @auth="emit('telegram-widget-auth', $event)"
-                        @error="emit('telegram-widget-error', $event)"
-                    />
-                    <p v-if="telegramError" data-testid="telegram-site-login-error" class="mt-2 text-center text-sm text-red-600" role="alert">
-                        {{ telegramError }}
-                    </p>
-                </div>
+                <p v-else class="mt-4 text-center text-sm text-slate-500" data-testid="telegram-site-login-disabled">
+                    Вход через Telegram временно недоступен. Используйте вход по email или Telegram-бот.
+                </p>
             </DialogContent>
         </DialogPortal>
     </DialogRoot>
