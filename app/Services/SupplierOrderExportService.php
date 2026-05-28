@@ -271,7 +271,7 @@ class SupplierOrderExportService
                 if ($type === 'employee_title') {
                     $sheet->setCellValueExplicit(
                         "A{$rowNumber}",
-                        'ФИО: '.(string) ($row['full_name'] ?? ''),
+                        (string) ($row['full_name'] ?? ''),
                         DataType::TYPE_STRING,
                     );
                     $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
@@ -526,7 +526,7 @@ class SupplierOrderExportService
 
         $cells = match ($type) {
             'employee_title' => [
-                'ФИО: '.(string) ($row['full_name'] ?? ''),
+                (string) ($row['full_name'] ?? ''),
                 '',
                 '',
                 '',

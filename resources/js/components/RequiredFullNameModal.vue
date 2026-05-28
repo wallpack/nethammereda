@@ -71,7 +71,7 @@ const submit = () => {
                     data-testid="required-full-name-example"
                     class="mt-2 text-center text-sm leading-6 text-slate-500"
                 >
-                    Например: Иванов Иван Иванович
+                    Например: Иванов И.И.
                 </p>
 
                 <form class="mt-5 space-y-3" @submit.prevent="submit">
@@ -79,7 +79,7 @@ const submit = () => {
                         v-model="fullName"
                         data-testid="required-full-name-input"
                         maxlength="120"
-                        placeholder="Иванов Иван Иванович"
+                        placeholder="Иванов И.И."
                         class="h-11 rounded-xl border-slate-200 bg-white px-3 text-center text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                     />
                     <p

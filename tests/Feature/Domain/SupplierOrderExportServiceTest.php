@@ -192,7 +192,7 @@ class SupplierOrderExportServiceTest extends TestCase
         $lines = $this->csvLines($csv);
 
         $this->assertNotEmpty($lines);
-        $this->assertSame('ФИО: Чертова Е.Н.', str_getcsv($lines[0], ';')[0] ?? '');
+        $this->assertSame('Чертова Е.Н.', str_getcsv($lines[0], ';')[0] ?? '');
         $this->assertSame(['', 'Наименование', 'Цена', 'Количество', 'Сумма'], str_getcsv($lines[1], ';'));
         $this->assertStringContainsString('Итого по сотруднику', $csv);
         $this->assertStringContainsString('ИТОГО ПО ВСЕМ', $csv);
@@ -222,8 +222,8 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
 
-        $this->assertStringContainsString('ФИО: Тестов Т.Т.', $csv);
-        $this->assertStringNotContainsString('ФИО: Administrator', $csv);
+        $this->assertStringContainsString('Тестов Т.Т.', $csv);
+        $this->assertStringNotContainsString('Administrator', $csv);
     }
 
     #[Test]
@@ -247,7 +247,7 @@ class SupplierOrderExportServiceTest extends TestCase
         $export = app(SupplierOrderExportService::class)->sendToSupplier($cycle, User::factory()->create());
         $csv = app(SupplierOrderExportService::class)->csvForExport($export->fresh());
 
-        $this->assertStringContainsString('ФИО: =Formula User', $csv);
+        $this->assertStringContainsString("'=Formula User", $csv);
         $this->assertStringContainsString("'+Formula Dish, test", $csv);
     }
 
@@ -390,7 +390,7 @@ class SupplierOrderExportServiceTest extends TestCase
             $spreadsheet = IOFactory::load($path);
             $sheet = $spreadsheet->getActiveSheet();
 
-            $this->assertSame('ФИО: Ivanov I.I.', (string) $sheet->getCell('A1')->getValue());
+            $this->assertSame('Ivanov I.I.', (string) $sheet->getCell('A1')->getValue());
             $this->assertSame('Наименование', (string) $sheet->getCell('B2')->getValue());
             $this->assertSame('Цена', (string) $sheet->getCell('C2')->getValue());
             $this->assertSame('Количество', (string) $sheet->getCell('D2')->getValue());
@@ -456,8 +456,8 @@ class SupplierOrderExportServiceTest extends TestCase
             $highestRow = $sheet->getHighestRow();
 
             $this->assertCount($highestRow, $csvLines);
-            $this->assertStringContainsString('ФИО: Иванов И.И.', $csvLines[0]);
-            $this->assertStringContainsString('ФИО: Петров П.П.', implode("\n", $csvLines));
+            $this->assertStringContainsString('Иванов И.И.', $csvLines[0]);
+            $this->assertStringContainsString('Петров П.П.', implode("\n", $csvLines));
             $this->assertStringContainsString('Итого по сотруднику', implode("\n", $csvLines));
             $this->assertStringContainsString('ИТОГО ПО ВСЕМ', $csvLines[$highestRow - 1] ?? '');
         } finally {

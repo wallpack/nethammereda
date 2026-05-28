@@ -604,8 +604,8 @@ describe('catalog auth UX', () => {
 
         expect(document.querySelector('[data-testid="required-full-name-modal"]')).toBeTruthy();
         expect(document.querySelector('[data-testid="required-full-name-title"]')?.textContent).toContain('Введите ФИО');
-        expect(document.querySelector('[data-testid="required-full-name-example"]')?.textContent).toContain('Например: Иванов Иван Иванович');
-        expect(document.querySelector('[data-testid="required-full-name-input"]')?.getAttribute('placeholder')).toBe('Иванов Иван Иванович');
+        expect(document.querySelector('[data-testid="required-full-name-example"]')?.textContent).toContain('Например: Иванов И.И.');
+        expect(document.querySelector('[data-testid="required-full-name-input"]')?.getAttribute('placeholder')).toBe('Иванов И.И.');
         expect(document.querySelector('[data-testid="required-full-name-input"]')?.className).toContain('text-center');
     });
 
