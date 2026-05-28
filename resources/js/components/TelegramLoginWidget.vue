@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { withTimeout } from '@/lib/async';
 
 const props = defineProps({
     botId: {
@@ -15,6 +16,7 @@ const props = defineProps({
 const emit = defineEmits(['auth', 'error']);
 
 let telegramLoginScriptPromise;
+const SCRIPT_LOAD_TIMEOUT_MS = 5000;
 
 const isOpening = ref(false);
 
@@ -31,6 +33,21 @@ const normalizedBotId = computed(() => {
 const isButtonDisabled = computed(() => {
     return props.disabled || isOpening.value || normalizedBotId.value === null;
 });
+
+const scriptErrorCodes = new Set([
+    'telegram_script_load_error',
+    'telegram_script_timeout',
+    'telegram_api_unavailable',
+    'telegram_env_unavailable',
+]);
+
+const normalizeWidgetErrorReason = (error) => {
+    if (error instanceof Error && typeof error.message === 'string' && error.message !== '') {
+        return error.message;
+    }
+
+    return 'telegram_login_failed';
+};
 
 const ensureTelegramLoginScript = async () => {
     if (typeof window === 'undefined') {
@@ -64,7 +81,12 @@ const ensureTelegramLoginScript = async () => {
         });
     }
 
-    await telegramLoginScriptPromise;
+    try {
+        await withTimeout(telegramLoginScriptPromise, SCRIPT_LOAD_TIMEOUT_MS, 'telegram_script_timeout');
+    } catch (error) {
+        telegramLoginScriptPromise = undefined;
+        throw error;
+    }
 
     if (typeof window.Telegram?.Login?.auth !== 'function') {
         throw new Error('telegram_api_unavailable');
@@ -126,13 +148,21 @@ const openTelegramLogin = async () => {
         const normalizedPayload = normalizeAuthPayload(result);
 
         if (!normalizedPayload) {
-            emit('error');
+            emit('error', { reason: 'invalid_payload' });
             return;
         }
 
         emit('auth', normalizedPayload);
-    } catch {
-        emit('error');
+    } catch (error) {
+        const reason = normalizeWidgetErrorReason(error);
+
+        if (scriptErrorCodes.has(reason)) {
+            console.warn('telegram_site_login_script_failed', {
+                reason,
+            });
+        }
+
+        emit('error', { reason });
     } finally {
         isOpening.value = false;
     }

@@ -17,12 +17,17 @@ class TelegramLoginController extends Controller
     {
         $botUsername = $telegramLinkService->botUsername();
         $botId = $telegramLinkService->botId();
+        $loginAvailable = $botUsername !== null && $botId !== null;
+
+        Log::info('telegram_site_login_config_loaded', [
+            'login_available' => $loginAvailable,
+        ]);
 
         return response()->json([
             'data' => [
                 'bot_username' => $botUsername,
                 'bot_id' => $botId,
-                'login_available' => $botUsername !== null && $botId !== null,
+                'login_available' => $loginAvailable,
             ],
         ]);
     }
@@ -85,6 +90,10 @@ class TelegramLoginController extends Controller
 
         $user->tokens()->where('name', 'telegram-site-login')->delete();
         $token = $user->createToken('telegram-site-login')->plainTextToken;
+
+        Log::info('telegram_site_login_success', [
+            'user_id' => $user->id,
+        ]);
 
         return response()->json([
             'data' => [

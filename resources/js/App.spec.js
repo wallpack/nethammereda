@@ -144,6 +144,9 @@ const createFetchMock = ({
         bot_id: 7654321,
         login_available: true,
     },
+    telegramLoginConfigStatus = 200,
+    telegramLoginConfigMessage = 'Telegram login config unavailable.',
+    telegramLoginConfigPending = false,
     telegramSiteLoginStatus = 200,
     telegramSiteLoginMessage = 'Не удалось войти через Telegram. Попробуйте ещё раз.',
     telegramSiteLoginUser = {
@@ -162,6 +165,14 @@ const createFetchMock = ({
         const method = options.method ?? 'GET';
 
         if (path === '/auth/telegram-login/config' && method === 'GET') {
+            if (telegramLoginConfigPending) {
+                return new Promise(() => {});
+            }
+
+            if (telegramLoginConfigStatus >= 400) {
+                return jsonResponse({ message: telegramLoginConfigMessage }, telegramLoginConfigStatus);
+            }
+
             return jsonResponse({ data: telegramLoginConfig });
         }
 
@@ -381,6 +392,12 @@ const patchedTo = (fetchMock, path) => {
     return fetchMock.mock.calls.some(([url, options = {}]) => String(url).includes(path) && options.method === 'PATCH');
 };
 
+const requestCount = (fetchMock, path, method = 'GET') => {
+    return fetchMock.mock.calls.filter(([url, options = {}]) => {
+        return String(url).includes(path) && (options.method ?? 'GET') === method;
+    }).length;
+};
+
 const installTelegramLoginMock = (result) => {
     const authMock = vi.fn((_options, callback) => {
         callback(typeof result === 'function' ? result() : result);
@@ -531,6 +548,33 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain('Вход в аккаунт');
     });
 
+    it('loads telegram login config lazily when login modal opens', async () => {
+        const { fetchMock } = await mountApp();
+
+        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
+
+        await click(buttonByText('Войти'));
+
+        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(1);
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+    });
+
+    it('renders catalog and clears loading even when telegram config request fails', async () => {
+        const { fetchMock } = await mountApp({
+            telegramLoginConfigStatus: 503,
+        });
+
+        expect(document.querySelector('[data-testid="week-status-loading"]')).toBeNull();
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+
+        await click(buttonByText('Войти'));
+
+        expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(1);
+        expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
+            .toContain('Не удалось загрузить вход через Telegram. Попробуйте позже.');
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+    });
+
     it('shows exactly one custom telegram login button on login modal and keeps email/password fields', async () => {
         await mountApp();
 
@@ -545,6 +589,52 @@ describe('catalog auth UX', () => {
         expect(visibleTelegramTextCount).toBe(1);
         expect(document.querySelector('#auth-modal-email')).toBeTruthy();
         expect(document.querySelector('#auth-modal-password')).toBeTruthy();
+    });
+
+    it('shows friendly telegram loading error when widget script fails', async () => {
+        await mountApp();
+
+        const appendSpy = vi.spyOn(document.head, 'appendChild').mockImplementation((node) => {
+            if (node && typeof node.onerror === 'function') {
+                node.onerror(new Event('error'));
+            }
+
+            return node;
+        });
+
+        await click(buttonByText('Войти'));
+        await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
+
+        await flushPromises();
+        await flushPromises();
+
+        expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
+            .toContain('Не удалось загрузить вход через Telegram. Попробуйте позже.');
+
+        appendSpy.mockRestore();
+    });
+
+    it('shows friendly telegram loading error when widget script load hangs', async () => {
+        vi.useFakeTimers();
+
+        try {
+            await mountApp();
+
+            const appendSpy = vi.spyOn(document.head, 'appendChild').mockImplementation((node) => node);
+
+            await click(buttonByText('Войти'));
+            await click(document.querySelector('[data-testid="telegram-site-login-button"]'));
+
+            await vi.advanceTimersByTimeAsync(5100);
+            await flushPromises();
+
+            expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
+                .toContain('Не удалось загрузить вход через Telegram. Попробуйте позже.');
+
+            appendSpy.mockRestore();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('logs in via custom telegram button and updates auth state', async () => {
@@ -597,7 +687,21 @@ describe('catalog auth UX', () => {
         await flushPromises();
         await flushPromises();
 
-        expect(document.body.textContent).toContain('Не удалось войти через Telegram. Попробуйте ещё раз.');
+        expect(document.querySelector('[data-testid="telegram-site-login-error"]')?.textContent)
+            .toContain('Не удалось войти через Telegram. Попробуйте ещё раз.');
+    });
+
+    it('submits email/password login and closes modal on success', async () => {
+        const { fetchMock } = await mountApp();
+
+        await click(buttonByText('Войти'));
+        await fillInput(document.querySelector('#auth-modal-email'), 'user@lunch.local');
+        await fillInput(document.querySelector('#auth-modal-password'), 'secret-123');
+        await click(document.querySelector('button[type="submit"]'));
+
+        expect(postedTo(fetchMock, '/auth/login')).toBe(true);
+        expect(document.body.textContent).not.toContain('Вход в аккаунт');
+        expect(buttonByText(user.name)).toBeTruthy();
     });
 
     it('shows required full-name modal after site telegram login when full_name is empty', async () => {

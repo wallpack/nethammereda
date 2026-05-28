@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -26,6 +27,8 @@ class TelegramSiteLoginTest extends TestCase
     #[Test]
     public function valid_widget_payload_logs_in_existing_user_by_telegram_id(): void
     {
+        Log::spy();
+
         $user = User::factory()->create([
             'telegram_id' => '91001',
             'full_name' => null,
@@ -48,11 +51,17 @@ class TelegramSiteLoginTest extends TestCase
             ->assertJsonMissingPath('data.user.password')
             ->assertJsonMissingPath('data.user.remember_token')
             ->assertJsonMissingPath('data.hash');
+
+        Log::shouldHaveReceived('info')->with('telegram_site_login_success', [
+            'user_id' => $user->id,
+        ])->once();
     }
 
     #[Test]
     public function invalid_widget_hash_is_rejected(): void
     {
+        Log::spy();
+
         $payload = $this->signedWidgetPayload([
             'id' => '91002',
             'first_name' => 'Иван',
@@ -66,6 +75,10 @@ class TelegramSiteLoginTest extends TestCase
         $this->assertDatabaseMissing('users', [
             'telegram_id' => '91002',
         ]);
+
+        Log::shouldHaveReceived('warning')->with('telegram_site_login_failed', [
+            'reason' => 'hash_mismatch',
+        ])->once();
     }
 
     #[Test]
@@ -184,6 +197,8 @@ class TelegramSiteLoginTest extends TestCase
     #[Test]
     public function telegram_login_config_endpoint_returns_bot_username_and_availability(): void
     {
+        Log::spy();
+
         config()->set('services.telegram.bot_username', 'lunch_demo_bot');
         config()->set('services.telegram.bot_id', 987654321);
 
@@ -192,6 +207,10 @@ class TelegramSiteLoginTest extends TestCase
             ->assertJsonPath('data.bot_username', 'lunch_demo_bot')
             ->assertJsonPath('data.bot_id', 987654321)
             ->assertJsonPath('data.login_available', true);
+
+        Log::shouldHaveReceived('info')->with('telegram_site_login_config_loaded', [
+            'login_available' => true,
+        ])->once();
     }
 
     /**
