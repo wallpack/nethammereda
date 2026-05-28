@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withCommands()
@@ -32,5 +34,29 @@ return Application::configure(basePath: dirname(__DIR__))
         // so we intentionally keep API stateless and avoid session-cookie precedence.
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+            if ($exception->getStatusCode() !== 403) {
+                return null;
+            }
+
+            if (! $request->is('admin') && ! $request->is('admin/*')) {
+                return null;
+            }
+
+            if ($request->expectsJson()) {
+                return null;
+            }
+
+            $user = $request->user('web');
+
+            if (! $user instanceof User) {
+                return null;
+            }
+
+            if ($user->is_active && $user->isAdmin()) {
+                return null;
+            }
+
+            return response()->view('errors.admin-forbidden', status: 403);
+        });
     })->create();
