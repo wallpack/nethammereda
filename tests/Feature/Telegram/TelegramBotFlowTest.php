@@ -40,15 +40,16 @@ class TelegramBotFlowTest extends TestCase
         $this->handler($bot)->handle($this->message('/start', telegramId: 777));
 
         $this->assertCount(1, $bot->messages);
-        $this->assertStringContainsString('NethammerEda', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Привязать Telegram', $bot->messages[0]['text']);
-        $this->assertStringContainsString('не запрашивает пароль', $bot->messages[0]['text']);
+        $this->assertStringContainsString('бот Nethammer Eda', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Помогу открыть меню', $bot->messages[0]['text']);
+        $this->assertStringContainsString('привяжите telegram', mb_strtolower($bot->messages[0]['text']));
+        $this->assertStringNotContainsString('пароль', mb_strtolower($bot->messages[0]['text']));
 
         $keyboard = $bot->messages[0]['reply_markup']['keyboard'] ?? [];
         $labels = collect($keyboard)->flatten(1)->pluck('text')->all();
         $this->assertCount(6, $labels);
 
-        $this->assertContains('Открыть каталог', $labels);
+        $this->assertContains('Открыть меню', $labels);
         $this->assertContains('Мой заказ', $labels);
         $this->assertContains('Холодильник', $labels);
         $this->assertContains('История', $labels);
@@ -74,7 +75,7 @@ class TelegramBotFlowTest extends TestCase
         );
 
         $this->assertCount(1, $bot->messages);
-        $this->assertStringContainsString('Telegram привязан к вашему аккаунту', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Telegram подключён', $bot->messages[0]['text']);
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'telegram_id' => '931',
@@ -103,7 +104,7 @@ class TelegramBotFlowTest extends TestCase
         $handler->handle($this->message('/start link_'.$issued['token'], telegramId: 932));
 
         $this->assertCount(2, $bot->messages);
-        $this->assertStringContainsString('Telegram привязан к вашему аккаунту', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Telegram подключён', $bot->messages[0]['text']);
         $this->assertStringContainsString('уже использована', $bot->messages[1]['text']);
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
@@ -126,7 +127,7 @@ class TelegramBotFlowTest extends TestCase
         $this->handler($bot)->handle($this->message('/start link_'.$issued['token'], telegramId: 933));
 
         $this->assertCount(1, $bot->messages);
-        $this->assertStringContainsString('Срок действия ссылки истек', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Срок действия ссылки', $bot->messages[0]['text']);
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'telegram_id' => null,
@@ -193,15 +194,13 @@ class TelegramBotFlowTest extends TestCase
         $this->assertCount(1, $bot->messages);
         $text = $bot->messages[0]['text'];
 
-        $this->assertStringContainsString('/start', $text);
-        $this->assertStringContainsString('/menu', $text);
-        $this->assertStringContainsString('/status', $text);
-        $this->assertStringContainsString('/order', $text);
-        $this->assertStringContainsString('/fridge', $text);
-        $this->assertStringContainsString('/history', $text);
-        $this->assertStringContainsString('холодильник', $text);
-        $this->assertStringContainsString('не отображается', $text);
-        $this->assertStringNotContainsString('Введите пароль', $text);
+        $this->assertStringContainsString('Что я умею', $text);
+        $this->assertStringContainsString('Меню', $text);
+        $this->assertStringContainsString('Мой заказ', $text);
+        $this->assertStringContainsString('Статус', $text);
+        $this->assertStringContainsString('холодильник', mb_strtolower($text));
+        $this->assertStringContainsString('История', $text);
+        $this->assertStringNotContainsString('/start', $text);
         $this->assertNotEmpty($bot->messages[0]['reply_markup']['keyboard'] ?? []);
         $this->assertDatabaseMissing('users', [
             'telegram_id' => '778',
@@ -212,14 +211,12 @@ class TelegramBotFlowTest extends TestCase
     public function menu_shows_current_ordering_state_and_webapp_without_creating_a_user(): void
     {
         config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
-        $this->createCycle(OrderCycleStatus::Open, now()->addDay());
 
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/menu', telegramId: 779));
 
         $this->assertCount(1, $bot->messages);
-        $this->assertStringContainsString('Заказ открыт', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Дедлайн:', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Открыть меню', $bot->messages[0]['text']);
         $this->assertSame(
             'https://lunch.example.test',
             $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['web_app']['url'] ?? null,
@@ -245,13 +242,14 @@ class TelegramBotFlowTest extends TestCase
         $this->assertCount(1, $bot->messages);
         $text = $bot->messages[0]['text'];
 
+        $this->assertStringContainsString('Ваш текущий заказ', $text);
         $this->assertStringContainsString('Статус: Черновик', $text);
         $this->assertStringContainsString('Лазанья ×2', $text);
         $this->assertStringContainsString('500.00 ₽', $text);
         $this->assertStringNotContainsString('Лазанья ×4', $text);
         $this->assertStringNotContainsString('1200.00 ₽', $text);
         $this->assertSame(
-            'Открыть мой заказ',
+            'Мой заказ',
             $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
         );
         $this->assertDatabaseCount('orders', 2);
@@ -266,11 +264,9 @@ class TelegramBotFlowTest extends TestCase
         $this->assertCount(1, $bot->messages);
         $text = $bot->messages[0]['text'];
 
-        $this->assertStringContainsString('1)', $text);
-        $this->assertStringContainsString('2)', $text);
-        $this->assertStringContainsString('3)', $text);
-        $this->assertStringContainsString('Telegram', $text);
-        $this->assertStringContainsString('Привязать Telegram', $text);
+        $this->assertStringContainsString('привяжите telegram', mb_strtolower($text));
+        $this->assertStringContainsString('в профиле на сайте', mb_strtolower($text));
+        $this->assertStringNotContainsString('1)', $text);
         $this->assertNotEmpty($bot->messages[0]['reply_markup']['keyboard'] ?? []);
         $this->assertDatabaseMissing('users', [
             'telegram_id' => '899',
@@ -286,9 +282,8 @@ class TelegramBotFlowTest extends TestCase
         $this->handler($bot)->handle($this->message('/status', telegramId: 802));
 
         $this->assertCount(1, $bot->messages);
-        $this->assertStringContainsString('Статус: Заказ открыт', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Заказывать еще можно', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Дедлайн:', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Приём заказов открыт ✅', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Можно выбрать блюда в меню.', $bot->messages[0]['text']);
         $this->assertDatabaseMissing('users', [
             'telegram_id' => '802',
         ]);
@@ -299,7 +294,7 @@ class TelegramBotFlowTest extends TestCase
     public function status_uses_clear_wording_for_each_cycle_state(
         OrderCycleStatus $status,
         bool $deadlinePassed,
-        string $expectedStatus,
+        string $expectedHeadline,
         string $expectedDetail,
     ): void {
         $this->createCycle(
@@ -310,7 +305,7 @@ class TelegramBotFlowTest extends TestCase
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/status', telegramId: 803));
 
-        $this->assertStringContainsString("Статус: {$expectedStatus}", $bot->messages[0]['text']);
+        $this->assertStringContainsString($expectedHeadline, $bot->messages[0]['text']);
         $this->assertStringContainsString($expectedDetail, $bot->messages[0]['text']);
     }
 
@@ -338,9 +333,9 @@ class TelegramBotFlowTest extends TestCase
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/order', telegramId: 805));
 
-        $this->assertStringContainsString('пока нет заказа', $bot->messages[0]['text']);
+        $this->assertStringContainsString('нет активного заказа', $bot->messages[0]['text']);
         $this->assertSame(
-            'Открыть каталог',
+            'Открыть меню',
             $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
         );
         $this->assertDatabaseCount('orders', 0);
@@ -372,6 +367,8 @@ class TelegramBotFlowTest extends TestCase
         $this->handler($bot)->handle($this->message('/fridge', telegramId: 807));
 
         $this->assertCount(2, $bot->messages);
+        $this->assertStringContainsString('Холодильник', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Доступные позиции', $bot->messages[0]['text']);
         $this->assertStringContainsString('Лазанья', $bot->messages[0]['text']);
         $this->assertStringContainsString('Годен до:', $bot->messages[0]['text']);
         $this->assertStringContainsString('Статус: В холодильнике', $bot->messages[0]['text']);
@@ -408,6 +405,7 @@ class TelegramBotFlowTest extends TestCase
         $this->handler($bot)->handle($this->message('/history', telegramId: 809));
 
         $text = $bot->messages[0]['text'];
+        $this->assertStringContainsString('История заказов', $text);
         $this->assertStringContainsString('Съедено', $text);
         $this->assertStringContainsString('Выброшено', $text);
         $this->assertStringContainsString('Просрочено', $text);
@@ -422,7 +420,7 @@ class TelegramBotFlowTest extends TestCase
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/history', telegramId: 819));
 
-        $this->assertStringContainsString('Истории пока нет.', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Истории заказов пока нет.', $bot->messages[0]['text']);
     }
 
     #[Test]
@@ -561,9 +559,8 @@ class TelegramBotFlowTest extends TestCase
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/unknown', telegramId: 820));
 
-        $this->assertStringContainsString('/order', $bot->messages[0]['text']);
-        $this->assertStringContainsString('/my_order', $bot->messages[0]['text']);
-        $this->assertStringContainsString('/help', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Не понял команду', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Помощь', $bot->messages[0]['text']);
     }
 
     /**
@@ -572,10 +569,10 @@ class TelegramBotFlowTest extends TestCase
     public static function statusMessages(): array
     {
         return [
-            'open deadline passed' => [OrderCycleStatus::Open, true, 'Прием заказов завершен', 'Дедлайн прошел'],
-            'closed' => [OrderCycleStatus::Closed, false, 'Прием заказов завершен', 'Цикл закрыт'],
-            'sent to supplier' => [OrderCycleStatus::SentToSupplier, false, 'Заказ отправлен поставщику', 'Заказывать уже нельзя'],
-            'delivered' => [OrderCycleStatus::Delivered, false, 'Доставка отмечена, проверьте холодильник', 'Заказывать уже нельзя'],
+            'open deadline passed' => [OrderCycleStatus::Open, true, 'Приём заказов сейчас закрыт ⏰', 'Меню можно посмотреть'],
+            'closed' => [OrderCycleStatus::Closed, false, 'Приём заказов сейчас закрыт ⏰', 'Меню можно посмотреть'],
+            'sent to supplier' => [OrderCycleStatus::SentToSupplier, false, 'Приём заказов сейчас закрыт ⏰', 'Меню можно посмотреть'],
+            'delivered' => [OrderCycleStatus::Delivered, false, 'Приём заказов сейчас закрыт ⏰', 'Меню можно посмотреть'],
         ];
     }
 

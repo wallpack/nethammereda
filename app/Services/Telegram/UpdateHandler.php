@@ -3,6 +3,7 @@
 namespace App\Services\Telegram;
 
 use App\Enums\FridgeItemStatus;
+use App\Enums\OrderCycleStatus;
 use App\Models\FridgeItem;
 use App\Models\Order;
 use App\Models\OrderCycle;
@@ -121,7 +122,7 @@ class UpdateHandler
         if ($command !== '') {
             $this->botClient->sendMessage(
                 $chatId,
-                'Неизвестная команда. Используйте /menu, /order (/my_order), /status, /fridge, /history или /help.',
+                'Не понял команду. Нажмите «Помощь».',
             );
         }
     }
@@ -202,20 +203,18 @@ class UpdateHandler
 
     private function handleMenuCommand(int|string $chatId): void
     {
-        $cycleSummary = $this->menuCycleSummary();
         $webappUrl = trim((string) config('services.telegram.webapp_url'));
         $secureWebAppUrl = $this->keyboardBuilder->secureWebAppUrl();
 
         if ($secureWebAppUrl !== null) {
             $this->botClient->sendMessage(
                 $chatId,
-                "{$cycleSummary}\n\nОткройте каталог кнопкой ниже.\n".
-                "Если кнопка не открылась, используйте ссылку: {$secureWebAppUrl}",
+                'Открыть меню 🍽️',
                 [
                     'inline_keyboard' => [
                         [
                             [
-                                'text' => 'Открыть каталог',
+                                'text' => 'Открыть меню',
                                 'web_app' => ['url' => $secureWebAppUrl],
                             ],
                         ],
@@ -236,8 +235,7 @@ class UpdateHandler
             && in_array(parse_url($webappUrl, PHP_URL_SCHEME), ['http', 'https'], true)) {
             $this->botClient->sendMessage(
                 $chatId,
-                "{$cycleSummary}\n\nКаталог: {$webappUrl}\n\n".
-                'Откройте ссылку напрямую. Кнопка внутри Telegram доступна только для защищенного HTTPS-адреса.',
+                "Открыть меню 🍽️\n{$webappUrl}",
             );
 
             return;
@@ -245,7 +243,7 @@ class UpdateHandler
 
         $this->botClient->sendMessage(
             $chatId,
-            "{$cycleSummary}\n\nКаталог пока нельзя открыть из Telegram. Попробуйте позже.",
+            'Меню временно недоступно. Попробуйте позже.',
         );
     }
 
@@ -283,7 +281,7 @@ class UpdateHandler
             if ($linkToken === null || $telegramId === '') {
                 $this->botClient->sendMessage(
                     $chatId,
-                    'Ссылка привязки недействительна. Откройте сайт, нажмите «Привязать Telegram» и получите новую ссылку.',
+                    'Ссылка недействительна. Привяжите Telegram в профиле на сайте.',
                     $this->keyboardBuilder->navigation(),
                 );
 
@@ -297,20 +295,11 @@ class UpdateHandler
 
         $user = $this->findTelegramUser($from);
 
-        $text = "NethammerEda - бот корпоративных обедов.\n\n".
-            "Команды:\n".
-            "/menu - открыть каталог\n".
-            "/status - посмотреть статус недели и дедлайн\n".
-            "/order (/my_order) - посмотреть ваш заказ\n".
-            "/fridge - открыть активный холодильник\n".
-            "/history - посмотреть историю холодильника";
+        $text = "Привет! Я бот Nethammer Eda\n".
+            'Помогу открыть меню, проверить заказ и узнать статус приёма.';
 
         if ($user === null) {
-            $text .= "\n\nЧтобы увидеть личные данные:\n".
-                "1) Войдите на сайте в свой рабочий аккаунт\n".
-                "2) Откройте Профиль -> «Привязать Telegram»\n".
-                "3) Перейдите по ссылке в бота и снова отправьте /order или /fridge\n\n".
-                'Бот никогда не запрашивает пароль.';
+            $text .= "\n\nЧтобы видеть свои заказы, привяжите Telegram в профиле на сайте.";
         }
 
         $this->botClient->sendMessage($chatId, $text, $this->keyboardBuilder->navigation());
@@ -321,13 +310,13 @@ class UpdateHandler
         $result = $this->telegramLinkService->consumeToken($linkToken, $telegramId);
 
         $text = match ($result) {
-            'linked' => 'Готово! Telegram привязан к вашему аккаунту. Теперь доступны /menu, /order, /fridge, /history.',
-            'used' => 'Эта ссылка уже использована. Откройте сайт и запросите новую привязку.',
-            'expired' => 'Срок действия ссылки истек. Откройте сайт и запросите новую привязку.',
+            'linked' => "Telegram подключён ✅\nТеперь я смогу показывать ваш заказ и статус.",
+            'used' => 'Эта ссылка уже использована. Запросите новую в профиле на сайте.',
+            'expired' => 'Срок действия ссылки истёк. Запросите новую в профиле на сайте.',
             'telegram_conflict' => 'Этот Telegram уже привязан к другому аккаунту. Обратитесь к администратору.',
             'user_already_linked' => 'Ваш аккаунт уже привязан к другому Telegram. Обратитесь к администратору.',
             'user_inactive' => 'Ваш аккаунт деактивирован. Обратитесь к администратору.',
-            default => 'Ссылка привязки недействительна. Откройте сайт и получите новую ссылку.',
+            default => 'Ссылка недействительна. Запросите новую в профиле на сайте.',
         };
 
         $this->botClient->sendMessage($chatId, $text, $this->keyboardBuilder->navigation());
@@ -337,15 +326,12 @@ class UpdateHandler
     {
         $this->botClient->sendMessage(
             $chatId,
-            "Как пользоваться NethammerEda:\n\n".
-            "/start - короткая инструкция и быстрые кнопки.\n".
-            "/menu - открыть каталог и выбрать блюда.\n".
-            "/status - проверить статус текущей недели и дедлайн.\n".
-            "/order - посмотреть текущий заказ (команда /my_order работает так же).\n".
-            "/fridge - открыть холодильник с доставленной едой и отметить, что вы съели или выбросили.\n".
-            "/history - посмотреть съеденные, выброшенные и просроченные позиции.\n\n".
-            "Для входа откройте каталог кнопкой ниже и авторизуйтесь через Telegram.\n".
-            'Если заказ не отображается или холодильник недоступен, попросите администратора привязать ваш Telegram к рабочему аккаунту.',
+            "Что я умею:\n".
+            "🍽️ Меню — открыть каталог\n".
+            "📦 Мой заказ — посмотреть текущий заказ\n".
+            "⏰ Статус — узнать, открыт ли приём заказов\n".
+            "🧊 Холодильник — посмотреть доступные остатки\n".
+            '🕓 История — посмотреть прошлые заказы',
             $this->keyboardBuilder->navigation(),
         );
     }
@@ -354,11 +340,7 @@ class UpdateHandler
     {
         $this->botClient->sendMessage(
             $chatId,
-            "Чтобы увидеть свой заказ и холодильник:\n".
-            "1) Войдите на сайте в рабочий аккаунт\n".
-            "2) В Профиле нажмите «Привязать Telegram»\n".
-            "3) Перейдите по ссылке в бота и повторите команду\n\n".
-            'Бот никогда не запрашивает пароль.',
+            'Чтобы видеть свои заказы, привяжите Telegram в профиле на сайте.',
             $this->keyboardBuilder->navigation(),
         );
     }
@@ -369,7 +351,8 @@ class UpdateHandler
         if ($cycle === null) {
             $this->botClient->sendMessage(
                 $chatId,
-                'Сейчас нет активной недели заказа.',
+                "У вас пока нет активного заказа.\n".
+                'Откройте меню и выберите блюда.',
                 $this->keyboardBuilder->navigation(),
             );
 
@@ -385,9 +368,9 @@ class UpdateHandler
         if ($order === null) {
             $this->botClient->sendMessage(
                 $chatId,
-                "У вас пока нет заказа на неделю «{$cycle->title}».\n".
-                'Откройте каталог, чтобы выбрать блюда.',
-                $this->keyboardBuilder->webAppAction('Открыть каталог')
+                "У вас пока нет активного заказа.\n".
+                'Откройте меню и выберите блюда.',
+                $this->keyboardBuilder->webAppAction('Открыть меню')
                     ?? $this->keyboardBuilder->navigation(),
             );
 
@@ -396,10 +379,10 @@ class UpdateHandler
 
         $this->botClient->sendMessage(
             $chatId,
-            "Неделя: {$cycle->title}\n".
+            "Ваш текущий заказ 📦\n".
             "Статус: {$this->orderStatusLabel($order, $cycle)}\n\n".
             $this->summaryFormatter->format($order),
-            $this->keyboardBuilder->webAppAction('Открыть мой заказ')
+            $this->keyboardBuilder->webAppAction('Мой заказ')
                 ?? $this->keyboardBuilder->navigation(),
         );
     }
@@ -410,29 +393,24 @@ class UpdateHandler
         if ($cycle === null) {
             $this->botClient->sendMessage(
                 $chatId,
-                'Сейчас нет активной недели заказа.',
+                "Приём заказов сейчас закрыт ⏰\n".
+                'Меню можно посмотреть, но оформить заказ получится позже.',
                 $this->keyboardBuilder->navigation(),
             );
 
             return;
         }
 
-        [$status, $availability] = match ($cycle->status->value) {
-            'open' => $cycle->isOpenForOrdering()
-                ? ['Заказ открыт', 'Заказывать еще можно.']
-                : ['Прием заказов завершен', 'Дедлайн прошел, заказывать уже нельзя.'],
-            'closed' => ['Прием заказов завершен', 'Цикл закрыт, заказывать уже нельзя.'],
-            'sent_to_supplier' => ['Заказ отправлен поставщику', 'Заказывать уже нельзя.'],
-            'delivered' => ['Доставка отмечена, проверьте холодильник', 'Заказывать уже нельзя.'],
-            default => [$this->cycleStatusLabel($cycle), 'Заказывать сейчас нельзя.'],
-        };
+        $isOpen = $cycle->status === OrderCycleStatus::Open
+            && $cycle->isOpenForOrdering();
+
+        $text = $isOpen
+            ? "Приём заказов открыт ✅\nМожно выбрать блюда в меню."
+            : "Приём заказов сейчас закрыт ⏰\nМеню можно посмотреть, но оформить заказ получится позже.";
 
         $this->botClient->sendMessage(
             $chatId,
-            "Текущая неделя: {$cycle->title}\n".
-            "Статус: {$status}\n".
-            "Дедлайн: {$cycle->closes_at->format('d.m.Y H:i')}\n".
-            $availability,
+            $text,
             $this->keyboardBuilder->navigation(),
         );
     }
@@ -448,9 +426,19 @@ class UpdateHandler
             ->limit(20)
             ->get();
 
+        if ($items->isEmpty()) {
+            $this->botClient->sendMessage(
+                $chatId,
+                'В холодильнике пока ничего нет.',
+                $this->keyboardBuilder->navigation(),
+            );
+
+            return;
+        }
+
         $this->botClient->sendMessage(
             $chatId,
-            "Ваш холодильник:\n".$this->fridgeSummaryFormatter->formatActive($items),
+            "Холодильник 🧊\nДоступные позиции:\n".$this->fridgeSummaryFormatter->formatActive($items),
             $this->keyboardBuilder->navigation(),
         );
 
@@ -499,9 +487,19 @@ class UpdateHandler
             ->limit(20)
             ->get();
 
+        if ($items->isEmpty()) {
+            $this->botClient->sendMessage(
+                $chatId,
+                'Истории заказов пока нет.',
+                $this->keyboardBuilder->navigation(),
+            );
+
+            return;
+        }
+
         $this->botClient->sendMessage(
             $chatId,
-            "История холодильника:\n".$this->fridgeSummaryFormatter->formatHistory($items),
+            "История заказов 🕓\n".$this->fridgeSummaryFormatter->formatHistory($items),
             $this->keyboardBuilder->navigation(),
         );
     }
@@ -579,7 +577,7 @@ class UpdateHandler
         $normalized = mb_strtolower(trim($text));
 
         return match ($normalized) {
-            'меню', 'каталог', 'открыть каталог', 'menu' => '/menu',
+            'меню', 'каталог', 'открыть каталог', 'открыть меню', 'menu' => '/menu',
             'мой заказ', 'заказ', 'my order' => '/order',
             'статус', 'status' => '/status',
             'холодильник', 'fridge' => '/fridge',

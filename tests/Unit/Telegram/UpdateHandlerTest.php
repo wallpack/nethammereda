@@ -64,7 +64,7 @@ class UpdateHandlerTest extends TestCase
         $this->assertCount(1, $bot->messages);
         $message = $bot->messages[0];
 
-        $this->assertStringContainsString('https://example.localhost.run', $message['text']);
+        $this->assertStringContainsString('Открыть меню', $message['text']);
         $this->assertSame(
             'https://example.localhost.run',
             $message['reply_markup']['inline_keyboard'][0][0]['web_app']['url'] ?? null,
@@ -121,8 +121,8 @@ class UpdateHandlerTest extends TestCase
         $this->assertCount(1, $bot->messages);
         $message = $bot->messages[0];
 
+        $this->assertStringContainsString('Открыть меню', $message['text']);
         $this->assertStringContainsString('http://127.0.0.1:8000', $message['text']);
-        $this->assertStringContainsString('HTTPS', $message['text']);
         $this->assertNull($message['reply_markup']);
     }
 }

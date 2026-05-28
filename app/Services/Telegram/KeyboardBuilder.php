@@ -9,7 +9,7 @@ class KeyboardBuilder
      */
     public function navigation(): array
     {
-        $catalogButton = ['text' => 'Открыть каталог'];
+        $catalogButton = ['text' => 'Открыть меню'];
         $webAppUrl = $this->secureWebAppUrl();
 
         if ($webAppUrl !== null) {
