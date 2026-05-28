@@ -1,10 +1,10 @@
 import { computed, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import {
+    consumeTelegramSiteLoginToken,
     fetchMe,
     loginWithPassword,
     loginWithTelegram,
-    loginWithTelegramWidget,
     logoutUser,
     updateMyProfile,
 } from '@/api/auth';
@@ -80,6 +80,49 @@ export const useAuthStore = defineStore('auth', () => {
         return Boolean(window.Telegram?.WebApp?.initData);
     };
 
+    let telegramWebAppScriptPromise;
+
+    const ensureTelegramWebAppScript = async (timeoutMs = 3000) => {
+        if (typeof window === 'undefined') {
+            return false;
+        }
+
+        if (typeof window.Telegram?.WebApp !== 'undefined') {
+            return true;
+        }
+
+        if (!telegramWebAppScriptPromise) {
+            telegramWebAppScriptPromise = new Promise((resolve, reject) => {
+                const existingScript = document.querySelector('script[src^="https://telegram.org/js/telegram-web-app.js"]');
+
+                if (existingScript) {
+                    existingScript.addEventListener('load', () => resolve(true), { once: true });
+                    existingScript.addEventListener('error', () => reject(new Error('telegram_webapp_script_failed')), { once: true });
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://telegram.org/js/telegram-web-app.js';
+                script.async = true;
+                script.onload = () => resolve(true);
+                script.onerror = () => reject(new Error('telegram_webapp_script_failed'));
+                document.head.appendChild(script);
+            });
+        }
+
+        const timeoutPromise = new Promise((_, reject) => {
+            window.setTimeout(() => reject(new Error('telegram_webapp_script_timeout')), timeoutMs);
+        });
+
+        try {
+            await Promise.race([telegramWebAppScriptPromise, timeoutPromise]);
+            return typeof window.Telegram?.WebApp !== 'undefined';
+        } catch {
+            telegramWebAppScriptPromise = undefined;
+            return false;
+        }
+    };
+
     const waitForTelegramInitData = async (timeoutMs = 2500) => {
         if (hasTelegramInitData()) {
             return true;
@@ -98,6 +141,8 @@ export const useAuthStore = defineStore('auth', () => {
             return false;
         }
 
+        await ensureTelegramWebAppScript(Math.min(timeoutMs, 3000));
+
         const startedAt = Date.now();
 
         while ((Date.now() - startedAt) < timeoutMs) {
@@ -109,6 +154,20 @@ export const useAuthStore = defineStore('auth', () => {
         }
 
         return hasTelegramInitData();
+    };
+
+    const completeTelegramSiteLoginFromSession = async () => {
+        const response = await consumeTelegramSiteLoginToken();
+        const incomingToken = response.data?.token ?? '';
+
+        if (!incomingToken) {
+            throw new Error('Не удалось завершить вход через Telegram.');
+        }
+
+        setToken(incomingToken);
+        setRequireFullName(true);
+
+        return response;
     };
 
     const loadMe = async () => {
@@ -141,20 +200,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
 
         return true;
-    };
-
-    const authWithTelegramWidget = async (payload) => {
-        const response = await loginWithTelegramWidget(payload, token.value);
-        setToken(response.data.token);
-        me.value = response.data.user ?? me.value;
-        setRequireFullName(true);
-
-        const fullName = typeof me.value?.full_name === 'string' ? me.value.full_name.trim() : '';
-        if (fullName !== '') {
-            setRequireFullName(false);
-        }
-
-        return response;
     };
 
     const authWithPassword = async () => {
@@ -219,9 +264,9 @@ export const useAuthStore = defineStore('auth', () => {
         displayUserName,
         hasTelegramInitData,
         waitForTelegramInitData,
+        completeTelegramSiteLoginFromSession,
         loadMe,
         authWithTelegram,
-        authWithTelegramWidget,
         authWithPassword,
         updateProfile,
         requestLogout,

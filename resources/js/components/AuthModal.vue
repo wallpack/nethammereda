@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Loader2, UserRound, X } from 'lucide-vue-next';
+import { Eye, EyeOff, Loader2, Send, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
     open: {
@@ -48,16 +48,11 @@ const props = defineProps({
         type: String,
         default: '',
     },
-    showTelegram: {
-        type: Boolean,
-        default: false,
-    },
 });
 
 const emit = defineEmits([
     'close',
     'submit',
-    'telegram-login',
     'update:email',
     'update:password',
     'update:remember-me',
@@ -194,19 +189,16 @@ const closeWhenChanged = (open) => {
                     </Button>
                 </form>
 
-                <Button
-                    v-if="showTelegram"
-                    type="button"
-                    variant="outline"
-                    class="mt-3 h-12 w-full rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                    :disabled="loading"
-                    @click="emit('telegram-login')"
+                <a
+                    href="/auth/telegram"
+                    class="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#229ED9] px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1D8BC1] active:scale-[0.98]"
+                    data-testid="telegram-site-login-link"
                 >
-                    Войти через Telegram
-                </Button>
-
-                <p v-else class="mt-4 text-center text-sm text-slate-500" data-testid="telegram-site-login-disabled">
-                    Вход через Telegram временно недоступен. Используйте вход по email или Telegram-бот.
+                    <Send aria-hidden="true" class="size-4" />
+                    <span>Войти через Telegram</span>
+                </a>
+                <p class="sr-only" data-testid="telegram-site-login-disabled">
+                    Вход через Telegram временно недоступен
                 </p>
             </DialogContent>
         </DialogPortal>

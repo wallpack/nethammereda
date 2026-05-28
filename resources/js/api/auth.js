@@ -19,13 +19,23 @@ export const loginWithTelegram = (initData, token = '') => apiRequest('/auth/tel
     body: { init_data: initData },
 });
 
-export const loginWithTelegramWidget = (payload, token = '') => apiRequest('/auth/telegram-login', {
-    method: 'POST',
-    token,
-    body: payload,
-});
+export const consumeTelegramSiteLoginToken = async () => {
+    const response = await fetch('/auth/telegram/token', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+        },
+    });
 
-export const fetchTelegramLoginConfig = () => apiRequest('/auth/telegram-login/config');
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message ?? 'Не удалось завершить вход через Telegram.');
+    }
+
+    return data;
+};
 
 export const logoutUser = (token) => apiRequest('/auth/logout', {
     method: 'POST',

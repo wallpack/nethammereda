@@ -516,6 +516,55 @@ const ensureAuth = async () => {
     return false;
 };
 
+const clearTelegramLoginQuery = () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+
+    if (!url.searchParams.has('telegram_login')) {
+        return;
+    }
+
+    url.searchParams.delete('telegram_login');
+    const normalizedSearch = url.searchParams.toString();
+    const normalizedUrl = `${url.pathname}${normalizedSearch ? `?${normalizedSearch}` : ''}${url.hash}`;
+    window.history.replaceState({}, '', normalizedUrl);
+};
+
+const hydrateAuthFromTelegramCallback = async () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const status = new URLSearchParams(window.location.search).get('telegram_login');
+
+    if (!status) {
+        return;
+    }
+
+    if (status === 'error') {
+        ui.error = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
+        clearTelegramLoginQuery();
+        return;
+    }
+
+    if (status !== 'success') {
+        clearTelegramLoginQuery();
+        return;
+    }
+
+    try {
+        await auth.completeTelegramSiteLoginFromSession();
+        ui.info = 'Вход через Telegram выполнен.';
+    } catch {
+        ui.error = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
+    }
+
+    clearTelegramLoginQuery();
+};
+
 const loginFromWeb = async () => {
     auth.authLoading = true;
     auth.authError = '';
@@ -527,29 +576,6 @@ const loginFromWeb = async () => {
         await loadData();
         ui.activeSidebarTab = 'catalog';
         auth.password = '';
-        closeAuthModal();
-    } catch (e) {
-        auth.authError = e.message;
-    } finally {
-        auth.authLoading = false;
-    }
-};
-
-const loginFromTelegram = async () => {
-    auth.authLoading = true;
-    auth.authError = '';
-    ui.info = '';
-
-    try {
-        const success = await auth.authWithTelegram();
-        if (!success) {
-            auth.authError = 'Откройте страницу через кнопку /menu в Telegram.';
-            return;
-        }
-
-        await auth.loadMe();
-        await loadData();
-        ui.activeSidebarTab = 'catalog';
         closeAuthModal();
     } catch (e) {
         auth.authError = e.message;
@@ -822,6 +848,7 @@ onMounted(async () => {
     window.Telegram?.WebApp?.ready();
     window.Telegram?.WebApp?.expand();
 
+    await hydrateAuthFromTelegramCallback();
     await ensureAuth();
     await loadData();
 
@@ -1083,10 +1110,8 @@ onBeforeUnmount(() => {
             :loading="authLoading"
             :error="authError"
             :message="authModalMessage"
-            :show-telegram="auth.hasTelegramInitData()"
             @close="closeAuthModal"
             @submit="loginFromWeb"
-            @telegram-login="loginFromTelegram"
             @update:email="auth.email = $event"
             @update:password="auth.password = $event"
             @update:remember-me="auth.rememberMe = $event"

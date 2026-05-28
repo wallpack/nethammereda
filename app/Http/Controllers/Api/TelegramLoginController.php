@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TelegramLoginRequest;
-use App\Models\User;
 use App\Services\Telegram\LoginWidgetAuthValidator;
+use App\Services\Telegram\SiteLoginService;
 use App\Services\Telegram\TelegramLinkService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -35,6 +34,7 @@ class TelegramLoginController extends Controller
     public function store(
         TelegramLoginRequest $request,
         LoginWidgetAuthValidator $validator,
+        SiteLoginService $siteLoginService,
     ): JsonResponse {
         $validationReason = 'unknown';
         $validated = $validator->validate($request->all(), $validationReason);
@@ -49,27 +49,12 @@ class TelegramLoginController extends Controller
             ], 422);
         }
 
-        $telegramId = $validated['telegram_id'];
+        $resolveReason = 'unknown';
+        $user = $siteLoginService->resolveUser($validated, $resolveReason);
 
-        $displayName = trim(
-            implode(
-                ' ',
-                array_filter([
-                    $validated['first_name'],
-                    $validated['last_name'],
-                ]),
-            ),
-        );
-
-        if ($displayName === '') {
-            $displayName = $validated['username'] ?? "telegram_{$telegramId}";
-        }
-
-        $user = User::query()->where('telegram_id', $telegramId)->first();
-
-        if ($user !== null && ! $user->is_active) {
+        if ($user === null) {
             Log::warning('telegram_site_login_failed', [
-                'reason' => 'user_inactive',
+                'reason' => $resolveReason,
             ]);
 
             return response()->json([
@@ -77,19 +62,7 @@ class TelegramLoginController extends Controller
             ], 403);
         }
 
-        if ($user === null) {
-            $user = User::query()->create([
-                'telegram_id' => $telegramId,
-                'name' => $displayName,
-                'is_active' => true,
-                'role' => UserRole::User,
-            ]);
-        } elseif ($user->name !== $displayName) {
-            $user->update(['name' => $displayName]);
-        }
-
-        $user->tokens()->where('name', 'telegram-site-login')->delete();
-        $token = $user->createToken('telegram-site-login')->plainTextToken;
+        $token = $siteLoginService->issueToken($user, 'telegram-site-login');
 
         Log::info('telegram_site_login_success', [
             'user_id' => $user->id,
