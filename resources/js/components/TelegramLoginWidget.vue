@@ -1,10 +1,10 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
-    botUsername: {
-        type: String,
-        default: '',
+    botId: {
+        type: [Number, String, null],
+        default: null,
     },
     disabled: {
         type: Boolean,
@@ -14,70 +14,149 @@ const props = defineProps({
 
 const emit = defineEmits(['auth', 'error']);
 
-const callbackName = '__telegramSiteLoginCallback';
-const widgetRoot = ref(null);
+let telegramLoginScriptPromise;
 
-const registerCallback = () => {
-    window[callbackName] = (user) => {
-        emit('auth', user);
-    };
-};
+const isOpening = ref(false);
 
-const clearWidget = () => {
-    if (widgetRoot.value) {
-        widgetRoot.value.innerHTML = '';
+const normalizedBotId = computed(() => {
+    const parsed = Number.parseInt(String(props.botId ?? ''), 10);
+
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
     }
-};
 
-const renderWidget = () => {
-    clearWidget();
+    return parsed;
+});
 
-    if (!widgetRoot.value || !props.botUsername) {
+const isButtonDisabled = computed(() => {
+    return props.disabled || isOpening.value || normalizedBotId.value === null;
+});
+
+const ensureTelegramLoginScript = async () => {
+    if (typeof window === 'undefined') {
+        throw new Error('telegram_env_unavailable');
+    }
+
+    if (typeof window.Telegram?.Login?.auth === 'function') {
         return;
     }
 
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.async = true;
-    script.setAttribute('data-telegram-login', props.botUsername);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-userpic', 'false');
-    script.setAttribute('data-lang', 'ru');
-    script.setAttribute('data-request-access', 'write');
-    script.setAttribute('data-onauth', `${callbackName}(user)`);
-    script.onerror = () => emit('error');
+    if (!telegramLoginScriptPromise) {
+        telegramLoginScriptPromise = new Promise((resolve, reject) => {
+            const existingScript = document.querySelector('script[src^="https://telegram.org/js/telegram-widget.js"]');
+            if (existingScript) {
+                if (typeof window.Telegram?.Login?.auth === 'function') {
+                    resolve();
+                    return;
+                }
 
-    widgetRoot.value.appendChild(script);
+                existingScript.addEventListener('load', () => resolve(), { once: true });
+                existingScript.addEventListener('error', () => reject(new Error('telegram_script_load_error')), { once: true });
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = 'https://telegram.org/js/telegram-widget.js?22';
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('telegram_script_load_error'));
+            document.head.appendChild(script);
+        });
+    }
+
+    await telegramLoginScriptPromise;
+
+    if (typeof window.Telegram?.Login?.auth !== 'function') {
+        throw new Error('telegram_api_unavailable');
+    }
 };
 
-onMounted(() => {
-    registerCallback();
-    renderWidget();
-});
-
-watch(() => props.botUsername, () => {
-    registerCallback();
-    renderWidget();
-});
-
-onBeforeUnmount(() => {
-    if (window[callbackName]) {
-        delete window[callbackName];
+const normalizeAuthPayload = (rawPayload) => {
+    if (!rawPayload || typeof rawPayload !== 'object') {
+        return null;
     }
-});
+
+    if ('id' in rawPayload && 'hash' in rawPayload && 'auth_date' in rawPayload) {
+        return rawPayload;
+    }
+
+    if (
+        'user' in rawPayload
+        && rawPayload.user
+        && typeof rawPayload.user === 'object'
+        && 'hash' in rawPayload
+        && 'auth_date' in rawPayload
+    ) {
+        const user = rawPayload.user;
+
+        return {
+            id: user.id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            username: user.username,
+            photo_url: user.photo_url,
+            auth_date: rawPayload.auth_date,
+            hash: rawPayload.hash,
+        };
+    }
+
+    return null;
+};
+
+const openTelegramLogin = async () => {
+    if (isButtonDisabled.value) {
+        return;
+    }
+
+    isOpening.value = true;
+
+    try {
+        await ensureTelegramLoginScript();
+
+        const result = await new Promise((resolve) => {
+            window.Telegram.Login.auth({
+                bot_id: normalizedBotId.value,
+                request_access: 'write',
+                lang: 'ru',
+            }, (authData) => {
+                resolve(authData);
+            });
+        });
+
+        const normalizedPayload = normalizeAuthPayload(result);
+
+        if (!normalizedPayload) {
+            emit('error');
+            return;
+        }
+
+        emit('auth', normalizedPayload);
+    } catch {
+        emit('error');
+    } finally {
+        isOpening.value = false;
+    }
+};
 </script>
 
 <template>
-    <div class="relative">
-        <div
-            ref="widgetRoot"
-            data-testid="telegram-login-widget"
-            class="flex min-h-12 items-center justify-center"
-        />
-        <div
-            v-if="disabled"
-            class="absolute inset-0 cursor-not-allowed rounded-xl bg-white/70"
-            aria-hidden="true"
-        />
-    </div>
+    <button
+        type="button"
+        data-testid="telegram-site-login-button"
+        class="mt-1 h-12 w-full rounded-xl bg-[#229ED9] px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1D8BC1] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        :disabled="isButtonDisabled"
+        @click="openTelegramLogin"
+    >
+        <span class="flex items-center justify-center gap-2">
+            <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="size-5"
+                fill="currentColor"
+            >
+                <path d="M21.425 4.574a1 1 0 0 0-1.052-.152l-17 7a1 1 0 0 0 .094 1.886l4.607 1.535 1.535 4.607a1 1 0 0 0 1.886.094l7-17a1 1 0 0 0-.152-1.052 1 1 0 0 0-1.052-.153l-10.932 4.56a1 1 0 0 0 .186 1.909l4.638.928.928 4.638a1 1 0 0 0 1.909.186l4.56-10.932a1 1 0 0 0-.153-1.052z" />
+            </svg>
+            <span>{{ isOpening ? 'Открываем Telegram...' : 'Войти через Telegram' }}</span>
+        </span>
+    </button>
 </template>

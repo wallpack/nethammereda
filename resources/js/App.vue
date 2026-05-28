@@ -103,6 +103,7 @@ const telegramLinkStatus = ref({
 });
 const telegramLoginConfig = ref({
     bot_username: null,
+    bot_id: null,
     login_available: false,
 });
 const telegramLinkLoading = ref(false);
@@ -406,11 +407,13 @@ const loadTelegramLoginWidgetConfig = async () => {
         const response = await fetchTelegramLoginConfig();
         telegramLoginConfig.value = {
             bot_username: response.data?.bot_username ?? null,
+            bot_id: response.data?.bot_id ?? null,
             login_available: Boolean(response.data?.login_available),
         };
     } catch {
         telegramLoginConfig.value = {
             bot_username: null,
+            bot_id: null,
             login_available: false,
         };
     }
@@ -1119,7 +1122,7 @@ onBeforeUnmount(() => {
             :message="authModalMessage"
             :show-telegram="auth.hasTelegramInitData()"
             :telegram-login-available="telegramLoginConfig.login_available"
-            :telegram-bot-username="telegramLoginConfig.bot_username ?? ''"
+            :telegram-bot-id="telegramLoginConfig.bot_id"
             @close="closeAuthModal"
             @submit="loginFromWeb"
             @telegram-login="loginFromTelegram"

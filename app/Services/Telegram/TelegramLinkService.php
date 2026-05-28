@@ -5,6 +5,8 @@ namespace App\Services\Telegram;
 use App\Models\TelegramLinkToken;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Throwable;
 
 class TelegramLinkService
 {
@@ -126,6 +128,23 @@ class TelegramLinkService
         return $username;
     }
 
+    public function botId(): ?int
+    {
+        $configuredBotId = $this->configuredBotId();
+
+        if ($configuredBotId !== null) {
+            return $configuredBotId;
+        }
+
+        if (app()->environment('testing')) {
+            return null;
+        }
+
+        return cache()->remember('telegram.bot_id_from_api', now()->addHours(12), function (): ?int {
+            return $this->resolveBotIdFromApi();
+        });
+    }
+
     public function botLink(): ?string
     {
         $botUsername = $this->botUsername();
@@ -163,5 +182,50 @@ class TelegramLinkService
             ->where('user_id', $user->id)
             ->whereNull('used_at')
             ->update(['used_at' => now()]);
+    }
+
+    private function configuredBotId(): ?int
+    {
+        $botId = config('services.telegram.bot_id');
+
+        if (! is_numeric($botId)) {
+            return null;
+        }
+
+        $normalized = (int) $botId;
+
+        return $normalized > 0 ? $normalized : null;
+    }
+
+    private function resolveBotIdFromApi(): ?int
+    {
+        $botToken = trim((string) config('services.telegram.bot_token'));
+
+        if ($botToken === '') {
+            return null;
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->timeout(8)
+                ->retry(1, 200)
+                ->get("https://api.telegram.org/bot{$botToken}/getMe");
+
+            if (! $response->ok()) {
+                return null;
+            }
+
+            $botId = $response->json('result.id');
+
+            if (! is_numeric($botId)) {
+                return null;
+            }
+
+            $normalized = (int) $botId;
+
+            return $normalized > 0 ? $normalized : null;
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

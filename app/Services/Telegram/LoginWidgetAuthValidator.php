@@ -15,20 +15,25 @@ class LoginWidgetAuthValidator
      *     auth_date: int
      * }|null
      */
-    public function validate(array $payload): ?array
+    public function validate(array $payload, ?string &$reason = null): ?array
     {
+        $reason = null;
+
         $botToken = (string) config('services.telegram.bot_token');
         if ($botToken === '') {
+            $reason = 'bot_token_missing';
             return null;
         }
 
         $incomingHash = $this->normalizedHash($payload['hash'] ?? null);
         if ($incomingHash === null) {
+            $reason = 'hash_missing_or_invalid';
             return null;
         }
 
         $dataToCheck = $this->buildDataToCheck($payload);
         if ($dataToCheck === []) {
+            $reason = 'payload_empty';
             return null;
         }
 
@@ -40,11 +45,13 @@ class LoginWidgetAuthValidator
         $calculatedHash = hash_hmac('sha256', $checkString, $secretKey);
 
         if (! hash_equals($calculatedHash, $incomingHash)) {
+            $reason = 'hash_mismatch';
             return null;
         }
 
         $authDateValue = $dataToCheck['auth_date'] ?? null;
         if (! is_string($authDateValue) || ! ctype_digit($authDateValue)) {
+            $reason = 'auth_date_missing_or_invalid';
             return null;
         }
 
@@ -53,13 +60,17 @@ class LoginWidgetAuthValidator
         $maxAge = max(1, (int) config('services.telegram.login_auth_ttl', 86400));
 
         if ($authDate <= 0 || $authDate > ($now + 30) || ($now - $authDate) > $maxAge) {
+            $reason = 'auth_date_stale';
             return null;
         }
 
         $telegramId = $dataToCheck['id'] ?? null;
         if (! is_string($telegramId) || ! ctype_digit($telegramId) || $telegramId === '0') {
+            $reason = 'telegram_id_missing_or_invalid';
             return null;
         }
+
+        $reason = 'ok';
 
         return [
             'telegram_id' => $telegramId,
@@ -122,8 +133,12 @@ class LoginWidgetAuthValidator
             return $value;
         }
 
-        if (is_int($value) || is_float($value) || is_bool($value)) {
+        if (is_int($value) || is_float($value)) {
             return (string) $value;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
         }
 
         return null;

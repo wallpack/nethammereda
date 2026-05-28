@@ -57,9 +57,9 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    telegramBotUsername: {
-        type: String,
-        default: '',
+    telegramBotId: {
+        type: [Number, String, null],
+        default: null,
     },
 });
 
@@ -71,8 +71,8 @@ const emit = defineEmits([
     'telegram-widget-error',
     'update:email',
     'update:password',
-    'update:rememberMe',
-    'update:showPassword',
+    'update:remember-me',
+    'update:show-password',
 ]);
 
 const emailModel = computed({
@@ -87,7 +87,7 @@ const passwordModel = computed({
 
 const rememberMeModel = computed({
     get: () => props.rememberMe,
-    set: (value) => emit('update:rememberMe', value === true),
+    set: (value) => emit('update:remember-me', value === true),
 });
 
 const closeWhenChanged = (open) => {
@@ -218,13 +218,15 @@ const closeWhenChanged = (open) => {
 
                 <div
                     v-else-if="telegramLoginAvailable"
-                    class="mt-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4"
+                    class="mt-4"
                 >
-                    <p class="mb-3 text-center text-sm font-semibold text-slate-800">
-                        Войти через Telegram
-                    </p>
+                    <div class="mb-3 flex items-center gap-3" aria-hidden="true">
+                        <span class="h-px flex-1 bg-slate-200" />
+                        <span class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">или</span>
+                        <span class="h-px flex-1 bg-slate-200" />
+                    </div>
                     <TelegramLoginWidget
-                        :bot-username="telegramBotUsername"
+                        :bot-id="telegramBotId"
                         :disabled="loading"
                         @auth="emit('telegram-widget-auth', $event)"
                         @error="emit('telegram-widget-error')"

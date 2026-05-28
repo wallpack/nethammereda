@@ -38,6 +38,7 @@ return [
     'telegram' => [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'bot_username' => env('TELEGRAM_BOT_USERNAME'),
+        'bot_id' => env('TELEGRAM_BOT_ID'),
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
         'webapp_url' => env('TELEGRAM_WEBAPP_URL'),
         'webapp_auth_ttl' => env('TELEGRAM_WEBAPP_AUTH_TTL', 86400),

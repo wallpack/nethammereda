@@ -9,17 +9,20 @@ use App\Models\User;
 use App\Services\Telegram\LoginWidgetAuthValidator;
 use App\Services\Telegram\TelegramLinkService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 
 class TelegramLoginController extends Controller
 {
     public function config(TelegramLinkService $telegramLinkService): JsonResponse
     {
         $botUsername = $telegramLinkService->botUsername();
+        $botId = $telegramLinkService->botId();
 
         return response()->json([
             'data' => [
                 'bot_username' => $botUsername,
-                'login_available' => $botUsername !== null,
+                'bot_id' => $botId,
+                'login_available' => $botUsername !== null && $botId !== null,
             ],
         ]);
     }
@@ -28,9 +31,14 @@ class TelegramLoginController extends Controller
         TelegramLoginRequest $request,
         LoginWidgetAuthValidator $validator,
     ): JsonResponse {
-        $validated = $validator->validate($request->all());
+        $validationReason = 'unknown';
+        $validated = $validator->validate($request->all(), $validationReason);
 
         if ($validated === null) {
+            Log::warning('telegram_site_login_failed', [
+                'reason' => $validationReason,
+            ]);
+
             return response()->json([
                 'message' => 'Не удалось войти через Telegram. Попробуйте ещё раз.',
             ], 422);
@@ -55,6 +63,10 @@ class TelegramLoginController extends Controller
         $user = User::query()->where('telegram_id', $telegramId)->first();
 
         if ($user !== null && ! $user->is_active) {
+            Log::warning('telegram_site_login_failed', [
+                'reason' => 'user_inactive',
+            ]);
+
             return response()->json([
                 'message' => 'Пользователь деактивирован.',
             ], 403);

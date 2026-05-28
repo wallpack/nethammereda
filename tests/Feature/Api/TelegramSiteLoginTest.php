@@ -119,6 +119,21 @@ class TelegramSiteLoginTest extends TestCase
     }
 
     #[Test]
+    public function widget_payload_with_boolean_field_is_validated_correctly(): void
+    {
+        $payload = $this->signedWidgetPayload([
+            'id' => '91007',
+            'first_name' => 'Иван',
+            'auth_date' => (string) now()->timestamp,
+            'allows_write_to_pm' => true,
+        ]);
+
+        $this->postJson('/api/auth/telegram-login', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.user.telegram_id', '91007');
+    }
+
+    #[Test]
     public function ordinary_email_password_login_still_works(): void
     {
         User::factory()->create([
@@ -170,23 +185,31 @@ class TelegramSiteLoginTest extends TestCase
     public function telegram_login_config_endpoint_returns_bot_username_and_availability(): void
     {
         config()->set('services.telegram.bot_username', 'lunch_demo_bot');
+        config()->set('services.telegram.bot_id', 987654321);
 
         $this->getJson('/api/auth/telegram-login/config')
             ->assertOk()
             ->assertJsonPath('data.bot_username', 'lunch_demo_bot')
+            ->assertJsonPath('data.bot_id', 987654321)
             ->assertJsonPath('data.login_available', true);
     }
 
     /**
-     * @param  array<string, string>  $payload
-     * @return array<string, string>
+     * @param  array<string, scalar>  $payload
+     * @return array<string, scalar>
      */
     private function signedWidgetPayload(array $payload): array
     {
         ksort($payload);
 
         $checkString = collect($payload)
-            ->map(fn (string $value, string $key): string => "{$key}={$value}")
+            ->map(function (int|string|float|bool $value, string $key): string {
+                if (is_bool($value)) {
+                    return $value ? "{$key}=true" : "{$key}=false";
+                }
+
+                return "{$key}={$value}";
+            })
             ->implode("\n");
 
         $secretKey = hash('sha256', self::BOT_TOKEN, true);
