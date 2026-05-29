@@ -113,8 +113,9 @@ const fridgeHistoryItem = {
 };
 
 const closedOrderingMessage = 'Приём заказов закрыт.';
-const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина очищена.';
+const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина станет доступна в новом цикле.';
 const draftUnavailableMessage = 'Цикл закрыт, черновик заказа больше недоступен.';
+const closedOrderingInfoMessage = 'Приём заказов сейчас закрыт. Новый заказ можно будет оформить, когда откроется следующий цикл.';
 
 const jsonResponse = (payload, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,
@@ -838,6 +839,27 @@ describe('catalog auth UX', () => {
         expect(document.querySelector('[aria-label="Открыть раздел: Мой заказ"]')).toBeNull();
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
         expect(document.body.textContent).toContain('Корзина');
+        expect(document.body.textContent).not.toContain('Позиций:');
+    });
+
+    it('renders top navigation with inline fridge count label and no standalone circle badge', async () => {
+        const fridgeItems = Array.from({ length: 13 }, (_, index) => ({
+            ...fridgeItem,
+            id: 400 + index,
+            title_snapshot: `Позиция ${index + 1}`,
+            quantity_remaining: 1,
+        }));
+
+        await mountApp({
+            authenticated: true,
+            fridgeItems,
+        });
+
+        const fridgeNavButton = document.querySelector('[aria-label="Открыть раздел: Холодильник"]');
+
+        expect(fridgeNavButton).toBeTruthy();
+        expect(fridgeNavButton?.textContent).toContain('Холодильник · 13');
+        expect(fridgeNavButton?.querySelector('[data-slot="badge"]')).toBeNull();
     });
 
     it('renders desktop shell with category rail, catalog and order panel', async () => {
@@ -1163,7 +1185,7 @@ describe('catalog auth UX', () => {
         expect(selectedCategorySummary?.textContent ?? '').toContain(secondCategory.name);
     });
 
-    it('renders wrapping-safe category chips with one visible favorites chip', async () => {
+    it('keeps favorites outside normal category list and preserves wrapping-safe category chips', async () => {
         await mountApp({
             authenticated: true,
             menuItems: [menuItem, secondMenuItem],
@@ -1171,8 +1193,7 @@ describe('catalog auth UX', () => {
         });
 
         const row = document.querySelector('[data-testid="category-chip-row"]');
-        const favoriteChips = document.querySelectorAll('[data-testid="menu-favorites-chip"]');
-        const favoriteChip = favoriteChips[0];
+        const favoriteChip = document.querySelector('[data-testid="menu-favorites-chip"]');
 
         expect(row).toBeTruthy();
         expect(row?.className).toContain('flex-wrap');
@@ -1182,14 +1203,10 @@ describe('catalog auth UX', () => {
         expect(row?.className).not.toContain('min-w-full');
         expect(row?.className).not.toContain('flex-nowrap');
 
-        expect(favoriteChips).toHaveLength(1);
+        expect(favoriteChip).toBeTruthy();
         expect(favoriteChip?.textContent).toContain('Избранное');
-        expect(favoriteChip?.className).toContain('whitespace-nowrap');
-        expect(favoriteChip?.className).toContain('shrink-0');
-        expect(favoriteChip?.className).toContain('flex-none');
-        expect(favoriteChip?.className).not.toContain('min-w-max');
-        expect(favoriteChip?.className).not.toContain('w-screen');
-        expect(favoriteChip?.className).not.toContain('overflow-hidden');
+        expect(row?.textContent).not.toContain('Избранное');
+        expect(favoriteChip?.closest('[data-testid="category-chip-row"]')).toBeNull();
     });
 
     it('filters the catalog to locally selected favorites', async () => {
@@ -1408,6 +1425,8 @@ describe('catalog auth UX', () => {
         });
 
         expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
+        expect(document.body.textContent).toContain(closedOrderingInfoMessage);
+        expect(document.body.textContent).not.toContain('черновик');
     });
 
     it('clears active order when mutation returns closed-cycle response', async () => {
@@ -1774,7 +1793,7 @@ describe('catalog auth UX', () => {
         expect(panel?.getAttribute('aria-label')).toBe('Панель корзины');
         expect(panel?.className).toContain('xl:sticky');
         expect(panel?.className).toContain('xl:mt-[7.35rem]');
-        expect(panel?.className).toContain('xl:h-[calc(100dvh-12.5rem)]');
+        expect(panel?.className).toContain('xl:h-[calc(100dvh-11.35rem)]');
     });
 
     it('keeps the order total and submit action in a sticky footer', async () => {
@@ -1783,8 +1802,11 @@ describe('catalog auth UX', () => {
             order: orderWithItem,
         });
 
+        const itemsScroll = document.querySelector('[data-testid="order-panel-items-scroll"]');
         const footer = document.querySelector('[data-testid="order-panel-footer"]');
 
+        expect(itemsScroll).toBeTruthy();
+        expect(itemsScroll?.className).toContain('overflow-y-auto');
         expect(footer).toBeTruthy();
         expect(footer?.className).toContain('sticky');
         expect(footer?.textContent).toContain('Итого');
@@ -1804,6 +1826,7 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Порций');
         expect(document.body.textContent).toContain('Скоро истекает');
         expect(document.body.textContent).toContain('До');
+        expect(document.querySelector('[data-testid="fridge-panel-scroll"]')?.className).toContain('overflow-y-auto');
         await click(buttonByText('Съел'));
 
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/eat-one`)).toBe(true);
@@ -1846,6 +1869,20 @@ describe('catalog auth UX', () => {
         await click(buttonByText('Съел'));
 
         expect(document.body.textContent).toContain('Не удалось обновить холодильник.');
+    });
+
+    it('keeps fridge and history panels scrollable', async () => {
+        await mountApp({
+            authenticated: true,
+            fridgeItems: [fridgeItem],
+            fridgeHistory: [fridgeHistoryItem],
+        });
+
+        await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
+        expect(document.querySelector('[data-testid="fridge-panel-scroll"]')?.className).toContain('overflow-y-auto');
+
+        await click(document.querySelector('[aria-label="Открыть раздел: История"]'));
+        expect(document.querySelector('[data-testid="history-panel-scroll"]')?.className).toContain('overflow-y-auto');
     });
 
     it('shows calm empty states for fridge and history', async () => {

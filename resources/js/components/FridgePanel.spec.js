@@ -51,9 +51,12 @@ describe('FridgePanel UI', () => {
         expect(wrapper.text()).toContain('Списать');
         expect(wrapper.text()).toContain('В холодильнике');
         expect(wrapper.text()).toContain('Порций');
+        expect(wrapper.find('[data-testid="fridge-panel-scroll"]').exists()).toBe(true);
 
         const eatButton = wrapper.findAll('button').find((button) => button.text().includes('Съел'));
+        const eatAllButton = wrapper.findAll('button').find((button) => button.text().includes('Съел всё'));
         expect(eatButton?.classes().join(' ')).toContain('sm:w-auto');
+        expect(eatAllButton?.classes().join(' ')).toContain('border-blue-200');
     });
 
     it('shows empty state when fridge is empty', () => {

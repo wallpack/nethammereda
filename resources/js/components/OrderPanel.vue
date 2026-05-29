@@ -120,12 +120,12 @@ watch(() => props.menuItemsById, () => {
                     v-else-if="!showGuestAuthPrompt"
                     variant="outline"
                     class="shrink-0 rounded-full px-3 text-xs font-semibold"
-                    :class="isSubmittedOrder ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50 text-slate-600'"
+                    :class="isSubmittedOrder ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-blue-100 bg-blue-50 text-blue-700'"
                 >
                     {{ orderStatusLabel(order?.status ?? 'draft') }}
                 </Badge>
             </div>
-            <p v-if="statusLine" class="mt-2 rounded-xl bg-slate-50/85 px-3 py-2 text-pretty text-xs font-medium text-slate-600">
+            <p v-if="statusLine" class="mt-2 rounded-xl bg-blue-50/70 px-3 py-2 text-pretty text-xs font-medium text-blue-800">
                 {{ statusLine }}
             </p>
         </div>
@@ -154,7 +154,7 @@ watch(() => props.menuItemsById, () => {
 
         <div
             v-else-if="showGuestAuthPrompt"
-            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-10 text-center"
+            class="mt-4 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-7 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Войдите, чтобы заказать</p>
@@ -163,14 +163,14 @@ watch(() => props.menuItemsById, () => {
 
         <div
             v-else-if="!order || orderItems.length === 0"
-            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-10 text-center"
+            class="mt-4 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-7 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Вы ещё ничего не добавили</p>
             <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Откройте каталог и добавьте блюда в заказ.</p>
         </div>
 
-        <div v-else class="mt-4 min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pb-4 pr-1">
+        <div data-testid="order-panel-items-scroll" v-else class="mt-4 min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pb-4 pr-1">
             <article
                 v-for="item in orderItems"
                 :key="item.id"
@@ -263,7 +263,7 @@ watch(() => props.menuItemsById, () => {
                 <Button
                     v-if="showGuestAuthPrompt"
                     type="button"
-                    class="mt-3 h-12 w-full rounded-full bg-slate-900 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98]"
+                    class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
                     @click="emit('open-auth')"
                 >
                     Войти
@@ -272,7 +272,7 @@ watch(() => props.menuItemsById, () => {
                 <Button
                     v-else-if="canEditOrder"
                     type="button"
-                    class="mt-3 h-12 w-full rounded-full bg-slate-900 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
+                    class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
                     :disabled="!orderItems.length || actionLoading"
                     :title="!orderItems.length ? 'Добавьте блюда из каталога' : undefined"
                     @click="emit('submit-order')"
@@ -285,7 +285,7 @@ watch(() => props.menuItemsById, () => {
                     v-else-if="canReopenOrder"
                     type="button"
                     variant="outline"
-                    class="mt-3 h-12 w-full rounded-full border-amber-200 bg-white px-4 text-sm font-semibold text-amber-800 shadow-sm transition-[background-color,transform] duration-150 hover:bg-amber-50 active:scale-[0.98]"
+                    class="mt-3 h-12 w-full rounded-full border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
                     :disabled="actionLoading"
                     @click="emit('reopen-order')"
                 >
@@ -294,7 +294,7 @@ watch(() => props.menuItemsById, () => {
                 </Button>
 
                 <p v-else class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-pretty text-sm leading-5 text-slate-600">
-                    {{ orderStatusLabel(order?.status ?? 'draft') }}
+                    {{ statusLine?.includes('Приём заказов закрыт') ? 'Приём заказов закрыт. Корзина станет доступна в новом цикле.' : orderStatusLabel(order?.status ?? 'draft') }}
                 </p>
             </template>
         </div>

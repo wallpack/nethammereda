@@ -60,7 +60,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
             <div class="relative p-2 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative h-[13.5rem] overflow-hidden rounded-[1.05rem] bg-gradient-to-b from-slate-50/60 to-slate-100/35 sm:h-[14.25rem] lg:h-[14.5rem] xl:h-[14.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl max-[430px]:bg-[#f6f6f4]"
+                    class="relative h-[13.5rem] overflow-hidden rounded-[1.05rem] bg-white sm:h-[14.25rem] lg:h-[14.5rem] xl:h-[14.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl"
                 >
                     <img
                         v-if="showImage"
@@ -72,7 +72,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                         @error="imageFailed = true"
                     />
                     <div v-else class="flex size-full flex-col items-center justify-center gap-1.5 px-3 text-center text-slate-400/90 max-[430px]:gap-1 max-[430px]:px-1.5">
-                        <span class="grid size-9 place-items-center rounded-xl border border-slate-200/80 bg-white/85 text-slate-400 max-[430px]:size-7 max-[430px]:rounded-lg">
+                        <span class="grid size-9 place-items-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-400 max-[430px]:size-7 max-[430px]:rounded-lg">
                             <ImageIcon aria-hidden="true" class="size-4 max-[430px]:size-3.5" />
                         </span>
                         <span class="text-pretty text-xs font-medium">Фото блюда появится скоро</span>
@@ -125,7 +125,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                             :disabled="controlsDisabled"
                             :title="controlsDisabled ? disabledReason : undefined"
                             :aria-label="`Добавить в заказ: ${item.title}`"
-                            class="h-10 shrink-0 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
+                            class="h-10 shrink-0 rounded-full bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
                             @click="emit('add-item', item.id)"
                         >
                             <Plus aria-hidden="true" class="size-4 max-[430px]:m-0 max-[430px]:size-[18px]" />

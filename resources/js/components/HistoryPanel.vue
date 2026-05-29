@@ -103,7 +103,7 @@ const groupedHistory = computed(() => {
 </script>
 
 <template>
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="fridgeLoading">
+    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="fridgeLoading">
         <div v-if="showHeading" class="mb-4 shrink-0">
             <h2 class="text-lg font-semibold text-slate-950">Моя история</h2>
             <p class="mt-0.5 text-sm text-slate-500">Последние действия с блюдами.</p>
@@ -126,7 +126,7 @@ const groupedHistory = computed(() => {
             <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Когда вы отметите блюдо в холодильнике, оно появится здесь.</p>
         </div>
 
-        <div v-else class="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1 text-sm text-slate-700">
+        <div data-testid="history-panel-scroll" v-else class="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1 text-sm text-slate-700">
             <section v-for="group in groupedHistory" :key="group.label" aria-label="День истории питания">
                 <div class="mb-2 flex items-center gap-2 px-1">
                     <h3 class="text-xs font-semibold text-slate-400">{{ group.label }}</h3>

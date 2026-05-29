@@ -93,7 +93,7 @@ const summaryCards = computed(() => {
 </script>
 
 <template>
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="fridgeLoading || actionLoading">
+    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="fridgeLoading || actionLoading">
         <div v-if="showHeading" class="flex shrink-0 items-start justify-between gap-3">
             <div class="min-w-0">
                 <h2 class="text-lg font-semibold text-slate-950">Мой холодильник</h2>
@@ -151,7 +151,7 @@ const summaryCards = computed(() => {
             <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Когда заказ будет доставлен, блюда появятся здесь.</p>
         </div>
 
-        <div v-else class="mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1">
+        <div data-testid="fridge-panel-scroll" v-else class="mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1">
             <div class="grid gap-2.5 xl:grid-cols-2">
                 <article
                     v-for="item in fridgeItems"
@@ -185,7 +185,7 @@ const summaryCards = computed(() => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            class="h-9 rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
+                            class="h-9 rounded-full border-blue-200 bg-white px-3 text-xs font-semibold text-blue-800 transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
                             :disabled="actionLoading"
                             @click="emit('eat-all', item.id)"
                         >

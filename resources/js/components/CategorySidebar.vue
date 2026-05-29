@@ -49,7 +49,7 @@ const categoryItemCount = (categoryId) => {
             <button
                 type="button"
                 class="inline-flex h-9 max-w-full flex-none shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 text-[11px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] max-[639px]:px-2.5 sm:h-9 sm:px-4 sm:text-sm xl:h-10 xl:w-full xl:max-w-none xl:justify-between xl:rounded-xl xl:px-3"
-                :class="selectedCategory === null ? 'border-amber-200 bg-amber-50 text-amber-900 ring-1 ring-amber-200/60' : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'"
+                :class="selectedCategory === null ? 'border-blue-200 bg-blue-50 text-blue-800 ring-1 ring-blue-200/60' : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800'"
                 :aria-pressed="selectedCategory === null"
                 @click="emit('update:selectedCategory', null)"
             >
@@ -57,7 +57,7 @@ const categoryItemCount = (categoryId) => {
                 <Badge
                     variant="outline"
                     class="h-5 border-0 px-1.5 text-[11px] tabular-nums max-[639px]:px-1 max-[639px]:text-[10px] sm:h-6 sm:px-2 sm:text-xs"
-                    :class="selectedCategory === null ? 'bg-white/20 text-white xl:bg-amber-100 xl:text-amber-800' : 'bg-slate-100 text-slate-600'"
+                    :class="selectedCategory === null ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'"
                 >
                     {{ items.length }}
                 </Badge>
@@ -68,7 +68,7 @@ const categoryItemCount = (categoryId) => {
                 :key="category.id"
                 type="button"
                 class="inline-flex h-9 max-w-full flex-none shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 text-[11px] font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] max-[639px]:px-2.5 sm:h-9 sm:px-4 sm:text-sm xl:h-10 xl:w-full xl:max-w-none xl:justify-between xl:rounded-xl xl:px-3"
-                :class="selectedCategory === category.id ? 'border-amber-200 bg-amber-50 text-amber-900 ring-1 ring-amber-200/60' : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'"
+                :class="selectedCategory === category.id ? 'border-blue-200 bg-blue-50 text-blue-800 ring-1 ring-blue-200/60' : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800'"
                 :aria-pressed="selectedCategory === category.id"
                 @click="emit('update:selectedCategory', category.id)"
             >
@@ -76,7 +76,7 @@ const categoryItemCount = (categoryId) => {
                 <Badge
                     variant="outline"
                     class="h-5 border-0 px-1.5 text-[11px] tabular-nums max-[639px]:px-1 max-[639px]:text-[10px] sm:h-6 sm:px-2 sm:text-xs"
-                    :class="selectedCategory === category.id ? 'bg-white/20 text-white xl:bg-amber-100 xl:text-amber-800' : 'bg-slate-100 text-slate-600'"
+                    :class="selectedCategory === category.id ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'"
                 >
                     {{ categoryItemCount(category.id) }}
                 </Badge>

@@ -18,16 +18,16 @@ describe('CategorySidebar', () => {
 
         let [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(categoryButton, ['bg-amber-50', 'text-amber-900', 'ring-1', 'ring-amber-200/60']);
-        expectClasses(categoryButton.find('[data-slot="badge"]'), ['xl:bg-amber-100', 'xl:text-amber-800']);
-        expectClasses(allButton, ['text-slate-700', 'hover:bg-slate-50', 'hover:text-slate-900']);
+        expectClasses(categoryButton, ['bg-blue-50', 'text-blue-800', 'ring-1', 'ring-blue-200/60']);
+        expectClasses(categoryButton.find('[data-slot="badge"]'), ['bg-blue-100', 'text-blue-800']);
+        expectClasses(allButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-800']);
 
         await wrapper.setProps({ selectedCategory: null });
         [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(allButton, ['bg-amber-50', 'text-amber-900', 'ring-1', 'ring-amber-200/60']);
-        expectClasses(allButton.find('[data-slot="badge"]'), ['xl:bg-amber-100', 'xl:text-amber-800']);
-        expectClasses(categoryButton, ['text-slate-700', 'hover:bg-slate-50', 'hover:text-slate-900']);
+        expectClasses(allButton, ['bg-blue-50', 'text-blue-800', 'ring-1', 'ring-blue-200/60']);
+        expectClasses(allButton.find('[data-slot="badge"]'), ['bg-blue-100', 'text-blue-800']);
+        expectClasses(categoryButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-800']);
     });
 
     it('keeps categories wrapping-safe on mobile and prepared as a desktop rail', () => {

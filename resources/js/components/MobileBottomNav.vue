@@ -33,7 +33,7 @@ const emit = defineEmits(['catalog', 'order', 'fridge', 'profile']);
             <button
                 type="button"
                 class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
-                :class="activePanel === null ? 'bg-amber-50 text-amber-900' : 'text-slate-500'"
+                :class="activePanel === null ? 'bg-blue-50 text-blue-800' : 'text-slate-500'"
                 :aria-current="activePanel === null ? 'page' : undefined"
                 aria-label="Открыть раздел: Каталог"
                 @click="emit('catalog')"
@@ -44,7 +44,7 @@ const emit = defineEmits(['catalog', 'order', 'fridge', 'profile']);
             <button
                 type="button"
                 class="relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
-                :class="activePanel === 'order' ? 'bg-amber-50 text-amber-900' : 'text-slate-500'"
+                :class="activePanel === 'order' ? 'bg-blue-50 text-blue-800' : 'text-slate-500'"
                 :aria-current="activePanel === 'order' ? 'page' : undefined"
                 aria-label="Открыть раздел: Корзина"
                 @click="emit('order')"
@@ -53,7 +53,7 @@ const emit = defineEmits(['catalog', 'order', 'fridge', 'profile']);
                 <span class="max-w-full truncate">Корзина</span>
                 <Badge
                     v-if="totalPositions"
-                    class="absolute right-5 top-0.5 flex size-5 items-center justify-center rounded-full bg-slate-900 px-0 text-[11px] font-semibold tabular-nums text-white"
+                    class="absolute right-5 top-0.5 flex size-5 items-center justify-center rounded-full bg-blue-800 px-0 text-[11px] font-semibold tabular-nums text-white"
                 >
                     {{ totalPositions }}
                 </Badge>
@@ -61,7 +61,7 @@ const emit = defineEmits(['catalog', 'order', 'fridge', 'profile']);
             <button
                 type="button"
                 class="relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
-                :class="activePanel === 'fridge' ? 'bg-amber-50 text-amber-900' : 'text-slate-500'"
+                :class="activePanel === 'fridge' ? 'bg-blue-50 text-blue-800' : 'text-slate-500'"
                 :aria-current="activePanel === 'fridge' ? 'page' : undefined"
                 aria-label="Открыть раздел: Холодильник"
                 @click="emit('fridge')"
@@ -70,7 +70,7 @@ const emit = defineEmits(['catalog', 'order', 'fridge', 'profile']);
                 <span class="max-w-full truncate">Холодильник</span>
                 <Badge
                     v-if="activeFridgeItemsCount"
-                    class="absolute right-4 top-0.5 flex size-5 items-center justify-center rounded-full bg-slate-900 px-0 text-[11px] font-semibold tabular-nums text-white"
+                    class="absolute right-4 top-0.5 flex size-5 items-center justify-center rounded-full bg-blue-800 px-0 text-[11px] font-semibold tabular-nums text-white"
                 >
                     {{ activeFridgeItemsCount }}
                 </Badge>
@@ -78,7 +78,7 @@ const emit = defineEmits(['catalog', 'order', 'fridge', 'profile']);
             <button
                 type="button"
                 class="flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
-                :class="isProfileOpen ? 'bg-amber-50 text-amber-900' : 'text-slate-500'"
+                :class="isProfileOpen ? 'bg-blue-50 text-blue-800' : 'text-slate-500'"
                 :aria-current="isProfileOpen ? 'page' : undefined"
                 aria-label="Открыть раздел: Профиль"
                 @click="emit('profile')"

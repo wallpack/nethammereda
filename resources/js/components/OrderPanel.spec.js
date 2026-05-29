@@ -55,4 +55,37 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.text()).toContain('Вы ещё ничего не добавили');
         expect(wrapper.text()).toContain('Откройте каталог и добавьте блюда в заказ.');
     });
+
+    it('renders internal scroll and sticky footer structure for current cart', () => {
+        const wrapper = mountPanel({
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '250.00',
+                items: [],
+            },
+            orderItems: [
+                {
+                    id: 77,
+                    menu_item_id: 11,
+                    title_snapshot: 'Суп с курицей',
+                    price_snapshot: '250.00',
+                    quantity: 1,
+                },
+            ],
+            menuItemsById: new Map([
+                [11, { id: 11, title: 'Суп с курицей', weight: '300 г', image_url: null, image_display_url: null }],
+            ]),
+            totalPositions: 1,
+            canEditOrder: true,
+        });
+
+        const list = wrapper.find('[data-testid="order-panel-items-scroll"]');
+        const footer = wrapper.find('[data-testid="order-panel-footer"]');
+
+        expect(list.exists()).toBe(true);
+        expect(list.classes()).toContain('overflow-y-auto');
+        expect(footer.exists()).toBe(true);
+        expect(footer.classes()).toContain('sticky');
+    });
 });

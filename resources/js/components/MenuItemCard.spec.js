@@ -47,8 +47,10 @@ describe('MenuItemCard UI', () => {
             },
         });
 
+        const imageArea = wrapper.find('[data-testid="menu-item-image-area"]');
         const image = wrapper.find(`img[alt="${baseItem.title}"]`);
 
+        expect(imageArea.classes()).toContain('bg-white');
         expect(image.exists()).toBe(true);
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
     });

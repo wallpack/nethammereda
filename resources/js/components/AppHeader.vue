@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue';
 import BrandLogo from '@/components/BrandLogo.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,16 +50,24 @@ const navItems = [
     { key: 'history', label: 'История' },
 ];
 
+const navItemLabel = (item) => {
+    if (item.key === 'fridge' && props.activeFridgeItemsCount) {
+        return `Холодильник · ${props.activeFridgeItemsCount}`;
+    }
+
+    return item.label;
+};
+
 const navItemClass = (key) => (
     props.activeView === key
-        ? 'bg-slate-900 text-white shadow-sm'
-        : 'text-slate-600 hover:bg-amber-50 hover:text-slate-950'
+        ? 'bg-blue-800 text-white shadow-[0_8px_22px_rgb(30_64_175/0.33)]'
+        : 'text-slate-700 hover:bg-blue-50 hover:text-blue-800'
 );
 </script>
 
 <template>
     <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-[#fcfaf6]/95 backdrop-blur">
-        <div class="header-inner flex min-h-16 items-center gap-3 py-2.5">
+        <div class="header-inner flex min-h-[4.25rem] items-center gap-3.5 py-2.5">
             <div class="flex min-w-0 items-center gap-2 xl:gap-4">
                 <div class="min-w-0">
                     <BrandLogo />
@@ -71,26 +78,20 @@ const navItemClass = (key) => (
 
                 <nav
                     v-if="isAuthenticated && !loading"
-                    class="hidden items-center gap-2.5 xl:flex"
+                    class="hidden items-center gap-2 xl:flex"
                     aria-label="Разделы приложения"
                 >
                     <button
                         v-for="item in navItems"
                         :key="item.key"
                         type="button"
-                        class="inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-[background-color,color,transform] duration-150 active:scale-[0.98]"
+                        class="inline-flex h-10 items-center rounded-full px-4.5 text-[15px] font-semibold tracking-[-0.01em] transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.98]"
                         :class="navItemClass(item.key)"
                         :aria-current="activeView === item.key ? 'page' : undefined"
                         :aria-label="`Открыть раздел: ${item.label}`"
                         @click="emit('navigate', item.key)"
                     >
-                        {{ item.label }}
-                        <Badge
-                            v-if="item.key === 'fridge' && activeFridgeItemsCount"
-                            class="flex size-5 items-center justify-center rounded-full bg-slate-900 px-0 text-[11px] font-semibold tabular-nums text-white"
-                        >
-                            {{ activeFridgeItemsCount }}
-                        </Badge>
+                        {{ navItemLabel(item) }}
                     </button>
                 </nav>
             </div>
@@ -102,7 +103,7 @@ const navItemClass = (key) => (
                     v-model="searchModel"
                     type="search"
                     placeholder="Поиск по меню"
-                    class="h-10 rounded-full border-slate-200 bg-white pl-9 pr-4 text-sm text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-amber-300 focus-visible:bg-white focus-visible:ring-amber-300/25"
+                    class="h-10 rounded-full border-slate-200 bg-white pl-9 pr-4 text-sm text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:bg-white focus-visible:ring-blue-300/25"
                 />
             </label>
 
@@ -115,7 +116,7 @@ const navItemClass = (key) => (
                 v-else-if="isAuthenticated"
                 type="button"
                 variant="outline"
-                class="ml-auto hidden h-10 w-56 min-w-0 max-w-64 justify-center rounded-full border-slate-200 bg-white px-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-amber-200 hover:bg-amber-50 hover:text-slate-900 active:scale-[0.98] xl:inline-flex"
+                class="ml-auto hidden h-10 w-56 min-w-0 max-w-64 justify-center rounded-full border-slate-200 bg-white px-3 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] xl:inline-flex"
                 :aria-label="`Открыть профиль: ${displayUserName}`"
                 :title="displayUserName"
                 @click="emit('open-profile')"
@@ -130,7 +131,7 @@ const navItemClass = (key) => (
                 v-if="isAuthenticated && !loading"
                 type="button"
                 variant="outline"
-                class="ml-auto size-10 shrink-0 rounded-full border-slate-200 bg-white px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-amber-200 hover:bg-amber-50 hover:text-slate-900 active:scale-[0.98] xl:hidden"
+                class="ml-auto size-10 shrink-0 rounded-full border-slate-200 bg-white px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] xl:hidden"
                 :aria-label="`Открыть профиль: ${displayUserName}`"
                 :title="displayUserName"
                 @click="emit('open-profile')"
@@ -143,7 +144,7 @@ const navItemClass = (key) => (
             <Button
                 v-if="!isAuthenticated && !loading"
                 type="button"
-                class="ml-auto h-10 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98]"
+                class="ml-auto h-10 rounded-full bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
                 @click="emit('open-auth')"
             >
                 <UserRound aria-hidden="true" class="size-4" />

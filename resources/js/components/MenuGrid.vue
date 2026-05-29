@@ -210,23 +210,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     :items="items"
                     :selected-category="selectedCategory"
                     @update:selected-category="emit('update:selectedCategory', $event)"
-                >
-                    <template #append>
-                        <button
-                            v-if="isAuthenticated"
-                            type="button"
-                            data-testid="menu-favorites-chip"
-                            class="inline-flex h-9 max-w-full flex-none shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 text-[11px] font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] max-[639px]:px-2.5 sm:h-10 sm:px-4 sm:text-sm xl:h-11 xl:w-full xl:max-w-none xl:justify-between xl:rounded-xl xl:px-3"
-                            :class="favoritesOnly ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white hover:border-rose-200 hover:bg-rose-50/70 hover:text-rose-700'"
-                            :aria-pressed="favoritesOnly"
-                            @click="emit('toggle-favorites-filter')"
-                        >
-                            <Heart aria-hidden="true" class="size-4" :class="favoritesOnly ? 'fill-current' : ''" />
-                            Избранное
-                            <span v-if="favoritesCount" class="tabular-nums text-xs opacity-75">{{ favoritesCount }}</span>
-                        </button>
-                    </template>
-                </CategorySidebar>
+                />
             </div>
         </aside>
 
@@ -236,12 +220,22 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold tracking-[-0.03em] text-slate-950 outline-none sm:text-3xl">
                         Каталог
                     </h2>
-                    <span class="hidden items-center rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 xl:inline-flex">
-                        Позиций: {{ filteredItems.length }}
-                    </span>
+                    <button
+                        v-if="isAuthenticated"
+                        type="button"
+                        data-testid="menu-favorites-chip"
+                        class="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98]"
+                        :class="favoritesOnly ? 'border-blue-200 bg-blue-50 text-blue-800 ring-1 ring-blue-200/70' : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/70 hover:text-blue-800'"
+                        :aria-pressed="favoritesOnly"
+                        @click="emit('toggle-favorites-filter')"
+                    >
+                        <Heart aria-hidden="true" class="size-4" :class="favoritesOnly ? 'fill-current' : ''" />
+                        Избранное
+                        <span v-if="favoritesCount" class="tabular-nums text-xs opacity-75">{{ favoritesCount }}</span>
+                    </button>
                 </div>
-                <p class="hidden text-sm text-slate-500 xl:block">
-                    Выберите категорию слева и добавьте блюда в корзину.
+                <p v-if="!loading" class="hidden text-sm text-slate-500 xl:block">
+                    {{ filteredItems.length }} блюд в меню. Выберите категорию слева и добавьте блюда в корзину.
                 </p>
 
                 <label class="relative min-w-0 md:hidden">

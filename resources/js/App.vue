@@ -114,7 +114,9 @@ const requiredFullNameSaving = ref(false);
 const requiredFullNameError = ref('');
 const telegramLinkStatusTimeoutMs = 4000;
 const closedOrderingMessage = 'Приём заказов закрыт.';
-const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина очищена.';
+const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина станет доступна в новом цикле.';
+const closedOrderingInfoMessage = 'Приём заказов сейчас закрыт. Новый заказ можно будет оформить, когда откроется следующий цикл.';
+const closedOrderingStatusText = 'Приём заказов закрыт.';
 const repeatWhenClosedMessage = 'Повторить заказ можно, когда открыт приём заказов.';
 const repeatReplaceConfirmMessage = 'Заменить текущую корзину этим заказом?';
 
@@ -140,11 +142,34 @@ const effectiveAvailabilityDescription = computed(() => {
     }
 
     if (deadlinePassedLocally.value && cycle.value?.status === 'open') {
-        return 'Приём заказов завершён.';
+        return 'Новый заказ можно будет оформить, когда откроется следующий цикл.';
     }
 
     return availabilityDescription.value;
 });
+
+const normalizeClosedCycleCopy = (message, options = {}) => {
+    const forCart = options.forCart === true;
+    const fallback = forCart
+        ? closedOrderingCartClearedMessage
+        : closedOrderingInfoMessage;
+
+    if (typeof message !== 'string') {
+        return fallback;
+    }
+
+    const normalized = message.toLowerCase();
+
+    if (
+        normalized.includes('черновик')
+        || normalized.includes('цикл закрыт')
+        || normalized.includes('приём заказов закрыт')
+    ) {
+        return fallback;
+    }
+
+    return message;
+};
 
 const orderReadOnlyReason = computed(() => {
     if (isSubmittedOrder.value) {
@@ -159,7 +184,7 @@ const orderReadOnlyReason = computed(() => {
         return 'Заказ отправлен. Изменения больше недоступны.';
     }
 
-    return effectiveAvailabilityDescription.value || 'Прием заказов завершен.';
+    return effectiveAvailabilityDescription.value || 'Новый заказ можно будет оформить, когда откроется следующий цикл.';
 });
 
 const deadlineShortLabel = computed(() => {
@@ -184,7 +209,7 @@ const compactOrderStatusText = computed(() => {
             return `Заказ открыт · Дедлайн: ${deadlineShortLabel.value}`;
         }
 
-        return 'Приём заказов закрыт';
+        return closedOrderingStatusText;
     }
 
     if (canEditOrder.value) {
@@ -199,7 +224,7 @@ const compactOrderStatusText = computed(() => {
         return `Заказ отправлен · Можно редактировать до ${deadlineShortLabel.value}`;
     }
 
-    return 'Приём заказов закрыт';
+    return closedOrderingStatusText;
 });
 
 const orderPanelDescription = computed(() => {
@@ -292,7 +317,7 @@ const refreshOrderingState = async () => {
             await orderStore.loadCurrentOrder(auth.token);
             await orderStore.loadOrderHistory(auth.token);
             if (orderNotice.value) {
-                ui.info = orderNotice.value;
+                ui.info = normalizeClosedCycleCopy(orderNotice.value);
             }
         }
     } catch (e) {
@@ -528,7 +553,7 @@ const loadData = async () => {
                 fridge.loadFridgeData(auth.token),
             ]);
             if (orderNotice.value) {
-                ui.info = orderNotice.value;
+                ui.info = normalizeClosedCycleCopy(orderNotice.value);
             }
             void loadTelegramLinkStatus();
         } else {
@@ -1062,9 +1087,9 @@ onBeforeUnmount(() => {
 
                 <Card
                     v-else-if="isOrderView"
-                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm"
+                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgb(148_163_184/0.16)]"
                 >
-                    <CardContent class="h-[calc(100dvh-12.5rem)] min-h-[28rem] p-0">
+                    <CardContent class="flex h-[calc(100dvh-11.35rem)] min-h-[30rem] p-0">
                         <OrderPanel
                             :order="order"
                             :order-items="orderItems"
@@ -1086,9 +1111,9 @@ onBeforeUnmount(() => {
 
                 <Card
                     v-else-if="isFridgeView"
-                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm"
+                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgb(148_163_184/0.16)]"
                 >
-                    <CardContent class="h-[calc(100dvh-12.5rem)] min-h-[28rem] p-0">
+                    <CardContent class="flex h-[calc(100dvh-11.35rem)] min-h-[30rem] p-0">
                         <FridgePanel
                             :fridge-items="fridgeItems"
                             :fridge-meta="fridgeMeta"
@@ -1105,9 +1130,9 @@ onBeforeUnmount(() => {
 
                 <Card
                     v-else-if="isHistoryView"
-                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-sm"
+                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgb(148_163_184/0.16)]"
                 >
-                    <CardContent class="h-[calc(100dvh-12.5rem)] min-h-[28rem] p-0">
+                    <CardContent class="flex h-[calc(100dvh-11.35rem)] min-h-[30rem] p-0">
                         <HistoryPanel
                             :fridge-history="fridgeHistory"
                             :fridge-loading="loading || fridgeLoading"
@@ -1120,7 +1145,7 @@ onBeforeUnmount(() => {
                     v-if="isCatalogView"
                     data-testid="desktop-order-panel"
                     aria-label="Панель корзины"
-                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-white/96 text-slate-900 shadow-[0_14px_35px_rgb(148_163_184/0.18)] xl:mt-[7.35rem] xl:block xl:sticky xl:top-[5.1rem] xl:h-[calc(100dvh-12.5rem)] xl:max-h-[calc(100dvh-12.5rem)]"
+                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-white text-slate-900 shadow-[0_16px_38px_rgb(148_163_184/0.2)] xl:mt-[7.35rem] xl:block xl:sticky xl:top-[5.1rem] xl:h-[calc(100dvh-11.35rem)] xl:max-h-[calc(100dvh-11.35rem)]"
                 >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
                         <OrderPanel

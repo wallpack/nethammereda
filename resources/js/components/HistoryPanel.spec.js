@@ -23,6 +23,7 @@ describe('HistoryPanel UI', () => {
     it('renders readable rows with status chip and time', () => {
         const wrapper = mountPanel();
 
+        expect(wrapper.find('[data-testid="history-panel-scroll"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="history-panel-row"]').exists()).toBe(true);
         expect(wrapper.find('[data-testid="history-panel-status-chip"]').text()).toContain('Съедено');
         expect(wrapper.find('[data-testid="history-panel-time"]').text()).not.toBe('—');
