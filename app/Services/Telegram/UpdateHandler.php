@@ -459,16 +459,12 @@ class UpdateHandler
             ->values()
             ->map(function (FridgeItem $item, int $index): string {
                 $quantityLabel = "{$item->quantity_remaining} шт.";
-                $expiryLabel = $item->expires_at !== null
-                    ? 'до '.$this->formatTelegramDate($item->expires_at, true)
-                    : 'срок не указан';
 
                 return sprintf(
-                    '%d. %s — %s, %s',
+                    '%d. %s — %s',
                     $index + 1,
                     $item->title_snapshot,
                     $quantityLabel,
-                    $expiryLabel,
                 );
             })
             ->implode("\n");

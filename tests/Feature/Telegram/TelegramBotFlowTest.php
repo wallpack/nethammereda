@@ -411,6 +411,9 @@ class TelegramBotFlowTest extends TestCase
         $this->assertStringContainsString('Сейчас у вас 2 блюда', $message['text']);
         $this->assertStringContainsString('Лазанья', $message['text']);
         $this->assertStringContainsString('Котлета', $message['text']);
+        $this->assertStringContainsString('Лазанья — 2 шт.', $message['text']);
+        $this->assertStringContainsString('Котлета — 1 шт.', $message['text']);
+        $this->assertDoesNotMatchRegularExpression('/\bдо\s+\d{1,2}\s+[а-яё]+,\s+\d{2}:\d{2}\b/ui', $message['text']);
         $this->assertStringContainsString('Откройте холодильник, чтобы отметить блюдо.', $message['text']);
 
         $this->assertSame(
@@ -448,6 +451,7 @@ class TelegramBotFlowTest extends TestCase
         $text = $bot->messages[0]['text'];
         $this->assertStringContainsString('Сейчас у вас 9 блюд', $text);
         $this->assertStringContainsString('И ещё 2', $text);
+        $this->assertDoesNotMatchRegularExpression('/\bдо\s+\d{1,2}\s+[а-яё]+,\s+\d{2}:\d{2}\b/ui', $text);
         preg_match_all('/^\d+\./m', $text, $matches);
         $this->assertCount(7, $matches[0]);
     }
