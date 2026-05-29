@@ -24,6 +24,7 @@ class MenuImportService
     public function __construct(
         private readonly MenuImportParser $parser,
         private readonly MenuImportRowValidator $validator,
+        private readonly MenuImportSyncService $syncService,
         private readonly MenuCatalogTitleFormatter $titleFormatter,
         private readonly MenuTextNormalizer $textNormalizer,
     ) {}
@@ -82,11 +83,15 @@ class MenuImportService
             );
         }
 
+        $syncResult = [];
+
         try {
-            DB::transaction(function () use ($validation): void {
+            DB::transaction(function () use ($validation, &$syncResult): void {
                 foreach ($validation['rows'] as $row) {
                     $this->applyRow($row);
                 }
+
+                $syncResult = $this->syncService->synchronize($validation['rows']);
             });
         } catch (Throwable $exception) {
             return $this->failImport($import, 'Импорт не применен: не удалось обновить каталог.', [
@@ -106,6 +111,14 @@ class MenuImportService
             'status' => MenuImportStatus::Imported,
             'imported_at' => now(),
             'error_report' => null,
+            'options' => array_merge((array) ($import->options ?? []), [
+                'sync' => [
+                    'imported_identity_count' => (int) ($syncResult['imported_identity_count'] ?? 0),
+                    'active_count' => (int) ($syncResult['active_count'] ?? 0),
+                    'active_matched_count' => (int) ($syncResult['active_matched_count'] ?? 0),
+                    'deactivated_count' => (int) ($syncResult['to_deactivate_count'] ?? 0),
+                ],
+            ]),
         ]);
 
         return $import->fresh(['importedBy']);
@@ -241,13 +254,7 @@ class MenuImportService
             }
         }
 
-        $byTitle = $categoryItems->filter(
-            fn (MenuItem $menuItem): bool => (string) $menuItem->title === (string) $attributes['title'],
-        );
-
-        return $byTitle->isNotEmpty()
-            ? $this->selectPrimaryMenuItem($byTitle)
-            : null;
+        return null;
     }
 
     /**

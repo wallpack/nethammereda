@@ -187,6 +187,31 @@ class MenuImportServiceTest extends TestCase
     }
 
     #[Test]
+    public function failed_import_does_not_deactivate_existing_active_items(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Супы',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        $item = MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Борщ',
+            'supplier_name' => 'Борщ',
+            'price' => 200,
+            'is_active' => true,
+        ]);
+
+        $import = $this->importCsv([
+            'Категория;Название;Цена',
+            'Супы;Борщ;дорого',
+        ]);
+
+        $this->assertSame(MenuImportStatus::Failed, $import->status);
+        $this->assertTrue($item->fresh()->is_active);
+    }
+
+    #[Test]
     public function existing_order_items_keep_references_and_snapshots_after_menu_item_update(): void
     {
         $category = MenuCategory::query()->create([
@@ -219,7 +244,7 @@ class MenuImportServiceTest extends TestCase
     }
 
     #[Test]
-    public function dishes_missing_from_new_file_are_not_deleted_or_deactivated(): void
+    public function dishes_missing_from_new_file_are_deactivated_but_not_deleted(): void
     {
         $category = MenuCategory::query()->create([
             'name' => 'Супы',
@@ -229,9 +254,13 @@ class MenuImportServiceTest extends TestCase
         $oldItem = MenuItem::query()->create([
             'category_id' => $category->id,
             'title' => 'Старое блюдо',
+            'supplier_name' => 'Старое блюдо',
             'price' => 200,
+            'image_path' => 'menu-items/manual/old-item.png',
+            'image_url' => 'https://example.com/old-item.png',
             'is_active' => true,
         ]);
+        $orderItem = $this->createOrderItem($oldItem);
 
         $this->importCsv([
             'Категория;Название;Цена',
@@ -239,10 +268,42 @@ class MenuImportServiceTest extends TestCase
         ]);
 
         $oldItem->refresh();
+        $orderItem->refresh();
 
         $this->assertDatabaseCount('menu_items', 2);
         $this->assertSame('Старое блюдо', $oldItem->title);
-        $this->assertTrue($oldItem->is_active);
+        $this->assertFalse($oldItem->is_active);
+        $this->assertSame('menu-items/manual/old-item.png', $oldItem->image_path);
+        $this->assertSame('https://example.com/old-item.png', $oldItem->image_url);
+        $this->assertSame($oldItem->id, $orderItem->menu_item_id);
+    }
+
+    #[Test]
+    public function active_item_count_matches_successful_import_rows_count(): void
+    {
+        $staleCategory = MenuCategory::query()->create([
+            'name' => 'Старое меню',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        MenuItem::query()->create([
+            'category_id' => $staleCategory->id,
+            'title' => 'Старое блюдо',
+            'supplier_name' => 'Старое блюдо',
+            'price' => 90,
+            'is_active' => true,
+        ]);
+
+        $import = $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена',
+            'Супы;Борщ;210',
+            'Салаты;Винегрет;170',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertSame(2, $import->rows_valid);
+        $this->assertSame(2, MenuItem::query()->where('is_active', true)->count());
+        $this->assertSame(1, MenuItem::query()->where('is_active', false)->count());
     }
 
     #[Test]
@@ -579,6 +640,19 @@ class MenuImportServiceTest extends TestCase
     #[Test]
     public function unsupported_import_structure_returns_friendly_error(): void
     {
+        $category = MenuCategory::query()->create([
+            'name' => 'Супы',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        $item = MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Борщ',
+            'supplier_name' => 'Борщ',
+            'price' => 190,
+            'is_active' => true,
+        ]);
+
         $import = $this->importRawCsv(implode("\n", [
             'foo;bar;baz',
             'one;two;three',
@@ -589,6 +663,7 @@ class MenuImportServiceTest extends TestCase
             'Не удалось определить структуру файла',
             (string) data_get($import->error_report, 'errors.0.message'),
         );
+        $this->assertTrue($item->fresh()->is_active);
     }
 
     #[Test]
@@ -715,6 +790,19 @@ class MenuImportServiceTest extends TestCase
     #[RunInSeparateProcess]
     public function repeated_supplier_xlsx_import_is_idempotent(): void
     {
+        $staleCategory = MenuCategory::query()->create([
+            'name' => 'Старое меню',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        MenuItem::query()->create([
+            'category_id' => $staleCategory->id,
+            'title' => 'Старое блюдо',
+            'supplier_name' => 'Старое блюдо',
+            'price' => 99,
+            'is_active' => true,
+        ]);
+
         Storage::fake('local');
         $path = Storage::disk('local')->path('menu-imports/supplier-repeat.xlsx');
         if (! is_dir(dirname($path))) {
@@ -748,12 +836,35 @@ class MenuImportServiceTest extends TestCase
 
             $this->assertSame(MenuImportStatus::Imported, $first->status);
             $this->assertSame(MenuImportStatus::Imported, $second->status);
-            $this->assertSame(2, MenuItem::query()->count());
-            $this->assertSame(1, MenuItem::query()->where('title', 'Винегрет')->count());
-            $this->assertSame(1, MenuItem::query()->where('title', 'Витаминный с болгарским перцем')->count());
+            $this->assertSame(3, MenuItem::query()->count());
+            $this->assertSame(2, MenuItem::query()->where('is_active', true)->count());
+            $this->assertSame(1, MenuItem::query()->where('is_active', false)->count());
+            $this->assertSame(1, MenuItem::query()->where('title', 'Винегрет')->where('is_active', true)->count());
+            $this->assertSame(1, MenuItem::query()->where('title', 'Витаминный с болгарским перцем')->where('is_active', true)->count());
         } finally {
             $spreadsheet->disconnectWorksheets();
         }
+    }
+
+    #[Test]
+    public function supplier_rows_with_same_catalog_title_but_different_supplier_names_are_not_collapsed_into_one_item(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена',
+            'Вторые блюда;Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г);125',
+            'Вторые блюда;Котлета (по-Киевски) с картофельным пюре (260г);110',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertSame(2, MenuItem::query()->where('is_active', true)->count());
+        $this->assertSame(
+            1,
+            MenuItem::query()->where('supplier_name', 'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)')->count(),
+        );
+        $this->assertSame(
+            1,
+            MenuItem::query()->where('supplier_name', 'Котлета (по-Киевски) с картофельным пюре (260г)')->count(),
+        );
     }
 
     #[Test]
