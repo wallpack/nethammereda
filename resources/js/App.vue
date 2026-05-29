@@ -1001,7 +1001,7 @@ onBeforeUnmount(() => {
             @open-profile="ui.openProfileModal"
         />
 
-        <main class="page-shell pt-3 sm:pt-4" :class="isAuthenticated ? 'pb-24 xl:pb-8' : 'pb-8 xl:pb-8'">
+        <main class="page-shell pt-2.5 sm:pt-3.5" :class="isAuthenticated ? 'pb-24 xl:pb-8' : 'pb-8 xl:pb-8'">
             <Alert
                 v-if="error && !mobilePanel"
                 variant="destructive"
@@ -1032,7 +1032,7 @@ onBeforeUnmount(() => {
             />
 
             <div
-                class="catalog-layout mt-4 sm:mt-5"
+                class="catalog-layout mt-3 sm:mt-4"
                 :class="isCatalogView ? (isAuthenticated ? 'catalog-layout--auth-cart' : 'catalog-layout--guest-cart') : 'catalog-layout--single'"
             >
                 <MenuGrid
@@ -1120,7 +1120,7 @@ onBeforeUnmount(() => {
                     v-if="isCatalogView"
                     data-testid="desktop-order-panel"
                     aria-label="Панель корзины"
-                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.75rem] border border-slate-200/85 bg-white/95 text-slate-900 shadow-[0_20px_55px_rgb(148_163_184/0.2)] xl:mt-[9.75rem] xl:block xl:sticky xl:top-20 xl:h-[calc(100dvh-18.75rem)] xl:max-h-[calc(100dvh-18.75rem)]"
+                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-white/96 text-slate-900 shadow-[0_14px_35px_rgb(148_163_184/0.18)] xl:mt-[7.35rem] xl:block xl:sticky xl:top-[5.1rem] xl:h-[calc(100dvh-12.5rem)] xl:max-h-[calc(100dvh-12.5rem)]"
                 >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
                         <OrderPanel

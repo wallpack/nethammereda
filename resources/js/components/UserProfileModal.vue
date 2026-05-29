@@ -114,6 +114,7 @@ const telegramIdentity = computed(() => {
 
 const fullName = ref('');
 const activeTab = ref('profile');
+const expandedHistoryOrderIds = ref(new Set());
 
 const historyPositionsLabel = (count) => {
     if (count % 10 === 1 && count % 100 !== 11) {
@@ -150,9 +151,42 @@ watch(
 
         fullName.value = props.user?.full_name ?? '';
         activeTab.value = 'profile';
+        expandedHistoryOrderIds.value = new Set();
     },
     { immediate: true },
 );
+
+const historyPreviewCount = 4;
+const historyOrderItems = (historyOrder) => {
+    const items = Array.isArray(historyOrder?.items) ? historyOrder.items : [];
+
+    if (expandedHistoryOrderIds.value.has(historyOrder.id)) {
+        return items;
+    }
+
+    return items.slice(0, historyPreviewCount);
+};
+
+const hiddenHistoryItemsCount = (historyOrder) => {
+    const total = Number(historyOrder?.items_count || 0);
+    const hidden = total - historyPreviewCount;
+
+    return hidden > 0 ? hidden : 0;
+};
+
+const isHistoryOrderExpanded = (historyOrder) => expandedHistoryOrderIds.value.has(historyOrder.id);
+
+const toggleHistoryOrderExpanded = (historyOrder) => {
+    const next = new Set(expandedHistoryOrderIds.value);
+
+    if (next.has(historyOrder.id)) {
+        next.delete(historyOrder.id);
+    } else {
+        next.add(historyOrder.id);
+    }
+
+    expandedHistoryOrderIds.value = next;
+};
 
 const closeWhenChanged = (open) => {
     if (!open) {
@@ -258,7 +292,7 @@ const saveFullName = () => {
                     <Button
                         type="button"
                         variant="outline"
-                        class="h-14 justify-between rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        class="h-12 justify-between rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
                         data-testid="profile-favorites-action"
                         @click="emit('show-favorites')"
                     >
@@ -268,44 +302,49 @@ const saveFullName = () => {
                         </span>
                         <span class="tabular-nums text-slate-500">{{ favoritesCount || '' }}</span>
                     </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="h-14 justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        data-testid="profile-order-action"
-                        @click="emit('show-order')"
-                    >
-                        <span class="inline-flex items-center gap-3">
-                            <ShoppingBag aria-hidden="true" class="size-5 text-blue-700" />
-                            Мой заказ
-                        </span>
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="h-14 justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        data-testid="profile-fridge-action"
-                        @click="emit('show-fridge')"
-                    >
-                        <Refrigerator aria-hidden="true" class="size-5 text-blue-700" />
-                        Мой холодильник
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        class="h-14 justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        data-testid="profile-history-action"
-                        @click="emit('show-history')"
-                    >
-                        <History aria-hidden="true" class="size-5 text-blue-700" />
-                        Моя история
-                    </Button>
 
-                    <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
+                    <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+                        <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Быстрые действия</p>
+                        <p class="mt-1 text-xs text-slate-500">Эти разделы также доступны в основной навигации.</p>
+                        <div class="mt-2 grid gap-2 sm:grid-cols-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                data-testid="profile-order-action"
+                                @click="emit('show-order')"
+                            >
+                                <ShoppingBag aria-hidden="true" class="size-4 text-slate-500" />
+                                Мой заказ
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                data-testid="profile-fridge-action"
+                                @click="emit('show-fridge')"
+                            >
+                                <Refrigerator aria-hidden="true" class="size-4 text-slate-500" />
+                                Холодильник
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                data-testid="profile-history-action"
+                                @click="emit('show-history')"
+                            >
+                                <History aria-hidden="true" class="size-4 text-slate-500" />
+                                История
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl border border-sky-100/80 bg-sky-50/30 p-3.5">
                         <div class="flex items-start gap-3">
                             <div class="relative mt-0.5">
-                                <span class="grid size-10 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-600">
-                                    <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 fill-current">
+                                <span class="grid size-9 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-600">
+                                    <svg aria-hidden="true" viewBox="0 0 24 24" class="size-4 fill-current">
                                         <path d="M21.2 4.6 18.2 18.8c-.2 1-1 1.2-1.8.8l-4.6-3.4-2.2 2.1c-.2.2-.4.4-.8.4l.3-4.7 8.7-7.9c.4-.3-.1-.5-.5-.2l-10.8 6.8-4.6-1.4c-1-.3-1-1 .2-1.4L19.5 3c.8-.3 2 .2 1.7 1.6Z" />
                                     </svg>
                                 </span>
@@ -320,21 +359,21 @@ const saveFullName = () => {
                                 <p class="text-sm font-semibold text-slate-900">Telegram-бот</p>
                                 <p
                                     v-if="telegramLinked"
-                                    class="mt-1 text-sm text-slate-700"
+                                    class="mt-1 text-xs text-slate-700"
                                     data-testid="profile-telegram-linked-text"
                                 >
-                                    Telegram подключён. Вы будете получать уведомления и сможете быстро открыть меню.
+                                    Подключён. Уведомления о заказах активны.
                                 </p>
                                 <p
                                     v-else
-                                    class="mt-1 text-sm text-slate-600"
+                                    class="mt-1 text-xs text-slate-600"
                                     data-testid="profile-telegram-unlinked"
                                 >
-                                    Получайте уведомления о заказах и быстро открывайте меню прямо из Telegram.
+                                    Привяжите Telegram, чтобы получать уведомления о заказах.
                                 </p>
                                 <p
                                     v-if="telegramLinked"
-                                    class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+                                    class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
                                     data-testid="profile-telegram-linked"
                                 >
                                     <CheckCircle2 aria-hidden="true" class="size-3.5" />
@@ -342,14 +381,14 @@ const saveFullName = () => {
                                 </p>
                                 <p
                                     v-if="telegramLinked && telegramIdentity"
-                                    class="mt-2 text-xs text-slate-500"
+                                    class="mt-1.5 text-xs text-slate-500"
                                     data-testid="profile-telegram-identity"
                                 >
                                     {{ telegramIdentity }}
                                 </p>
                                 <p
                                     v-else
-                                    class="mt-2 text-xs text-slate-500"
+                                    class="mt-1.5 text-xs text-slate-500"
                                     data-testid="profile-telegram-helper"
                                 >
                                     Привязка занимает несколько секунд.
@@ -359,7 +398,7 @@ const saveFullName = () => {
 
                         <p
                             v-if="!telegramLinked && !telegramLinkAvailable"
-                            class="mt-3 text-sm font-medium text-slate-700"
+                            class="mt-2 text-sm font-medium text-slate-700"
                             data-testid="profile-telegram-unavailable"
                         >
                             Привязка временно недоступна.
@@ -383,7 +422,7 @@ const saveFullName = () => {
                             v-if="telegramLinked"
                             type="button"
                             variant="outline"
-                            class="mt-3 h-10 w-full justify-start rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-white/90 sm:w-auto"
+                            class="mt-3 h-9 w-full justify-start rounded-xl border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-white/90 sm:w-auto"
                             data-testid="profile-telegram-open-bot"
                             :disabled="!telegramLinkAvailable"
                             @click="emit('telegram-open-bot')"
@@ -396,7 +435,7 @@ const saveFullName = () => {
                         <Button
                             v-else-if="telegramLinkAvailable"
                             type="button"
-                            class="mt-3 h-10 w-full justify-start rounded-xl bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
+                            class="mt-3 h-9 w-full justify-start rounded-xl bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700 sm:w-auto"
                             data-testid="profile-telegram-link"
                             :disabled="telegramLoading"
                             @click="emit('telegram-link')"
@@ -405,7 +444,7 @@ const saveFullName = () => {
                                 <Loader2 v-if="telegramLoading" aria-hidden="true" class="size-4 animate-spin" />
                                 <Link2 v-else aria-hidden="true" class="size-4" />
                             </span>
-                            <span class="inline-block min-w-[12rem] text-left">
+                            <span class="inline-block min-w-[10.5rem] text-left">
                                 {{ telegramLoading ? 'Создаём ссылку...' : 'Привязать Telegram' }}
                             </span>
                         </Button>
@@ -448,18 +487,26 @@ const saveFullName = () => {
                                 {{ historyOrder.items_count }} {{ historyPositionsLabel(Number(historyOrder.items_count || 0)) }}
                                 · {{ formatPrice(historyOrder.total_price ?? 0) }}
                             </p>
-                            <ul class="mt-2 space-y-1 text-xs text-slate-600">
+                            <ul data-testid="profile-history-order-items" class="mt-2 space-y-1 text-xs text-slate-600">
                                 <li
-                                    v-for="item in historyOrder.items?.slice(0, 4) ?? []"
+                                    v-for="item in historyOrderItems(historyOrder)"
                                     :key="`${historyOrder.id}-${item.id}`"
                                     class="truncate"
                                 >
                                     {{ item.title }} ×{{ item.quantity }}
                                 </li>
                             </ul>
-                            <p v-if="Number(historyOrder.items_count || 0) > 4" class="mt-1 text-xs text-slate-500">
-                                и ещё {{ Number(historyOrder.items_count || 0) - 4 }}
-                            </p>
+                            <Button
+                                v-if="hiddenHistoryItemsCount(historyOrder)"
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                class="mt-1 h-7 rounded-full px-2.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                data-testid="profile-history-expand-button"
+                                @click="toggleHistoryOrderExpanded(historyOrder)"
+                            >
+                                {{ isHistoryOrderExpanded(historyOrder) ? 'Свернуть' : `Показать всё (${hiddenHistoryItemsCount(historyOrder)})` }}
+                            </Button>
                             <Button
                                 type="button"
                                 size="sm"

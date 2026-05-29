@@ -77,7 +77,25 @@ describe('UserProfileModal order history tab', () => {
         expect(wrapper.find('[data-testid="profile-orders-tab-panel"]').exists()).toBe(true);
         expect(wrapper.text()).toContain('Dish 1');
         expect(wrapper.findAll('[data-testid="profile-repeat-order-button"]')).toHaveLength(1);
-        expect(wrapper.text()).toContain('и ещё 1');
+        expect(wrapper.find('[data-testid="profile-history-expand-button"]').exists()).toBe(true);
+        expect(wrapper.text()).toContain('Показать всё (1)');
+    });
+
+    it('expands and collapses full order list in "Уже заказывали"', async () => {
+        const wrapper = mountModal();
+
+        await wrapper.get('[data-testid="profile-tab-ordered"]').trigger('click');
+
+        expect(wrapper.text()).not.toContain('Dish 5');
+
+        await wrapper.get('[data-testid="profile-history-expand-button"]').trigger('click');
+
+        expect(wrapper.text()).toContain('Dish 5');
+        expect(wrapper.text()).toContain('Свернуть');
+
+        await wrapper.get('[data-testid="profile-history-expand-button"]').trigger('click');
+
+        expect(wrapper.text()).not.toContain('Dish 5');
     });
 
     it('shows empty state when history is empty', async () => {

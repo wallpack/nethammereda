@@ -231,7 +231,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
         </aside>
 
         <div class="menu-shell__content">
-            <div class="mb-4 flex flex-col gap-3 sm:mb-5">
+            <div class="mb-3.5 flex flex-col gap-2.5 sm:mb-4">
                 <div class="flex min-w-0 items-start justify-between gap-3">
                     <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold tracking-[-0.03em] text-slate-950 outline-none sm:text-3xl">
                         Каталог
@@ -264,16 +264,16 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     class="menu-card overflow-hidden rounded-[1.45rem] border-slate-200/80 bg-white shadow-sm max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none"
                 >
                     <CardContent class="space-y-3 p-0">
-                        <div class="p-2.5 pb-0 max-[430px]:p-0">
-                            <Skeleton class="h-[16rem] w-full rounded-[1.15rem] bg-slate-100 sm:h-[17rem] lg:h-[17.25rem] xl:h-[17.75rem] max-[430px]:h-[8.25rem] max-[430px]:rounded-2xl" />
+                        <div class="p-2 pb-0 max-[430px]:p-0">
+                            <Skeleton class="h-[13.5rem] w-full rounded-[1.05rem] bg-slate-100 sm:h-[14.25rem] lg:h-[14.5rem] xl:h-[14.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl" />
                         </div>
-                        <div class="space-y-3 px-5 pb-5 pt-2 max-[430px]:space-y-2.5 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0">
+                        <div class="space-y-2.5 px-4 pb-4 pt-1.5 max-[430px]:space-y-2 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
                             <Skeleton class="h-4 w-20 rounded-md bg-slate-100" />
                             <Skeleton class="h-5 w-4/5 rounded-md bg-slate-100" />
                             <Skeleton class="h-4 w-full rounded-md bg-slate-100 max-[430px]:hidden" />
-                            <div class="flex items-center justify-between pt-3 max-[430px]:pt-2.5">
+                            <div class="flex items-center justify-between pt-2.5 max-[430px]:pt-2">
                                 <Skeleton class="h-7 w-24 rounded-md bg-slate-100" />
-                                <Skeleton class="h-11 w-28 rounded-xl bg-slate-100 max-[430px]:size-10 max-[430px]:rounded-full" />
+                                <Skeleton class="h-10 w-[6.5rem] rounded-xl bg-slate-100 max-[430px]:size-10 max-[430px]:rounded-full" />
                             </div>
                         </div>
                     </CardContent>
@@ -300,7 +300,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                 </CardContent>
             </Card>
 
-            <div v-else class="space-y-6 sm:space-y-7">
+            <div v-else class="space-y-5 sm:space-y-6">
                 <section
                     v-for="group in renderGroups"
                     :key="group.key"

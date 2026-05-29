@@ -128,17 +128,34 @@ const groupedHistory = computed(() => {
 
         <div v-else class="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1 text-sm text-slate-700">
             <section v-for="group in groupedHistory" :key="group.label" aria-label="День истории питания">
-                <h3 class="mb-2 px-1 text-xs font-semibold text-slate-400">{{ group.label }}</h3>
+                <div class="mb-2 flex items-center gap-2 px-1">
+                    <h3 class="text-xs font-semibold text-slate-400">{{ group.label }}</h3>
+                    <span class="h-px flex-1 bg-slate-200/80" />
+                </div>
                 <ul class="space-y-2">
                     <li
                         v-for="item in group.items"
                         :key="item.id"
+                        data-testid="history-panel-row"
                         class="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5"
                     >
-                        <p class="line-clamp-2 break-words text-sm text-slate-800">
-                            <span class="font-medium text-slate-900">{{ item.title_snapshot }}</span>
-                            <span class="text-slate-500"> — {{ fridgeStatusLabel(item.status) }} — {{ item._actionTime }}</span>
-                        </p>
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="line-clamp-2 break-words text-sm font-medium text-slate-900">{{ item.title_snapshot }}</p>
+                                <span
+                                    data-testid="history-panel-status-chip"
+                                    class="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
+                                >
+                                    {{ fridgeStatusLabel(item.status) }}
+                                </span>
+                            </div>
+                            <span
+                                data-testid="history-panel-time"
+                                class="shrink-0 pt-0.5 text-xs font-medium tabular-nums text-slate-500"
+                            >
+                                {{ item._actionTime }}
+                            </span>
+                        </div>
                     </li>
                 </ul>
             </section>

@@ -107,13 +107,13 @@ const summaryCards = computed(() => {
 
         <div
             v-if="!fridgeLoading && summaryCards.length"
-            class="mt-3 grid shrink-0 grid-cols-2 gap-2"
+            class="mt-3 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3"
             aria-label="Сводка холодильника"
         >
             <div
                 v-for="card in summaryCards"
                 :key="card.key"
-                class="rounded-xl border border-slate-200/90 bg-slate-50 px-3 py-2"
+                class="rounded-xl border border-slate-200/90 bg-slate-50/90 px-3 py-2"
             >
                 <p class="text-[11px] font-medium text-slate-500">{{ card.label }}</p>
                 <p class="mt-0.5 text-sm font-semibold tabular-nums text-slate-900">{{ card.value }}</p>
@@ -151,88 +151,87 @@ const summaryCards = computed(() => {
             <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Когда заказ будет доставлен, блюда появятся здесь.</p>
         </div>
 
-        <div v-else class="mt-4 min-h-0 flex-1 space-y-3 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1">
-            <article
-                v-for="item in fridgeItems"
-                :key="item.id"
-                class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3.5"
-            >
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <p class="line-clamp-2 break-words text-sm font-semibold leading-5 text-slate-950">{{ item.title_snapshot }}</p>
-                        <p class="mt-1 text-xs font-medium text-slate-500">
-                            {{ fridgeStatusLabel(item.status) }}
-                        </p>
+        <div v-else class="mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1">
+            <div class="grid gap-2.5 xl:grid-cols-2">
+                <article
+                    v-for="item in fridgeItems"
+                    :key="item.id"
+                    class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="line-clamp-2 break-words text-sm font-semibold leading-5 text-slate-950">{{ item.title_snapshot }}</p>
+                            <p class="mt-1 text-xs font-medium text-slate-500">
+                                {{ fridgeStatusLabel(item.status) }}
+                            </p>
+                        </div>
+                        <Badge variant="outline" class="shrink-0 rounded-full border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold tabular-nums text-slate-700">
+                            {{ quantityLabel(item.quantity_remaining) }}
+                        </Badge>
                     </div>
-                    <Badge variant="outline" class="shrink-0 rounded-full border-slate-200 bg-slate-50 px-3 text-xs font-semibold tabular-nums text-slate-700">
-                        {{ quantityLabel(item.quantity_remaining) }}
-                    </Badge>
-                </div>
-                <p class="mt-2 text-xs font-medium tabular-nums text-slate-600">{{ expiryLabel(item.expires_at) }}</p>
+                    <p class="mt-2 text-xs font-medium tabular-nums text-slate-600">{{ expiryLabel(item.expires_at) }}</p>
 
-                <div class="mt-3">
-                    <Button
-                        type="button"
-                        size="sm"
-                        class="h-10 w-full rounded-full bg-blue-700 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
-                        :disabled="actionLoading"
-                        @click="emit('eat-one', item.id)"
-                    >
-                        Съел
-                    </Button>
-                </div>
-
-                <div class="mt-2 grid grid-cols-2 gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        class="h-9 rounded-full border-slate-200 bg-white text-xs font-semibold text-slate-600 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
-                        :disabled="actionLoading"
-                        @click="emit('eat-all', item.id)"
-                    >
-                        Съел всё
-                    </Button>
-                    <AlertDialogRoot>
-                        <AlertDialogTrigger as-child>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                class="h-9 w-full rounded-full border-slate-200 bg-white text-xs font-semibold text-slate-600 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
-                                :disabled="actionLoading"
-                            >
-                                Списать
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogPortal>
-                            <AlertDialogOverlay class="fixed inset-0 z-40 bg-slate-950/45" />
-                            <AlertDialogContent class="fixed left-1/2 top-1/2 z-50 w-[min(calc(100%_-_2rem),420px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl outline-none">
-                                <AlertDialogTitle class="text-balance text-lg font-semibold text-slate-950">
-                                    Списать блюдо из холодильника?
-                                </AlertDialogTitle>
-                                <div class="mt-5 flex justify-end gap-2">
-                                    <AlertDialogCancel as-child>
-                                        <Button type="button" variant="outline" class="h-11 rounded-xl border-slate-200 px-4 font-semibold">
-                                            Отмена
-                                        </Button>
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction as-child>
-                                        <Button
-                                            type="button"
-                                            class="h-11 rounded-xl bg-slate-900 px-4 font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98]"
-                                            :disabled="actionLoading"
-                                            @click="emit('discard', item.id)"
-                                        >
-                                            Списать
-                                        </Button>
-                                    </AlertDialogAction>
-                                </div>
-                            </AlertDialogContent>
-                        </AlertDialogPortal>
-                    </AlertDialogRoot>
-                </div>
-            </article>
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            class="h-9 w-full rounded-full bg-blue-700 px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] sm:w-auto"
+                            :disabled="actionLoading"
+                            @click="emit('eat-one', item.id)"
+                        >
+                            Съел
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            class="h-9 rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
+                            :disabled="actionLoading"
+                            @click="emit('eat-all', item.id)"
+                        >
+                            Съел всё
+                        </Button>
+                        <AlertDialogRoot>
+                            <AlertDialogTrigger as-child>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    class="h-9 rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
+                                    :disabled="actionLoading"
+                                >
+                                    Списать
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogPortal>
+                                <AlertDialogOverlay class="fixed inset-0 z-40 bg-slate-950/45" />
+                                <AlertDialogContent class="fixed left-1/2 top-1/2 z-50 w-[min(calc(100%_-_2rem),420px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl outline-none">
+                                    <AlertDialogTitle class="text-balance text-lg font-semibold text-slate-950">
+                                        Списать блюдо из холодильника?
+                                    </AlertDialogTitle>
+                                    <div class="mt-5 flex justify-end gap-2">
+                                        <AlertDialogCancel as-child>
+                                            <Button type="button" variant="outline" class="h-11 rounded-xl border-slate-200 px-4 font-semibold">
+                                                Отмена
+                                            </Button>
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction as-child>
+                                            <Button
+                                                type="button"
+                                                class="h-11 rounded-xl bg-slate-900 px-4 font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98]"
+                                                :disabled="actionLoading"
+                                                @click="emit('discard', item.id)"
+                                            >
+                                                Списать
+                                            </Button>
+                                        </AlertDialogAction>
+                                    </div>
+                                </AlertDialogContent>
+                            </AlertDialogPortal>
+                        </AlertDialogRoot>
+                    </div>
+                </article>
+            </div>
         </div>
     </div>
 </template>

@@ -530,7 +530,7 @@ describe('catalog auth UX', () => {
         expect(document.querySelector('[data-testid="week-status-loading"]')).toBeTruthy();
         const menuLoadingGrid = document.querySelector('.dishes-grid[aria-busy="true"]');
         const menuCardSkeleton = menuLoadingGrid?.querySelector('.menu-card [data-slot="skeleton"]');
-        expect(menuCardSkeleton?.className).toContain('max-[430px]:h-[8.25rem]');
+        expect(menuCardSkeleton?.className).toContain('max-[430px]:h-[7.35rem]');
         expect(document.body.textContent).not.toContain('Недельный цикл не создан');
         expect(document.body.textContent).not.toContain('Ничего не найдено');
         expect(document.body.textContent).not.toContain('0 блюд');
@@ -860,11 +860,11 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain(user.email);
         expect(document.body.textContent).toContain('Избранное');
         expect(document.body.textContent).toContain('Мой заказ');
-        expect(document.body.textContent).toContain('Мой холодильник');
-        expect(document.body.textContent).toContain('Моя история');
+        expect(document.body.textContent).toContain('Холодильник');
+        expect(document.body.textContent).toContain('История');
         expect(document.body.textContent).toContain('Укажите ФИО в формате: Фамилия и инициалы. Например: Иванов И.И.');
         expect(document.body.textContent).toContain('Telegram-бот');
-        expect(document.body.textContent).toContain('Получайте уведомления о заказах и быстро открывайте меню прямо из Telegram.');
+        expect(document.body.textContent).toContain('Привяжите Telegram, чтобы получать уведомления о заказах.');
         expect(document.body.textContent).toContain('Привязка занимает несколько секунд.');
         expect(document.body.textContent).toContain('Привязать Telegram');
         expect(document.body.textContent).not.toContain('/order, /fridge, /history');
@@ -1005,7 +1005,7 @@ describe('catalog auth UX', () => {
 
         await click(buttonByText(user.name));
 
-        expect(document.querySelector('[data-testid="profile-telegram-linked-text"]')?.textContent).toContain('Telegram подключён');
+        expect(document.querySelector('[data-testid="profile-telegram-linked-text"]')?.textContent).toContain('Подключён.');
         expect(document.querySelector('[data-testid="profile-telegram-linked"]')?.textContent).toContain('Подключён');
         expect(document.querySelector('[data-testid="profile-telegram-open-bot"]')).toBeTruthy();
         expect(document.querySelector('[data-testid="profile-telegram-open-bot"]')?.textContent).toContain('Открыть Telegram');
@@ -1692,7 +1692,7 @@ describe('catalog auth UX', () => {
         const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(imageArea).toBeTruthy();
-        expect(imageArea?.className).toContain('h-[16rem]');
+        expect(imageArea?.className).toContain('h-[13.5rem]');
         expect(image?.className).toContain('object-contain');
         expect(image?.className).toContain('scale-[1.02]');
     });
@@ -1714,10 +1714,10 @@ describe('catalog auth UX', () => {
         const favoriteButton = card?.querySelector('button[aria-pressed]');
 
         expect(card).toBeTruthy();
-        expect(imageArea?.className).toContain('max-[430px]:h-[8.25rem]');
+        expect(imageArea?.className).toContain('max-[430px]:h-[7.35rem]');
         expect(meta?.className).toContain('max-[430px]:hidden');
-        expect(title?.className).toContain('max-[430px]:line-clamp-3');
-        expect(title?.className).toContain('max-[430px]:min-h-[3.15rem]');
+        expect(title?.className).toContain('max-[430px]:line-clamp-2');
+        expect(title?.className).toContain('max-[430px]:min-h-[2.2rem]');
         expect(title?.getAttribute('title')).toBe(menuItem.title);
         expect(title?.getAttribute('aria-label')).toBe(`Название блюда: ${menuItem.title}`);
         expect(addButton?.className).toContain('max-[430px]:size-10');
@@ -1773,8 +1773,8 @@ describe('catalog auth UX', () => {
         expect(panel).toBeTruthy();
         expect(panel?.getAttribute('aria-label')).toBe('Панель корзины');
         expect(panel?.className).toContain('xl:sticky');
-        expect(panel?.className).toContain('xl:mt-[9.75rem]');
-        expect(panel?.className).toContain('xl:h-[calc(100dvh-18.75rem)]');
+        expect(panel?.className).toContain('xl:mt-[7.35rem]');
+        expect(panel?.className).toContain('xl:h-[calc(100dvh-12.5rem)]');
     });
 
     it('keeps the order total and submit action in a sticky footer', async () => {

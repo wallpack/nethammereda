@@ -54,35 +54,35 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
 <template>
     <Card
         data-testid="menu-item-card"
-        class="menu-card overflow-hidden rounded-[1.45rem] border border-slate-200/85 bg-white text-slate-900 shadow-[0_14px_36px_rgb(148_163_184/0.16)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-slate-300 hover:shadow-[0_22px_46px_rgb(148_163_184/0.22)] max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
+        class="menu-card overflow-hidden rounded-[1.35rem] border border-slate-200/85 bg-white text-slate-900 shadow-[0_12px_32px_rgb(148_163_184/0.14)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-slate-300 hover:shadow-[0_18px_38px_rgb(148_163_184/0.2)] max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
     >
         <CardContent class="flex h-full flex-col p-0">
-            <div class="relative p-2.5 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
+            <div class="relative p-2 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative h-[16rem] overflow-hidden rounded-[1.15rem] bg-gradient-to-b from-slate-50/60 to-slate-50/15 sm:h-[17rem] lg:h-[17.25rem] xl:h-[17.75rem] max-[430px]:h-[8.25rem] max-[430px]:rounded-2xl max-[430px]:bg-[#f6f6f4]"
+                    class="relative h-[13.5rem] overflow-hidden rounded-[1.05rem] bg-gradient-to-b from-slate-50/60 to-slate-100/35 sm:h-[14.25rem] lg:h-[14.5rem] xl:h-[14.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl max-[430px]:bg-[#f6f6f4]"
                 >
                     <img
                         v-if="showImage"
                         :src="imageSrc"
                         :alt="item.title"
-                        class="size-full scale-[1.02] object-contain p-4 sm:p-5 max-[430px]:scale-[1.05] max-[430px]:p-2.5"
+                        class="size-full scale-[1.02] object-contain p-2.5 sm:p-3 max-[430px]:scale-[1.03] max-[430px]:p-1.5"
                         loading="lazy"
                         decoding="async"
                         @error="imageFailed = true"
                     />
-                    <div v-else class="flex size-full flex-col items-center justify-center gap-2 px-4 text-center text-slate-400 max-[430px]:gap-1 max-[430px]:px-1.5">
-                        <span class="grid size-12 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-400 max-[430px]:size-7 max-[430px]:rounded-lg">
-                            <ImageIcon aria-hidden="true" class="size-6 max-[430px]:size-3.5" />
+                    <div v-else class="flex size-full flex-col items-center justify-center gap-1.5 px-3 text-center text-slate-400/90 max-[430px]:gap-1 max-[430px]:px-1.5">
+                        <span class="grid size-9 place-items-center rounded-xl border border-slate-200/80 bg-white/85 text-slate-400 max-[430px]:size-7 max-[430px]:rounded-lg">
+                            <ImageIcon aria-hidden="true" class="size-4 max-[430px]:size-3.5" />
                         </span>
-                        <span class="text-pretty text-sm font-medium">Фото блюда появится скоро</span>
+                        <span class="text-pretty text-xs font-medium">Фото блюда появится скоро</span>
                     </div>
                 </div>
 
                 <button
                     type="button"
-                    class="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full border border-white/85 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98] max-[430px]:right-2 max-[430px]:top-2 max-[430px]:size-8 max-[430px]:border-white/70 max-[430px]:bg-white/85"
-                    :class="isFavorite ? 'border-rose-200 bg-rose-50 text-rose-600' : ''"
+                    class="absolute right-3.5 top-3.5 inline-flex size-9 items-center justify-center rounded-full border border-white/80 bg-white/92 text-slate-500 shadow-sm backdrop-blur transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98] max-[430px]:right-2 max-[430px]:top-2 max-[430px]:size-8 max-[430px]:border-white/70 max-[430px]:bg-white/85"
+                    :class="isFavorite ? 'border-rose-200/80 bg-rose-50/90 text-rose-600' : ''"
                     :aria-label="isFavorite ? `Убрать из избранного: ${item.title}` : `Добавить в избранное: ${item.title}`"
                     :aria-pressed="isFavorite"
                     @click="emit('toggle-favorite', item.id)"
@@ -91,28 +91,28 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                 </button>
             </div>
 
-            <div class="flex flex-1 flex-col px-5 pb-5 pt-4 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0">
+            <div class="flex flex-1 flex-col px-4 pb-4 pt-3.5 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
                 <h3
                     :title="item.title"
                     :aria-label="`Название блюда: ${item.title}`"
-                    class="line-clamp-2 break-words text-balance text-[1.05rem] font-semibold leading-6 text-slate-950 sm:text-[1.12rem] max-[430px]:line-clamp-3 max-[430px]:min-h-[3.15rem] max-[430px]:text-[0.875rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
+                    class="line-clamp-2 min-h-[2.9rem] break-words text-balance text-[1.02rem] font-semibold leading-[1.35] text-slate-950 sm:text-[1.08rem] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
                 >
                     {{ item.title }}
                 </h3>
-                <p data-testid="menu-item-meta" class="mt-2.5 min-w-0 truncate text-xs font-medium tabular-nums text-slate-400 max-[430px]:hidden">
+                <p data-testid="menu-item-meta" class="mt-2 min-w-0 truncate text-xs font-medium tabular-nums text-slate-400 max-[430px]:hidden">
                     <span>{{ item.category?.name || 'Меню' }}</span>
                     <span v-if="item.weight"> · {{ item.weight }}</span>
                     <span v-if="caloriesLabel"> · {{ caloriesLabel }}</span>
                 </p>
 
-                <div class="mt-auto flex min-h-12 items-center justify-between gap-3 pt-5 max-[430px]:min-h-0 max-[430px]:gap-2 max-[430px]:pt-2.5">
-                    <p class="shrink-0 whitespace-nowrap text-xl font-bold tabular-nums text-slate-950 max-[430px]:text-[0.98rem]">{{ formatPrice(item.price) }}</p>
+                <div class="mt-auto flex min-h-11 items-center justify-between gap-2.5 pt-3.5 max-[430px]:min-h-0 max-[430px]:gap-2 max-[430px]:pt-2">
+                    <p class="shrink-0 whitespace-nowrap text-[1.18rem] font-bold tabular-nums text-slate-950 max-[430px]:text-[0.95rem]">{{ formatPrice(item.price) }}</p>
 
                     <template v-if="!orderItem">
                         <Badge
                             v-if="showClosedStateCta"
                             variant="outline"
-                            class="h-11 shrink-0 rounded-full border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600 max-[430px]:h-9 max-[430px]:px-2 max-[430px]:text-xs"
+                            class="h-10 shrink-0 rounded-full border-slate-200 bg-slate-50/85 px-3 text-xs font-semibold text-slate-500 max-[430px]:h-9 max-[430px]:px-2 max-[430px]:text-[11px]"
                         >
                             Приём закрыт
                         </Badge>
@@ -125,7 +125,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                             :disabled="controlsDisabled"
                             :title="controlsDisabled ? disabledReason : undefined"
                             :aria-label="`Добавить в заказ: ${item.title}`"
-                            class="h-11 shrink-0 rounded-full bg-slate-900 px-4.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
+                            class="h-10 shrink-0 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
                             @click="emit('add-item', item.id)"
                         >
                             <Plus aria-hidden="true" class="size-4 max-[430px]:m-0 max-[430px]:size-[18px]" />

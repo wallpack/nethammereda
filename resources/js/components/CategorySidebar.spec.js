@@ -18,15 +18,15 @@ describe('CategorySidebar', () => {
 
         let [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(categoryButton, ['bg-slate-900', 'text-white', 'shadow-sm', 'ring-1']);
-        expectClasses(categoryButton.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
+        expectClasses(categoryButton, ['bg-amber-50', 'text-amber-900', 'ring-1', 'ring-amber-200/60']);
+        expectClasses(categoryButton.find('[data-slot="badge"]'), ['xl:bg-amber-100', 'xl:text-amber-800']);
         expectClasses(allButton, ['text-slate-700', 'hover:bg-slate-50', 'hover:text-slate-900']);
 
         await wrapper.setProps({ selectedCategory: null });
         [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(allButton, ['bg-slate-900', 'text-white', 'shadow-sm', 'ring-1']);
-        expectClasses(allButton.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
+        expectClasses(allButton, ['bg-amber-50', 'text-amber-900', 'ring-1', 'ring-amber-200/60']);
+        expectClasses(allButton.find('[data-slot="badge"]'), ['xl:bg-amber-100', 'xl:text-amber-800']);
         expectClasses(categoryButton, ['text-slate-700', 'hover:bg-slate-50', 'hover:text-slate-900']);
     });
 
@@ -51,7 +51,7 @@ describe('CategorySidebar', () => {
         const row = wrapper.get('[data-testid="category-chip-row"]');
 
         expectClasses(nav, ['max-w-full', 'min-w-0']);
-        expectClasses(row, ['flex-wrap', 'max-w-full', 'min-w-0', 'xl:flex-col', 'xl:rounded-[1.5rem]']);
+        expectClasses(row, ['flex-wrap', 'max-w-full', 'min-w-0', 'xl:flex-col', 'xl:rounded-[1.35rem]']);
         expect(row.classes()).not.toEqual(expect.arrayContaining(['w-max', 'min-w-full', 'flex-nowrap']));
     });
 
