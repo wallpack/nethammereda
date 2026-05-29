@@ -12,7 +12,22 @@ import {
 const tokenKey = 'lunch_mvp_token';
 const requireFullNameKey = 'lunch_mvp_require_full_name';
 
-const storedToken = () => localStorage.getItem(tokenKey) ?? sessionStorage.getItem(tokenKey) ?? '';
+const storedToken = () => {
+    const localToken = localStorage.getItem(tokenKey) ?? '';
+    if (localToken !== '') {
+        return localToken;
+    }
+
+    // Backward-compat: move legacy session token to persistent storage.
+    const sessionToken = sessionStorage.getItem(tokenKey) ?? '';
+    if (sessionToken !== '') {
+        localStorage.setItem(tokenKey, sessionToken);
+        sessionStorage.removeItem(tokenKey);
+        return sessionToken;
+    }
+
+    return '';
+};
 const storedRequireFullName = () => sessionStorage.getItem(requireFullNameKey) === '1';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -21,7 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
     const me = ref(null);
     const email = ref('');
     const password = ref('');
-    const rememberMe = ref(Boolean(localStorage.getItem(tokenKey)));
+    const rememberMe = ref(true);
     const showPassword = ref(false);
     const authLoading = ref(false);
     const authError = ref('');
@@ -41,25 +56,14 @@ export const useAuthStore = defineStore('auth', () => {
             return;
         }
 
-        if (rememberMe.value) {
-            localStorage.setItem(tokenKey, token.value);
-            sessionStorage.removeItem(tokenKey);
-        } else {
-            sessionStorage.setItem(tokenKey, token.value);
-            localStorage.removeItem(tokenKey);
-        }
+        localStorage.setItem(tokenKey, token.value);
+        sessionStorage.removeItem(tokenKey);
     };
 
     watch(token, () => {
         persistToken();
         document.body.classList.toggle('app-authenticated', Boolean(token.value));
     }, { immediate: true });
-
-    watch(rememberMe, () => {
-        if (token.value) {
-            persistToken();
-        }
-    });
 
     const setToken = (value) => {
         token.value = value ?? '';

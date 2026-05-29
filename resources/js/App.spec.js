@@ -166,6 +166,17 @@ const createFetchMock = ({
         telegram_id: '9001',
         name: 'Telegram User',
     },
+    telegramSiteSessionTokenStatus = 200,
+    telegramSiteSessionTokenMessage = 'Telegram login token not found.',
+    telegramSiteSessionTokenValue = 'telegram-site-session-token',
+    telegramWebAppAuthStatus = 200,
+    telegramWebAppAuthMessage = 'Не удалось войти через Telegram. Попробуйте ещё раз.',
+    telegramWebAppAuthToken = 'telegram-webapp-token',
+    telegramWebAppAuthUser = {
+        ...user,
+        telegram_id: '9551',
+        name: 'Telegram WebApp User',
+    },
 } = {}) => {
     let isAuthenticated = authenticated;
     let currentOrder = order;
@@ -205,6 +216,37 @@ const createFetchMock = ({
             return jsonResponse({
                 data: {
                     token: 'telegram-site-token',
+                    user: currentUser,
+                },
+            });
+        }
+
+        if (path === '/auth/telegram/token' && method === 'GET') {
+            if (telegramSiteSessionTokenStatus >= 400) {
+                return jsonResponse({ message: telegramSiteSessionTokenMessage }, telegramSiteSessionTokenStatus);
+            }
+
+            isAuthenticated = true;
+            currentUser = { ...telegramSiteLoginUser };
+
+            return jsonResponse({
+                data: {
+                    token: telegramSiteSessionTokenValue,
+                },
+            });
+        }
+
+        if (path === '/auth/telegram' && method === 'POST') {
+            if (telegramWebAppAuthStatus >= 400) {
+                return jsonResponse({ message: telegramWebAppAuthMessage }, telegramWebAppAuthStatus);
+            }
+
+            isAuthenticated = true;
+            currentUser = { ...telegramWebAppAuthUser };
+
+            return jsonResponse({
+                data: {
+                    token: telegramWebAppAuthToken,
                     user: currentUser,
                 },
             });
@@ -388,7 +430,9 @@ const mountApp = async (options = {}) => {
     sessionStorage.removeItem('lunch_mvp_require_full_name');
 
     if (authenticated) {
-        localStorage.setItem('lunch_mvp_token', 'test-token');
+        if (!localStorage.getItem('lunch_mvp_token')) {
+            localStorage.setItem('lunch_mvp_token', 'test-token');
+        }
     }
 
     if (telegramInitData) {
@@ -604,6 +648,24 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain('Вход в аккаунт');
     });
 
+    it('restores authenticated state from persisted token on app boot', async () => {
+        localStorage.setItem('lunch_mvp_token', 'persisted-token');
+        const { fetchMock } = await mountApp({ authenticated: true });
+
+        expect(requestCount(fetchMock, '/me')).toBeGreaterThan(0);
+        expect(localStorage.getItem('lunch_mvp_token')).toBe('persisted-token');
+        expect(buttonByText(user.name)).toBeTruthy();
+    });
+
+    it('clears invalid persisted token and falls back to guest state', async () => {
+        localStorage.setItem('lunch_mvp_token', 'stale-token');
+        const { fetchMock } = await mountApp({ authenticated: false });
+
+        expect(requestCount(fetchMock, '/me')).toBeGreaterThan(0);
+        expect(localStorage.getItem('lunch_mvp_token')).toBeNull();
+        expect(document.body.textContent).toContain('Войдите, чтобы заказать');
+    });
+
     it('renders catalog even when telegram site-login endpoints fail', async () => {
         const { fetchMock } = await mountApp({
             telegramLoginConfigStatus: 503,
@@ -642,8 +704,77 @@ describe('catalog auth UX', () => {
         await click(document.querySelector('button[type="submit"]'));
 
         expect(postedTo(fetchMock, '/auth/login')).toBe(true);
+        expect(localStorage.getItem('lunch_mvp_token')).toBe('web-login-token');
+        expect(sessionStorage.getItem('lunch_mvp_token')).toBeNull();
         expect(document.body.textContent).not.toContain('Вход в аккаунт');
         expect(buttonByText(user.name)).toBeTruthy();
+    });
+
+    it('persists token after site Telegram callback login', async () => {
+        window.history.replaceState({}, '', '/?telegram_login=success');
+
+        const telegramUser = {
+            ...user,
+            telegram_id: '9001',
+            name: 'Telegram User',
+        };
+
+        const { fetchMock } = await mountApp({
+            telegramSiteSessionTokenValue: 'telegram-site-session-token',
+            telegramSiteLoginUser: telegramUser,
+        });
+
+        expect(requestCount(fetchMock, '/auth/telegram/token')).toBeGreaterThan(0);
+        expect(localStorage.getItem('lunch_mvp_token')).toBe('telegram-site-session-token');
+        expect(sessionStorage.getItem('lunch_mvp_token')).toBeNull();
+        expect(buttonByText('Telegram User')).toBeTruthy();
+        expect(window.location.search).not.toContain('telegram_login');
+    });
+
+    it('persists token after Telegram WebApp auth', async () => {
+        const { fetchMock } = await mountApp({
+            telegramInitData: 'telegram_init_payload',
+            telegramWebAppAuthToken: 'telegram-webapp-token',
+            telegramWebAppAuthUser: {
+                ...user,
+                telegram_id: '9551',
+                name: 'Telegram WebApp User',
+            },
+        });
+
+        expect(postedTo(fetchMock, '/auth/telegram')).toBe(true);
+        expect(localStorage.getItem('lunch_mvp_token')).toBe('telegram-webapp-token');
+        expect(sessionStorage.getItem('lunch_mvp_token')).toBeNull();
+        expect(buttonByText('Telegram WebApp User')).toBeTruthy();
+    });
+
+    it('keeps user authenticated after remount with the same persisted token', async () => {
+        const firstMount = await mountApp();
+
+        await click(buttonByText('Войти'));
+        await fillInput(document.querySelector('#auth-modal-email'), 'user@lunch.local');
+        await fillInput(document.querySelector('#auth-modal-password'), 'secret-123');
+        await click(document.querySelector('button[type="submit"]'));
+
+        expect(localStorage.getItem('lunch_mvp_token')).toBe('web-login-token');
+        firstMount.wrapper.unmount();
+
+        const secondFetchMock = createFetchMock({ authenticated: true });
+        global.fetch = secondFetchMock;
+        const secondWrapper = mount(App, {
+            attachTo: document.body,
+            global: {
+                plugins: [createPinia()],
+            },
+        });
+
+        await flushPromises();
+        await flushPromises();
+
+        expect(requestCount(secondFetchMock, '/me')).toBeGreaterThan(0);
+        expect(buttonByText(user.name)).toBeTruthy();
+
+        secondWrapper.unmount();
     });
 
     it('shows guest cart with auth prompt instead of fake order items', async () => {
@@ -971,6 +1102,8 @@ describe('catalog auth UX', () => {
         await click(buttonByText('Выйти'));
 
         expect(postedTo(fetchMock, '/auth/logout')).toBe(true);
+        expect(localStorage.getItem('lunch_mvp_token')).toBeNull();
+        expect(sessionStorage.getItem('lunch_mvp_token')).toBeNull();
         expect(document.body.textContent).not.toContain(user.name);
         expect(buttonByText('Войти')).toBeTruthy();
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
