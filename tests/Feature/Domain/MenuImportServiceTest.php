@@ -147,7 +147,7 @@ class MenuImportServiceTest extends TestCase
         ]);
         $this->assertDatabaseHas('menu_items', [
             'supplier_name' => 'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)',
-            'title' => 'Котлета по-киевски с пюре',
+            'title' => 'Комбо: котлета по-киевски с пюре и фасолью',
             'price' => 125,
         ]);
     }
@@ -909,7 +909,7 @@ class MenuImportServiceTest extends TestCase
     }
 
     #[Test]
-    public function supplier_rows_with_same_catalog_title_but_different_supplier_names_are_not_collapsed_into_one_item(): void
+    public function supplier_rows_for_combo_and_regular_kiev_cutlet_keep_distinct_catalog_titles(): void
     {
         $import = $this->importRawCsv(implode("\n", [
             'Категория;Название;Цена',
@@ -927,6 +927,16 @@ class MenuImportServiceTest extends TestCase
             1,
             MenuItem::query()->where('supplier_name', 'Котлета (по-Киевски) с картофельным пюре (260г)')->count(),
         );
+        $comboItem = MenuItem::query()
+            ->where('supplier_name', 'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)')
+            ->firstOrFail();
+        $regularItem = MenuItem::query()
+            ->where('supplier_name', 'Котлета (по-Киевски) с картофельным пюре (260г)')
+            ->firstOrFail();
+
+        $this->assertNotSame($regularItem->title, $comboItem->title);
+        $this->assertSame('Котлета по-киевски с пюре', $regularItem->title);
+        $this->assertSame('Комбо: котлета по-киевски с пюре и фасолью', $comboItem->title);
     }
 
     #[Test]

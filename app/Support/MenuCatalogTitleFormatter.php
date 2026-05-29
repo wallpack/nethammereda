@@ -21,6 +21,9 @@ class MenuCatalogTitleFormatter
             return '';
         }
 
+        $isComboKievCutlet = preg_match('/^\s*Комбо\.\s*Котлета\b/ui', $source) === 1;
+        $hasBeans = preg_match('/\bфасол(?:ь|и|ью)\b/ui', $source) === 1;
+
         $value = str_replace(['«', '»', '“', '”', '„', '‟'], '"', $source);
         $value = preg_replace('/"(?=\p{L})/u', '" ', $value) ?? $value;
         $value = preg_replace('/^\s*Комбо\.\s*/ui', '', $value) ?? $value;
@@ -53,7 +56,8 @@ class MenuCatalogTitleFormatter
         $value = preg_replace('/^Блинчики\s+[^\s(]+\s*\(\s*с\s*(.+)\)\s*$/ui', 'Блинчики с $1', $value) ?? $value;
         $value = preg_replace('/^Блинчики\s+с\s+творогом\s*\(\s*и\s+зеленым\s+луком\s*\)\s*$/ui', 'Блинчики с творогом и зелёным луком', $value) ?? $value;
         $value = preg_replace('/^Блин-дог\s+с\s+сыром\s*(?:\(\s*[^)]*\s*\))?\s*с\s+соусом\s*$/ui', 'Блин-дог с сыром и соусом', $value) ?? $value;
-        $value = preg_replace('/^Котлета\s*\(?по-киевски\)?\s+с\s+картофельным\s+пюре.*$/ui', 'Котлета по-киевски с пюре', $value) ?? $value;
+        $value = preg_replace('/^Котлета\s*\(?по-киевски\)?\s+с\s+картофельным\s+пюре\s+и\s+фасол(?:ь|и|ью)\s*$/ui', 'Котлета по-киевски с пюре и фасолью', $value) ?? $value;
+        $value = preg_replace('/^Котлета\s*\(?по-киевски\)?\s+с\s+картофельным\s+пюре\s*$/ui', 'Котлета по-киевски с пюре', $value) ?? $value;
         $value = preg_replace('/^([^()]+)\(\s*(с\s+[^)]+)\)\s*$/ui', '$1 $2', $value) ?? $value;
 
         $value = preg_replace('/^Каша\s+рисовая\s*\(молочная\)$/ui', 'Рисовая каша на молоке', $value) ?? $value;
@@ -103,6 +107,10 @@ class MenuCatalogTitleFormatter
 
         if ($value === '') {
             $value = $source;
+        }
+
+        if ($isComboKievCutlet && $hasBeans && mb_stripos($value, 'фасол') !== false) {
+            $value = 'Комбо: '.mb_strtolower($value, 'UTF-8');
         }
 
         return mb_substr($value, 0, 255);

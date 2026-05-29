@@ -29,6 +29,18 @@ class MenuCatalogTitleFormatterTest extends TestCase
         );
     }
 
+    #[Test]
+    public function combo_kiev_cutlet_title_keeps_distinguishing_marker(): void
+    {
+        $formatter = app(MenuCatalogTitleFormatter::class);
+        $combo = $formatter->catalogTitle('Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)');
+        $regular = $formatter->catalogTitle('Котлета (по-Киевски) с картофельным пюре (260г)');
+
+        $this->assertNotSame($regular, $combo);
+        $this->assertStringContainsString('Комбо', $combo);
+        $this->assertStringContainsStringIgnoringCase('фасол', $combo);
+    }
+
     /**
      * @return array<string, array{string, string}>
      */
@@ -43,9 +55,9 @@ class MenuCatalogTitleFormatterTest extends TestCase
                 'Котлета по-Киевски с пюре',
                 'Котлета по-киевски с пюре',
             ],
-            'combo with weight becomes short cutlet title' => [
+            'combo with weight keeps combo and beans marker' => [
                 'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)',
-                'Котлета по-киевски с пюре',
+                'Комбо: котлета по-киевски с пюре и фасолью',
             ],
             'rice milk porridge polished' => [
                 'Каша рисовая (молочная)',
