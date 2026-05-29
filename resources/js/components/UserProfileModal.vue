@@ -12,6 +12,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatPrice } from '@/lib/formatters';
 import { Check, CheckCircle2, Heart, History, Link2, Loader2, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -51,6 +52,26 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    orderHistory: {
+        type: Array,
+        default: () => [],
+    },
+    orderHistoryLoading: {
+        type: Boolean,
+        default: false,
+    },
+    orderHistoryError: {
+        type: String,
+        default: '',
+    },
+    canRepeatHistory: {
+        type: Boolean,
+        default: false,
+    },
+    repeatActionLoading: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits([
@@ -63,6 +84,7 @@ const emit = defineEmits([
     'save-full-name',
     'telegram-link',
     'telegram-open-bot',
+    'repeat-order',
 ]);
 
 const displayName = computed(() => {
@@ -89,7 +111,35 @@ const telegramIdentity = computed(() => {
 
     return `ID: ${telegramId}`;
 });
+
 const fullName = ref('');
+const activeTab = ref('profile');
+
+const historyPositionsLabel = (count) => {
+    if (count % 10 === 1 && count % 100 !== 11) {
+        return 'блюдо';
+    }
+
+    if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+        return 'блюда';
+    }
+
+    return 'блюд';
+};
+
+const historyOrderDateLabel = (value) => {
+    if (!value) {
+        return 'Заказ';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return 'Заказ';
+    }
+
+    return `Заказ от ${date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' })}`;
+};
 
 watch(
     () => [props.open, props.user?.full_name],
@@ -99,6 +149,7 @@ watch(
         }
 
         fullName.value = props.user?.full_name ?? '';
+        activeTab.value = 'profile';
     },
     { immediate: true },
 );
@@ -149,7 +200,28 @@ const saveFullName = () => {
                     </div>
                 </div>
 
-                <div class="mt-6 grid gap-2">
+                <div class="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1" data-testid="profile-tabs">
+                    <button
+                        type="button"
+                        class="h-10 rounded-lg px-3 text-sm font-semibold transition-colors"
+                        :class="activeTab === 'profile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                        data-testid="profile-tab-main"
+                        @click="activeTab = 'profile'"
+                    >
+                        Профиль
+                    </button>
+                    <button
+                        type="button"
+                        class="h-10 rounded-lg px-3 text-sm font-semibold transition-colors"
+                        :class="activeTab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                        data-testid="profile-tab-ordered"
+                        @click="activeTab = 'orders'"
+                    >
+                        Уже заказывали
+                    </button>
+                </div>
+
+                <div v-if="activeTab === 'profile'" class="mt-4 grid gap-2">
                     <form class="mb-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4" @submit.prevent="saveFullName">
                         <label class="grid gap-2">
                             <span class="text-sm font-medium text-slate-700">ФИО</span>
@@ -338,6 +410,73 @@ const saveFullName = () => {
                             </span>
                         </Button>
                     </div>
+                </div>
+
+                <div v-else class="mt-4" data-testid="profile-orders-tab-panel">
+                    <h3 class="text-base font-semibold text-slate-900">Уже заказывали</h3>
+
+                    <div v-if="orderHistoryLoading" class="mt-3 space-y-2">
+                        <div class="h-16 animate-pulse rounded-xl bg-slate-100" />
+                        <div class="h-16 animate-pulse rounded-xl bg-slate-100" />
+                    </div>
+
+                    <Alert
+                        v-else-if="orderHistoryError"
+                        variant="destructive"
+                        class="mt-3 rounded-xl border-red-200 bg-red-50 text-red-700"
+                    >
+                        <AlertDescription>{{ orderHistoryError }}</AlertDescription>
+                    </Alert>
+
+                    <div
+                        v-else-if="!orderHistory.length"
+                        class="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600"
+                        data-testid="profile-order-history-empty"
+                    >
+                        <p class="font-medium text-slate-900">Вы ещё не оформляли заказы.</p>
+                        <p class="mt-1 text-xs text-slate-500">После первого заказа он появится здесь.</p>
+                    </div>
+
+                    <div v-else class="mt-3 max-h-[20rem] space-y-2 overflow-y-auto pr-1">
+                        <article
+                            v-for="historyOrder in orderHistory"
+                            :key="historyOrder.id"
+                            class="rounded-xl border border-slate-200 bg-white p-3"
+                        >
+                            <p class="text-sm font-semibold text-slate-900">{{ historyOrderDateLabel(historyOrder.submitted_at) }}</p>
+                            <p class="mt-0.5 text-xs text-slate-600">
+                                {{ historyOrder.items_count }} {{ historyPositionsLabel(Number(historyOrder.items_count || 0)) }}
+                                · {{ formatPrice(historyOrder.total_price ?? 0) }}
+                            </p>
+                            <ul class="mt-2 space-y-1 text-xs text-slate-600">
+                                <li
+                                    v-for="item in historyOrder.items?.slice(0, 4) ?? []"
+                                    :key="`${historyOrder.id}-${item.id}`"
+                                    class="truncate"
+                                >
+                                    {{ item.title }} ×{{ item.quantity }}
+                                </li>
+                            </ul>
+                            <p v-if="Number(historyOrder.items_count || 0) > 4" class="mt-1 text-xs text-slate-500">
+                                и ещё {{ Number(historyOrder.items_count || 0) - 4 }}
+                            </p>
+                            <Button
+                                type="button"
+                                size="sm"
+                                class="mt-2 h-8 rounded-full bg-blue-700 px-3 text-xs font-semibold text-white hover:bg-blue-800 disabled:bg-slate-200 disabled:text-slate-500"
+                                data-testid="profile-repeat-order-button"
+                                :disabled="!canRepeatHistory || !historyOrder.can_repeat || repeatActionLoading"
+                                @click="emit('repeat-order', historyOrder)"
+                            >
+                                <Loader2 v-if="repeatActionLoading" aria-hidden="true" class="size-3 animate-spin" />
+                                Повторить заказ
+                            </Button>
+                        </article>
+                    </div>
+
+                    <p v-if="!canRepeatHistory" class="mt-3 text-xs text-slate-500" data-testid="profile-repeat-closed-hint">
+                        Повторить заказ можно, когда открыт приём заказов.
+                    </p>
                 </div>
 
                 <Button

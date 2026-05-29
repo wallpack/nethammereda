@@ -411,6 +411,18 @@ watch(requiredFullNameModalOpen, (open) => {
     requiredFullNameError.value = '';
 });
 
+watch(isProfileModalOpen, async (open) => {
+    if (!open || !auth.token) {
+        return;
+    }
+
+    try {
+        await orderStore.loadOrderHistory(auth.token);
+    } catch {
+        // History errors are shown inside profile tab.
+    }
+});
+
 const resetProtectedState = () => {
     orderStore.resetOrder();
     fridge.resetFridge();
@@ -895,6 +907,8 @@ const repeatOrderFromHistory = async (historyOrder) => {
         }
 
         ui.info = notices.join(' ');
+        ui.closeProfileModal();
+        navigateToView('order');
     } catch (e) {
         if (isClosedOrderingErrorMessage(e.message)) {
             await syncClosedOrderingState(closedOrderingMessage);
@@ -1058,15 +1072,9 @@ onBeforeUnmount(() => {
                             :loading="loading"
                             :action-loading="actionLoading"
                             :order-skeleton-rows="orderSkeletonRows"
-                            :order-history="orderHistory"
-                            :order-history-loading="orderHistoryLoading"
-                            :order-history-error="orderHistoryError"
-                            :can-repeat-history="isOrderingWindowOpen"
-                            :repeat-action-loading="actionLoading"
                             @change-quantity="changeQuantity"
                             @reopen-order="reopenOrder"
                             @submit-order="submitOrder"
-                            @repeat-order="repeatOrderFromHistory"
                         />
                     </CardContent>
                 </Card>
@@ -1124,16 +1132,10 @@ onBeforeUnmount(() => {
                             :action-loading="actionLoading"
                             :error="error"
                             :order-skeleton-rows="orderSkeletonRows"
-                            :order-history="orderHistory"
-                            :order-history-loading="orderHistoryLoading"
-                            :order-history-error="orderHistoryError"
-                            :can-repeat-history="isOrderingWindowOpen"
-                            :repeat-action-loading="actionLoading"
                             @open-auth="openAuthModal('Войдите, чтобы оформить заказ.')"
                             @change-quantity="changeQuantity"
                             @reopen-order="reopenOrder"
                             @submit-order="submitOrder"
-                            @repeat-order="repeatOrderFromHistory"
                         />
                     </CardContent>
                 </Card>
@@ -1173,15 +1175,9 @@ onBeforeUnmount(() => {
                 :action-loading="actionLoading"
                 :error="error"
                 :order-skeleton-rows="orderSkeletonRows"
-                :order-history="orderHistory"
-                :order-history-loading="orderHistoryLoading"
-                :order-history-error="orderHistoryError"
-                :can-repeat-history="isOrderingWindowOpen"
-                :repeat-action-loading="actionLoading"
                 @change-quantity="changeQuantity"
                 @reopen-order="reopenOrder"
                 @submit-order="submitOrder"
-                @repeat-order="repeatOrderFromHistory"
             />
         </MobilePanelSheet>
 
@@ -1249,6 +1245,11 @@ onBeforeUnmount(() => {
             :favorites-count="favoritesCount"
             :profile-saving="profileSaving"
             :profile-error="profileError"
+            :order-history="orderHistory"
+            :order-history-loading="orderHistoryLoading"
+            :order-history-error="orderHistoryError"
+            :can-repeat-history="isOrderingWindowOpen"
+            :repeat-action-loading="actionLoading"
             @close="closeProfileModal"
             :telegram-linked="telegramLinkStatus.linked"
             :telegram-link-available="telegramLinkStatus.link_available"
@@ -1262,6 +1263,7 @@ onBeforeUnmount(() => {
             @save-full-name="saveProfileFullName"
             @telegram-link="linkTelegramFromProfile"
             @telegram-open-bot="openTelegramBotLink"
+            @repeat-order="repeatOrderFromHistory"
         />
 
         <RequiredFullNameModal
