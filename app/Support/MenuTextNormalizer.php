@@ -51,6 +51,7 @@ class MenuTextNormalizer
         $value = str_replace("\0", '', $value);
         $value = strip_tags(html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         $value = str_replace(["\u{00A0}", "\u{200B}", "\u{200C}", "\u{200D}", "\u{FEFF}"], ' ', $value);
+        $value = preg_replace('/\p{Cf}+/u', '', $value) ?? $value;
         $value = str_replace(["\r\n", "\r"], "\n", $value);
         $value = preg_replace('/[ \t]+/u', ' ', $value) ?? $value;
 
@@ -87,6 +88,40 @@ class MenuTextNormalizer
             'супы' => 'Супы',
             default => $clean,
         };
+    }
+
+    public function normalizeImportedCategoryName(string $value): string
+    {
+        $category = $this->clean($value);
+
+        // Remove trailing weight suffix like "(170 г.)", "170 г", "170гр", "300 мл".
+        $category = preg_replace(
+            '/\s*(?:\(\s*\d+(?:[.,]\d+)?\s*(?:г|гр|грамм(?:а|ов)?|kg|кг|ml|мл|л)\.?\s*\)|\d+(?:[.,]\d+)?\s*(?:г|гр|грамм(?:а|ов)?|kg|кг|ml|мл|л)\.?)\s*$/ui',
+            '',
+            $category,
+        ) ?? $category;
+
+        $category = $this->clean($category);
+
+        return $category !== '' ? $category : $this->clean($value);
+    }
+
+    public function normalizeImportItemTitleKey(string $value): string
+    {
+        $normalized = $this->clean($value);
+        $normalized = preg_replace('/\p{Cf}+/u', '', $normalized) ?? $normalized;
+        $normalized = preg_replace('/\s*([,.;:])\s*/u', '$1 ', $normalized) ?? $normalized;
+        $normalized = preg_replace('/\s+/u', ' ', trim($normalized)) ?? trim($normalized);
+
+        return mb_strtolower($normalized, 'UTF-8');
+    }
+
+    public function menuItemMatchKey(string $categoryName, string $itemTitle): string
+    {
+        $categoryKey = $this->normalizeName($this->normalizeImportedCategoryName($categoryName));
+        $titleKey = $this->normalizeImportItemTitleKey($itemTitle);
+
+        return $categoryKey.'|'.$titleKey;
     }
 
     public function slug(string $value, int $maxLength = 80): string

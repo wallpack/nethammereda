@@ -672,6 +672,149 @@ class MenuImportServiceTest extends TestCase
         ]);
     }
 
+    #[Test]
+    public function repeated_canonical_csv_import_is_idempotent(): void
+    {
+        $content = implode("\n", [
+            'Категория;Название;Цена',
+            'Салаты;Винегрет;190',
+            'Супы;Борщ;210',
+        ]);
+
+        $first = $this->importRawCsv($content);
+        $second = $this->importRawCsv($content);
+
+        $this->assertSame(MenuImportStatus::Imported, $first->status);
+        $this->assertSame(MenuImportStatus::Imported, $second->status);
+        $this->assertSame(2, MenuItem::query()->count());
+        $this->assertSame(1, MenuItem::query()->where('title', 'Винегрет')->count());
+        $this->assertSame(1, MenuItem::query()->where('title', 'Борщ')->count());
+    }
+
+    #[Test]
+    public function repeated_supplier_csv_import_is_idempotent(): void
+    {
+        $content = implode("\n", [
+            'Наименование продукции;Цена руб.;Срок годности',
+            'Салаты (170 г.);;',
+            'Винегрет;190;2 суток',
+            'Витаминный с болгарским перцем;200;2 суток',
+        ]);
+
+        $first = $this->importRawCsv($content);
+        $second = $this->importRawCsv($content);
+
+        $this->assertSame(MenuImportStatus::Imported, $first->status);
+        $this->assertSame(MenuImportStatus::Imported, $second->status);
+        $this->assertSame(2, MenuItem::query()->count());
+        $this->assertSame(1, MenuItem::query()->where('title', 'Винегрет')->count());
+        $this->assertSame(1, MenuItem::query()->where('title', 'Витаминный с болгарским перцем')->count());
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    public function repeated_supplier_xlsx_import_is_idempotent(): void
+    {
+        Storage::fake('local');
+        $path = Storage::disk('local')->path('menu-imports/supplier-repeat.xlsx');
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
+        }
+
+        $spreadsheet = new Spreadsheet;
+
+        try {
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->fromArray([
+                ['Прайс лист поставщика'],
+                [''],
+                ['Наименование продукции', 'Цена руб.', 'Срок годности'],
+                ['Салаты 170гр', '', ''],
+                ['Винегрет', 190, '2 суток'],
+                ['Витаминный с болгарским перцем', 200, '2 суток'],
+            ]);
+            (new Xlsx($spreadsheet))->save($path);
+
+            $first = app(MenuImportService::class)->importStoredFile(
+                storedPath: 'menu-imports/supplier-repeat.xlsx',
+                originalFilename: 'supplier-repeat.xlsx',
+                importedBy: User::factory()->create(),
+            );
+            $second = app(MenuImportService::class)->importStoredFile(
+                storedPath: 'menu-imports/supplier-repeat.xlsx',
+                originalFilename: 'supplier-repeat.xlsx',
+                importedBy: User::factory()->create(),
+            );
+
+            $this->assertSame(MenuImportStatus::Imported, $first->status);
+            $this->assertSame(MenuImportStatus::Imported, $second->status);
+            $this->assertSame(2, MenuItem::query()->count());
+            $this->assertSame(1, MenuItem::query()->where('title', 'Винегрет')->count());
+            $this->assertSame(1, MenuItem::query()->where('title', 'Витаминный с болгарским перцем')->count());
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+    }
+
+    #[Test]
+    public function existing_item_price_is_updated_without_creating_duplicate(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Салаты',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        $existing = MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Винегрет',
+            'supplier_name' => 'Винегрет',
+            'price' => 150,
+            'is_active' => true,
+        ]);
+
+        $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена',
+            'Салаты;Винегрет;205',
+        ]));
+
+        $this->assertSame(1, MenuItem::query()->count());
+        $this->assertDatabaseHas('menu_items', [
+            'id' => $existing->id,
+            'title' => 'Винегрет',
+            'price' => 205,
+        ]);
+    }
+
+    #[Test]
+    public function existing_item_image_is_preserved_when_import_provides_empty_image_url(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Салаты',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        $existing = MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Винегрет',
+            'supplier_name' => 'Винегрет',
+            'price' => 150,
+            'image_path' => 'menu-items/manual/existing.png',
+            'image_url' => 'https://example.com/existing.png',
+            'is_active' => true,
+        ]);
+
+        $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена;image_url',
+            'Салаты;Винегрет;210;',
+        ]));
+
+        $existing->refresh();
+
+        $this->assertSame('210.00', (string) $existing->price);
+        $this->assertSame('menu-items/manual/existing.png', $existing->image_path);
+        $this->assertSame('https://example.com/existing.png', $existing->image_url);
+    }
+
     /**
      * @param  array<int, string>  $lines
      */

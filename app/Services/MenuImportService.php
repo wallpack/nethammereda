@@ -7,9 +7,10 @@ use App\Enums\MenuImportStatus;
 use App\Models\MenuCategory;
 use App\Models\MenuImport;
 use App\Models\MenuItem;
+use App\Models\User;
 use App\Support\MenuCatalogTitleFormatter;
 use App\Support\MenuTextNormalizer;
-use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
@@ -143,7 +144,7 @@ class MenuImportService
         $menuItem = $this->findMenuItem($row, $category, $attributes);
 
         if ($menuItem instanceof MenuItem) {
-            $menuItem->fill($attributes);
+            $menuItem->fill($this->attributesForUpdate($menuItem, $attributes));
             $menuItem->save();
 
             return;
@@ -154,7 +155,7 @@ class MenuImportService
 
     private function findOrCreateCategory(string $name): MenuCategory
     {
-        $normalizedName = $this->normalizeImportedCategoryName($name);
+        $normalizedName = $this->textNormalizer->normalizeImportedCategoryName($name);
         $category = MenuCategory::query()->where('name', $normalizedName)->first();
 
         if ($category instanceof MenuCategory) {
@@ -174,22 +175,6 @@ class MenuImportService
         ]);
     }
 
-    private function normalizeImportedCategoryName(string $value): string
-    {
-        $category = $this->textNormalizer->clean($value);
-
-        // Remove trailing weight suffix like "(170 г.)", "170 г", "170гр", "300 мл".
-        $category = preg_replace(
-            '/\s*(?:\(\s*\d+(?:[.,]\d+)?\s*(?:г|гр|грамм(?:а|ов)?|kg|кг|ml|мл|л)\.?\s*\)|\d+(?:[.,]\d+)?\s*(?:г|гр|грамм(?:а|ов)?|kg|кг|ml|мл|л)\.?)\s*$/ui',
-            '',
-            $category,
-        ) ?? $category;
-
-        $category = $this->textNormalizer->clean($category);
-
-        return $category !== '' ? $category : $this->textNormalizer->clean($value);
-    }
-
     /**
      * @param  array{
      *     category: string,
@@ -204,32 +189,135 @@ class MenuImportService
         $fields = $row['fields'];
 
         if (filled($fields['external_id'] ?? null)) {
-            return MenuItem::query()
+            $byExternalId = MenuItem::query()
                 ->where('external_id', (string) $fields['external_id'])
-                ->first();
-        }
+                ->withCount(['orderItems', 'fridgeItems'])
+                ->get();
 
-        if (filled($fields['supplier_code'] ?? null)) {
-            return MenuItem::query()
-                ->where('supplier_code', (string) $fields['supplier_code'])
-                ->first();
-        }
-
-        if (filled($attributes['supplier_name'] ?? null)) {
-            $bySupplierName = MenuItem::query()
-                ->where('category_id', $category->id)
-                ->where('supplier_name', (string) $attributes['supplier_name'])
-                ->first();
-
-            if ($bySupplierName instanceof MenuItem) {
-                return $bySupplierName;
+            if ($byExternalId->isNotEmpty()) {
+                return $this->selectPrimaryMenuItem($byExternalId);
             }
         }
 
-        return MenuItem::query()
+        if (filled($fields['supplier_code'] ?? null)) {
+            $bySupplierCode = MenuItem::query()
+                ->where('supplier_code', (string) $fields['supplier_code'])
+                ->withCount(['orderItems', 'fridgeItems'])
+                ->get();
+
+            if ($bySupplierCode->isNotEmpty()) {
+                return $this->selectPrimaryMenuItem($bySupplierCode);
+            }
+        }
+
+        $rowTitleKey = $this->textNormalizer->normalizeImportItemTitleKey((string) $row['name']);
+        $categoryItems = MenuItem::query()
             ->where('category_id', $category->id)
-            ->where('title', (string) $attributes['title'])
-            ->first();
+            ->withCount(['orderItems', 'fridgeItems'])
+            ->get();
+
+        $byMatchKey = $categoryItems->filter(function (MenuItem $menuItem) use ($rowTitleKey): bool {
+            $titleKey = $this->textNormalizer->normalizeImportItemTitleKey((string) $menuItem->title);
+            $supplierNameKey = $this->textNormalizer->normalizeImportItemTitleKey((string) ($menuItem->supplier_name ?? ''));
+
+            if ($titleKey === $rowTitleKey) {
+                return true;
+            }
+
+            return $supplierNameKey !== '' && $supplierNameKey === $rowTitleKey;
+        });
+
+        if ($byMatchKey->isNotEmpty()) {
+            return $this->selectPrimaryMenuItem($byMatchKey);
+        }
+
+        if (filled($attributes['supplier_name'] ?? null)) {
+            $bySupplierName = $categoryItems->filter(
+                fn (MenuItem $menuItem): bool => (string) ($menuItem->supplier_name ?? '') === (string) $attributes['supplier_name'],
+            );
+
+            if ($bySupplierName->isNotEmpty()) {
+                return $this->selectPrimaryMenuItem($bySupplierName);
+            }
+        }
+
+        $byTitle = $categoryItems->filter(
+            fn (MenuItem $menuItem): bool => (string) $menuItem->title === (string) $attributes['title'],
+        );
+
+        return $byTitle->isNotEmpty()
+            ? $this->selectPrimaryMenuItem($byTitle)
+            : null;
+    }
+
+    /**
+     * @param  Collection<int, MenuItem>  $items
+     */
+    private function selectPrimaryMenuItem(Collection $items): ?MenuItem
+    {
+        if ($items->isEmpty()) {
+            return null;
+        }
+
+        /** @var MenuItem $primary */
+        $primary = $items->sort(function (MenuItem $left, MenuItem $right): int {
+            $hasImageComparison = (int) $this->hasImage($right) <=> (int) $this->hasImage($left);
+            if ($hasImageComparison !== 0) {
+                return $hasImageComparison;
+            }
+
+            $hasRefsComparison = (int) $this->hasReferences($right) <=> (int) $this->hasReferences($left);
+            if ($hasRefsComparison !== 0) {
+                return $hasRefsComparison;
+            }
+
+            $leftCreatedAt = $left->created_at?->timestamp ?? PHP_INT_MAX;
+            $rightCreatedAt = $right->created_at?->timestamp ?? PHP_INT_MAX;
+            if ($leftCreatedAt !== $rightCreatedAt) {
+                return $leftCreatedAt <=> $rightCreatedAt;
+            }
+
+            $activeComparison = (int) $right->is_active <=> (int) $left->is_active;
+            if ($activeComparison !== 0) {
+                return $activeComparison;
+            }
+
+            return $left->id <=> $right->id;
+        })->first();
+
+        return $primary;
+    }
+
+    private function hasImage(MenuItem $menuItem): bool
+    {
+        return filled($menuItem->image_path) || filled($menuItem->image_url);
+    }
+
+    private function hasReferences(MenuItem $menuItem): bool
+    {
+        $orderRefs = (int) ($menuItem->order_items_count ?? 0);
+        $fridgeRefs = (int) ($menuItem->fridge_items_count ?? 0);
+
+        return ($orderRefs + $fridgeRefs) > 0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function attributesForUpdate(MenuItem $menuItem, array $attributes): array
+    {
+        foreach (['image_url', 'image_path', 'image_source', 'image_assigned_at'] as $imageField) {
+            if (
+                array_key_exists($imageField, $attributes)
+                && ! filled($attributes[$imageField])
+                && filled($menuItem->{$imageField})
+            ) {
+                unset($attributes[$imageField]);
+            }
+        }
+
+        return $attributes;
     }
 
     /**
