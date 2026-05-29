@@ -26,6 +26,12 @@ class MyFridgeController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $eatenTodayCount = FridgeItem::query()
+            ->where('user_id', $user->id)
+            ->where('status', FridgeItemStatus::Eaten)
+            ->whereDate('eaten_at', now()->toDateString())
+            ->count();
+
         return response()->json([
             'data' => $items,
             'meta' => [
@@ -35,6 +41,7 @@ class MyFridgeController extends Controller
                     ->filter(fn (FridgeItem $item): bool => $item->expires_at !== null
                         && $item->expires_at->betweenIncluded(now(), now()->addDay()))
                     ->count(),
+                'eaten_today_count' => $eatenTodayCount,
             ],
         ]);
     }

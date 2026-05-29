@@ -107,6 +107,19 @@ class FridgeItemFlowTest extends TestCase
     }
 
     #[Test]
+    public function user_cannot_discard_foreign_fridge_item(): void
+    {
+        $owner = $this->createUser();
+        $attacker = $this->createUser();
+        $fridgeItem = $this->createFridgeItem($owner, 2);
+
+        Sanctum::actingAs($attacker);
+
+        $this->patchJson("/api/my-fridge/items/{$fridgeItem->id}/discard")
+            ->assertForbidden();
+    }
+
+    #[Test]
     public function eat_one_decreases_remaining_quantity(): void
     {
         $user = $this->createUser();
@@ -259,6 +272,15 @@ class FridgeItemFlowTest extends TestCase
         $user = $this->createUser();
         $this->createFridgeItem($user, 2, now()->addHours(12));
         $this->createFridgeItem($user, 3, now()->addDays(3));
+        FridgeItem::query()->create([
+            'user_id' => $user->id,
+            'title_snapshot' => 'Том-ям',
+            'quantity_total' => 1,
+            'quantity_remaining' => 0,
+            'status' => FridgeItemStatus::Eaten,
+            'arrived_at' => now()->subDay(),
+            'eaten_at' => now()->setTime(12, 0),
+        ]);
 
         Sanctum::actingAs($user);
 
@@ -266,7 +288,52 @@ class FridgeItemFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('meta.active_count', 2)
             ->assertJsonPath('meta.total_portions', 5)
-            ->assertJsonPath('meta.expiring_soon_count', 1);
+            ->assertJsonPath('meta.expiring_soon_count', 1)
+            ->assertJsonPath('meta.eaten_today_count', 1);
+    }
+
+    #[Test]
+    public function fridge_index_and_history_show_only_authenticated_users_data(): void
+    {
+        $user = $this->createUser();
+        $otherUser = $this->createUser();
+
+        $ownActive = $this->createFridgeItem($user, 2);
+        $foreignActive = $this->createFridgeItem($otherUser, 2);
+
+        $ownHistory = FridgeItem::query()->create([
+            'user_id' => $user->id,
+            'title_snapshot' => 'Собственная история',
+            'quantity_total' => 1,
+            'quantity_remaining' => 0,
+            'status' => FridgeItemStatus::Discarded,
+            'arrived_at' => now()->subDays(3),
+            'discarded_at' => now()->subHour(),
+        ]);
+        $foreignHistory = FridgeItem::query()->create([
+            'user_id' => $otherUser->id,
+            'title_snapshot' => 'Чужая история',
+            'quantity_total' => 1,
+            'quantity_remaining' => 0,
+            'status' => FridgeItemStatus::Eaten,
+            'arrived_at' => now()->subDays(2),
+            'eaten_at' => now()->subHour(),
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $indexResponse = $this->getJson('/api/my-fridge')
+            ->assertOk();
+
+        $this->assertSame([$ownActive->id], collect($indexResponse->json('data'))->pluck('id')->all());
+        $this->assertNotContains($foreignActive->id, collect($indexResponse->json('data'))->pluck('id')->all());
+
+        $historyResponse = $this->getJson('/api/my-fridge/history')
+            ->assertOk();
+
+        $historyIds = collect($historyResponse->json('data'))->pluck('id')->all();
+        $this->assertContains($ownHistory->id, $historyIds);
+        $this->assertNotContains($foreignHistory->id, $historyIds);
     }
 
     /**

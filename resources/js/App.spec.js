@@ -662,8 +662,8 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain(user.email);
         expect(document.body.textContent).toContain('Избранное');
         expect(document.body.textContent).toContain('Мой заказ');
-        expect(document.body.textContent).toContain('Холодильник');
-        expect(document.body.textContent).toContain('История питания');
+        expect(document.body.textContent).toContain('Мой холодильник');
+        expect(document.body.textContent).toContain('Моя история');
         expect(document.body.textContent).toContain('Укажите ФИО в формате: Фамилия и инициалы. Например: Иванов И.И.');
         expect(document.body.textContent).toContain('Telegram-бот');
         expect(document.body.textContent).toContain('Получайте уведомления о заказах и быстро открывайте меню прямо из Telegram.');
@@ -1473,12 +1473,17 @@ describe('catalog auth UX', () => {
         });
 
         await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
-        expect(document.body.textContent).toContain('Годен до');
-        await click(buttonByText('Съел 1'));
+        expect(document.body.textContent).toContain('Мой холодильник');
+        expect(document.body.textContent).toContain('Блюда, которые сейчас ждут вас.');
+        expect(document.body.textContent).toContain('В холодильнике');
+        expect(document.body.textContent).toContain('Порций');
+        expect(document.body.textContent).toContain('Скоро истекает');
+        expect(document.body.textContent).toContain('До');
+        await click(buttonByText('Съел'));
 
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/eat-one`)).toBe(true);
         expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/my-fridge')).length).toBeGreaterThan(2);
-        expect(document.body.textContent).toContain('остаток 1/2');
+        expect(document.body.textContent).toContain('1 шт.');
 
         await click(buttonByText('Съел всё'));
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/eat-all`)).toBe(true);
@@ -1491,12 +1496,16 @@ describe('catalog auth UX', () => {
         });
 
         await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
-        await click(buttonByText('Выбросить'));
+        await click(buttonByText('Списать'));
 
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/discard`)).toBe(false);
-        expect(document.body.textContent).toContain('Выбросить блюдо?');
+        expect(document.body.textContent).toContain('Списать блюдо из холодильника?');
+        expect(document.body.textContent).not.toContain('Выбросить');
 
-        await click(buttonByText('Подтвердить выброс'));
+        const confirmWriteOffButton = Array.from(document.querySelectorAll('button')).find(
+            (button) => button.textContent?.trim() === 'Списать' && button.className.includes('bg-slate-900'),
+        );
+        await click(confirmWriteOffButton);
         expect(patchedTo(fetchMock, `/my-fridge/items/${fridgeItem.id}/discard`)).toBe(true);
         expect(fetchMock.mock.calls.filter(([url]) => String(url).includes('/my-fridge')).length).toBeGreaterThan(2);
     });
@@ -1509,8 +1518,48 @@ describe('catalog auth UX', () => {
         });
 
         await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
-        await click(buttonByText('Съел 1'));
+        await click(buttonByText('Съел'));
 
         expect(document.body.textContent).toContain('Не удалось обновить холодильник.');
+    });
+
+    it('shows calm empty states for fridge and history', async () => {
+        await mountApp({
+            authenticated: true,
+            fridgeItems: [],
+            fridgeHistory: [],
+        });
+
+        await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
+        expect(document.body.textContent).toContain('В вашем холодильнике пока ничего нет.');
+        expect(document.body.textContent).toContain('Когда заказ будет доставлен, блюда появятся здесь.');
+
+        await click(document.querySelector('[aria-label="Открыть раздел: История"]'));
+        expect(document.body.textContent).toContain('Моя история');
+        expect(document.body.textContent).toContain('Истории пока нет.');
+        expect(document.body.textContent).toContain('Когда вы отметите блюдо в холодильнике, оно появится здесь.');
+    });
+
+    it('keeps compact fridge cards with safe wrapping and secondary write-off action', async () => {
+        const longTitleItem = {
+            ...fridgeItem,
+            title_snapshot: 'Очень длинное название блюда с множеством слов чтобы не ломать сетку карточки и не вызывать горизонтальный скролл',
+        };
+
+        await mountApp({
+            authenticated: true,
+            fridgeItems: [longTitleItem],
+        });
+
+        await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
+
+        const titleNode = Array.from(document.querySelectorAll('p')).find((node) => node.textContent?.includes('Очень длинное название блюда'));
+        expect(titleNode?.className).toContain('line-clamp-2');
+        expect(titleNode?.className).toContain('break-words');
+        expect(document.body.textContent).toContain('Съел');
+        expect(document.body.textContent).toContain('Съел всё');
+        expect(document.body.textContent).toContain('Списать');
+        expect(document.body.textContent).not.toContain('Выбросить');
+        expect(document.querySelector('.overflow-x-hidden')).toBeTruthy();
     });
 });

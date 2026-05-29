@@ -215,7 +215,7 @@ const saveFullName = () => {
                         @click="emit('show-fridge')"
                     >
                         <Refrigerator aria-hidden="true" class="size-5 text-blue-700" />
-                        Холодильник
+                        Мой холодильник
                     </Button>
                     <Button
                         type="button"
@@ -225,7 +225,7 @@ const saveFullName = () => {
                         @click="emit('show-history')"
                     >
                         <History aria-hidden="true" class="size-5 text-blue-700" />
-                        История питания
+                        Моя история
                     </Button>
 
                     <div class="rounded-2xl border border-sky-100 bg-sky-50/40 p-4">

@@ -1,8 +1,7 @@
 <script setup>
 import { computed } from 'vue';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatDateTime, fridgeStatusLabel } from '@/lib/formatters';
+import { fridgeStatusLabel } from '@/lib/formatters';
 import { History } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -24,20 +23,61 @@ const props = defineProps({
     },
 });
 
-const dayLabel = (value) => {
+const parseDate = (value) => {
     if (!value) {
-        return 'Без даты';
+        return null;
     }
 
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    return date;
+};
+
+const sameDate = (left, right) => (
+    left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate()
+);
+
+const dayLabel = (date) => {
+    if (!date) {
         return 'Без даты';
     }
 
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (sameDate(date, today)) {
+        return 'Сегодня';
+    }
+
+    if (sameDate(date, yesterday)) {
+        return 'Вчера';
+    }
+
     return date.toLocaleDateString('ru-RU', {
-        day: '2-digit',
+        day: 'numeric',
         month: 'long',
+    });
+};
+
+const actionDate = (item) => parseDate(item.eaten_at || item.discarded_at || item.updated_at || item.expires_at);
+
+const actionTime = (item) => {
+    const date = actionDate(item);
+
+    if (!date) {
+        return '—';
+    }
+
+    return date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
     });
 };
 
@@ -45,14 +85,17 @@ const groupedHistory = computed(() => {
     const groups = new Map();
 
     props.fridgeHistory.forEach((item) => {
-        const value = item.updated_at || item.expires_at;
-        const label = dayLabel(value);
+        const date = actionDate(item);
+        const label = dayLabel(date);
 
         if (!groups.has(label)) {
             groups.set(label, []);
         }
 
-        groups.get(label).push(item);
+        groups.get(label).push({
+            ...item,
+            _actionTime: actionTime(item),
+        });
     });
 
     return Array.from(groups.entries()).map(([label, items]) => ({ label, items }));
@@ -62,8 +105,8 @@ const groupedHistory = computed(() => {
 <template>
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="fridgeLoading">
         <div v-if="showHeading" class="mb-4 shrink-0">
-            <h2 class="text-lg font-semibold text-slate-950">История питания</h2>
-            <p class="mt-0.5 text-sm text-slate-500">Съеденные и списанные блюда</p>
+            <h2 class="text-lg font-semibold text-slate-950">Моя история</h2>
+            <p class="mt-0.5 text-sm text-slate-500">Последние действия с блюдами.</p>
         </div>
 
         <div v-if="fridgeLoading" class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-5 pr-1">
@@ -79,27 +122,22 @@ const groupedHistory = computed(() => {
             class="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-10 text-center"
         >
             <History aria-hidden="true" class="size-7 text-slate-300" />
-            <p class="mt-3 text-balance text-base font-semibold text-slate-900">История пока пуста</p>
-            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Действия с блюдами из холодильника появятся здесь.</p>
+            <p class="mt-3 text-balance text-base font-semibold text-slate-900">Истории пока нет.</p>
+            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Когда вы отметите блюдо в холодильнике, оно появится здесь.</p>
         </div>
 
-        <div v-else class="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pb-5 pr-1 text-sm text-slate-700">
+        <div v-else class="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1 text-sm text-slate-700">
             <section v-for="group in groupedHistory" :key="group.label" aria-label="День истории питания">
                 <h3 class="mb-2 px-1 text-xs font-semibold text-slate-400">{{ group.label }}</h3>
-                <ul class="space-y-2 border-l border-slate-200 pl-3">
+                <ul class="space-y-2">
                     <li
                         v-for="item in group.items"
                         :key="item.id"
-                        class="relative rounded-2xl bg-slate-50/80 px-4 py-3 ring-1 ring-inset ring-slate-100 before:absolute before:-left-[1.08rem] before:top-5 before:size-2 before:rounded-full before:bg-blue-600"
+                        class="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5"
                     >
-                        <div class="flex min-w-0 items-start justify-between gap-3">
-                            <span class="min-w-0 line-clamp-2 font-medium text-slate-900">{{ item.title_snapshot }}</span>
-                            <Badge variant="outline" class="shrink-0 rounded-full border-slate-200 bg-white px-3 text-slate-500">
-                                {{ fridgeStatusLabel(item.status) }}
-                            </Badge>
-                        </div>
-                        <p v-if="formatDateTime(item.updated_at || item.expires_at)" class="mt-2 text-xs tabular-nums text-slate-500">
-                            {{ formatDateTime(item.updated_at || item.expires_at) }}
+                        <p class="line-clamp-2 break-words text-sm text-slate-800">
+                            <span class="font-medium text-slate-900">{{ item.title_snapshot }}</span>
+                            <span class="text-slate-500"> — {{ fridgeStatusLabel(item.status) }} — {{ item._actionTime }}</span>
                         </p>
                     </li>
                 </ul>

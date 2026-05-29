@@ -35,7 +35,7 @@ class FridgeSummaryFormatter
         }
 
         $lines = $items
-            ->map(fn (FridgeItem $item) => "- {$item->title_snapshot}: {$item->status->label()}; ".
+            ->map(fn (FridgeItem $item) => "- {$item->title_snapshot}: {$this->historyStatusLabel($item->status)}; ".
                 "дата: {$this->actionDateLabel($item)}.")
             ->all();
 
@@ -57,5 +57,14 @@ class FridgeSummaryFormatter
         };
 
         return $date?->format('d.m.Y H:i') ?? 'не указана';
+    }
+
+    private function historyStatusLabel(FridgeItemStatus $status): string
+    {
+        return match ($status) {
+            FridgeItemStatus::Eaten => 'Съедено',
+            FridgeItemStatus::Discarded, FridgeItemStatus::Expired => 'Списано',
+            FridgeItemStatus::InFridge => 'В холодильнике',
+        };
     }
 }

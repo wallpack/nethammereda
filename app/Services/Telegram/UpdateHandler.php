@@ -96,6 +96,12 @@ class UpdateHandler
 
         $user = $this->findTelegramUser($from);
         if ($user === null) {
+            if (in_array($command, ['/fridge', '/history'], true)) {
+                $this->sendFridgeLoginRequired($chatId);
+
+                return;
+            }
+
             $this->sendLoginRequired($chatId);
 
             return;
@@ -145,6 +151,16 @@ class UpdateHandler
         $user = $this->findTelegramUser($from);
         if ($user === null) {
             $this->botClient->answerCallbackQuery($callbackId, 'Сначала войдите через каталог.');
+
+            return;
+        }
+
+        if ($data === 'fridge:refresh') {
+            $this->botClient->answerCallbackQuery($callbackId, 'Обновлено');
+
+            if ($chatId !== null) {
+                $this->sendActiveFridgeItems($chatId, $user);
+            }
 
             return;
         }
@@ -280,7 +296,7 @@ class UpdateHandler
 
         $user = $this->findTelegramUser($from);
 
-        $text = "Привет! Я бот Nethammer Eda\n".
+        $text = "Привет! Я бот Nethammereda\n".
             'Помогу открыть меню, проверить заказ и узнать статус приёма.';
 
         if ($user === null) {
@@ -326,6 +342,15 @@ class UpdateHandler
         $this->botClient->sendMessage(
             $chatId,
             'Чтобы видеть свои заказы, привяжите Telegram в профиле на сайте.',
+            $this->keyboardBuilder->navigation(),
+        );
+    }
+
+    private function sendFridgeLoginRequired(int|string $chatId): void
+    {
+        $this->botClient->sendMessage(
+            $chatId,
+            'Чтобы открыть холодильник, войдите на сайте или откройте приложение через Telegram.',
             $this->keyboardBuilder->navigation(),
         );
     }
@@ -402,65 +427,90 @@ class UpdateHandler
 
     private function sendActiveFridgeItems(int|string $chatId, User $user): void
     {
-        $items = FridgeItem::query()
+        $visibleLimit = 7;
+        $query = FridgeItem::query()
             ->where('user_id', $user->id)
             ->where('status', FridgeItemStatus::InFridge)
             ->where('quantity_remaining', '>', 0)
             ->orderByDesc('arrived_at')
-            ->orderByDesc('id')
-            ->limit(20)
+            ->orderByDesc('id');
+
+        $totalCount = (clone $query)->count();
+        $items = (clone $query)
+            ->limit($visibleLimit)
             ->get();
 
         if ($items->isEmpty()) {
+            $openFridgeKeyboard = $this->keyboardBuilder->webAppAction('Открыть мой холодильник')
+                ?? $this->keyboardBuilder->navigation();
+
             $this->botClient->sendMessage(
                 $chatId,
-                'В холодильнике пока ничего нет.',
-                $this->keyboardBuilder->navigation(),
+                "Мой холодильник 🧊\n\n".
+                "Сейчас в холодильнике пусто.\n".
+                'Когда заказ будет доставлен, блюда появятся здесь.',
+                $openFridgeKeyboard,
             );
 
             return;
         }
 
+        $lines = $items
+            ->values()
+            ->map(function (FridgeItem $item, int $index): string {
+                $quantityLabel = "{$item->quantity_remaining} шт.";
+                $expiryLabel = $item->expires_at !== null
+                    ? 'до '.$this->formatTelegramDate($item->expires_at, true)
+                    : 'срок не указан';
+
+                return sprintf(
+                    '%d. %s — %s, %s',
+                    $index + 1,
+                    $item->title_snapshot,
+                    $quantityLabel,
+                    $expiryLabel,
+                );
+            })
+            ->implode("\n");
+
+        $remaining = max(0, $totalCount - $items->count());
+        $text = "Мой холодильник 🧊\n\n".
+            sprintf(
+                'Сейчас у вас %d %s:',
+                $totalCount,
+                $this->pluralize($totalCount, ['блюдо', 'блюда', 'блюд']),
+            )."\n".
+            $lines;
+
+        if ($remaining > 0) {
+            $text .= "\n\nИ ещё {$remaining} — откройте холодильник, чтобы посмотреть все.";
+        }
+
+        $text .= "\n\nОткройте холодильник, чтобы отметить блюдо.";
+
+        $replyMarkup = $this->keyboardBuilder->webAppAction('Открыть мой холодильник');
+        if ($replyMarkup !== null) {
+            $replyMarkup['inline_keyboard'][] = [
+                [
+                    'text' => 'Обновить',
+                    'callback_data' => 'fridge:refresh',
+                ],
+            ];
+        } else {
+            $replyMarkup = $this->keyboardBuilder->navigation();
+        }
+
         $this->botClient->sendMessage(
             $chatId,
-            "Холодильник 🧊\nДоступные позиции:\n".$this->fridgeSummaryFormatter->formatActive($items),
-            $this->keyboardBuilder->navigation(),
+            $text,
+            $replyMarkup,
         );
-
-        foreach ($items as $item) {
-            $this->botClient->sendMessage(
-                $chatId,
-                "{$item->title_snapshot}\n".
-                "Осталось порций: {$item->quantity_remaining}\n".
-                'Годен до: '.($item->expires_at?->format('d.m.Y H:i') ?? 'не указан')."\n".
-                "Статус: {$item->status->label()}",
-                [
-                    'inline_keyboard' => [
-                        [
-                            [
-                                'text' => 'Съел 1',
-                                'callback_data' => "fridge:eat_one:{$item->id}",
-                            ],
-                            [
-                                'text' => 'Съел всё',
-                                'callback_data' => "fridge:eat_all:{$item->id}",
-                            ],
-                        ],
-                        [
-                            [
-                                'text' => 'Выбросил',
-                                'callback_data' => "fridge:discard:{$item->id}",
-                            ],
-                        ],
-                    ],
-                ],
-            );
-        }
     }
 
     private function sendFridgeHistory(int|string $chatId, User $user): void
     {
-        $items = FridgeItem::query()
+        $visibleLimit = 7;
+        $query = FridgeItem::query()
             ->where('user_id', $user->id)
             ->whereIn('status', [
                 FridgeItemStatus::Eaten,
@@ -468,24 +518,47 @@ class UpdateHandler
                 FridgeItemStatus::Expired,
             ])
             ->orderByDesc('updated_at')
-            ->orderByDesc('id')
-            ->limit(20)
+            ->orderByDesc('id');
+
+        $totalCount = (clone $query)->count();
+        $items = (clone $query)
+            ->limit($visibleLimit)
             ->get();
 
         if ($items->isEmpty()) {
+            $openHistoryKeyboard = $this->keyboardBuilder->webAppAction('Открыть историю')
+                ?? $this->keyboardBuilder->navigation();
+
             $this->botClient->sendMessage(
                 $chatId,
-                'Истории заказов пока нет.',
-                $this->keyboardBuilder->navigation(),
+                "Моя история 🕓\n\n".
+                "Истории пока нет.\n".
+                'Когда вы отметите блюдо в холодильнике, оно появится здесь.',
+                $openHistoryKeyboard,
             );
 
             return;
         }
 
+        $lines = $items
+            ->map(fn (FridgeItem $item): string => sprintf(
+                '• %s — %s, %s',
+                $item->title_snapshot,
+                $this->historyStatusLabel($item->status),
+                $this->historyActionDateLabel($item),
+            ))
+            ->implode("\n");
+
+        $text = "Моя история 🕓\n\nПоследние действия:\n{$lines}";
+        if ($totalCount > $items->count()) {
+            $text .= "\n\nЕщё записи доступны на сайте.";
+        }
+
         $this->botClient->sendMessage(
             $chatId,
-            "История заказов 🕓\n".$this->fridgeSummaryFormatter->formatHistory($items),
-            $this->keyboardBuilder->navigation(),
+            $text,
+            $this->keyboardBuilder->webAppAction('Открыть историю')
+                ?? $this->keyboardBuilder->navigation(),
         );
     }
 
@@ -600,8 +673,81 @@ class UpdateHandler
         return match ($status) {
             FridgeItemStatus::InFridge => 'в холодильнике',
             FridgeItemStatus::Eaten => 'съедено',
-            FridgeItemStatus::Discarded => 'выброшено',
-            FridgeItemStatus::Expired => 'просрочено',
+            FridgeItemStatus::Discarded => 'списано',
+            FridgeItemStatus::Expired => 'списано',
         };
+    }
+
+    private function historyStatusLabel(FridgeItemStatus $status): string
+    {
+        return match ($status) {
+            FridgeItemStatus::Eaten => 'съедено',
+            FridgeItemStatus::Discarded, FridgeItemStatus::Expired => 'списано',
+            FridgeItemStatus::InFridge => 'в холодильнике',
+        };
+    }
+
+    private function historyActionDateLabel(FridgeItem $item): string
+    {
+        $date = match ($item->status) {
+            FridgeItemStatus::Eaten => $item->eaten_at ?? $item->updated_at,
+            FridgeItemStatus::Discarded => $item->discarded_at ?? $item->updated_at,
+            FridgeItemStatus::Expired => $item->expires_at ?? $item->updated_at,
+            FridgeItemStatus::InFridge => $item->updated_at,
+        };
+
+        return $date !== null
+            ? $this->formatTelegramDate($date, false)
+            : 'дата не указана';
+    }
+
+    private function formatTelegramDate(\DateTimeInterface $date, bool $includeTime): string
+    {
+        $months = [
+            1 => 'января',
+            2 => 'февраля',
+            3 => 'марта',
+            4 => 'апреля',
+            5 => 'мая',
+            6 => 'июня',
+            7 => 'июля',
+            8 => 'августа',
+            9 => 'сентября',
+            10 => 'октября',
+            11 => 'ноября',
+            12 => 'декабря',
+        ];
+
+        $month = $months[(int) $date->format('n')] ?? $date->format('m');
+        $base = sprintf('%02d %s', (int) $date->format('d'), $month);
+
+        if (! $includeTime) {
+            return $base;
+        }
+
+        return "{$base}, {$date->format('H:i')}";
+    }
+
+    /**
+     * @param  array{0: string, 1: string, 2: string}  $forms
+     */
+    private function pluralize(int $number, array $forms): string
+    {
+        $n = abs($number) % 100;
+        $n1 = $n % 10;
+
+        if ($n > 10 && $n < 20) {
+            return $forms[2];
+        }
+
+        if ($n1 > 1 && $n1 < 5) {
+            return $forms[1];
+        }
+
+        if ($n1 === 1) {
+            return $forms[0];
+        }
+
+        return $forms[2];
     }
 }

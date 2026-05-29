@@ -71,6 +71,7 @@ const {
 const {
     fridgeItems,
     fridgeHistory,
+    fridgeMeta,
     fridgeLoading,
     activeFridgeItemsCount,
 } = storeToRefs(fridge);
@@ -836,7 +837,7 @@ const discardFromFridge = async (fridgeItemId) => {
 
     try {
         await fridge.discard(auth.token, fridgeItemId);
-        ui.info = 'Позиция отмечена как выброшенная.';
+        ui.info = 'Позиция списана.';
     } catch (e) {
         ui.error = e.message;
     } finally {
@@ -967,6 +968,7 @@ onBeforeUnmount(() => {
                     <CardContent class="h-[calc(100dvh-12.5rem)] min-h-[28rem] p-0">
                         <FridgePanel
                             :fridge-items="fridgeItems"
+                            :fridge-meta="fridgeMeta"
                             :fridge-loading="loading || fridgeLoading"
                             :action-loading="actionLoading"
                             :active-fridge-items-count="activeFridgeItemsCount"
@@ -1064,14 +1066,15 @@ onBeforeUnmount(() => {
         <MobilePanelSheet
             v-if="isAuthenticated"
             :open="mobilePanel === 'fridge'"
-            title="Холодильник"
-            description="Что у вас сейчас есть, и недавние действия с блюдами."
+            title="Мой холодильник"
+            description="Блюда, которые сейчас ждут вас."
             close-label="Закрыть холодильник"
             test-id="mobile-fridge-panel"
             @close="ui.closeMobilePanel"
         >
             <FridgePanel
                 :fridge-items="fridgeItems"
+                :fridge-meta="fridgeMeta"
                 :fridge-loading="loading || fridgeLoading"
                 :action-loading="actionLoading"
                 :error="error"
@@ -1087,8 +1090,8 @@ onBeforeUnmount(() => {
         <MobilePanelSheet
             v-if="isAuthenticated"
             :open="mobilePanel === 'history'"
-            title="История питания"
-            description="Съеденные и списанные блюда из холодильника."
+            title="Моя история"
+            description="Последние действия с блюдами."
             close-label="Закрыть историю питания"
             test-id="mobile-history-panel"
             @close="ui.closeMobilePanel"

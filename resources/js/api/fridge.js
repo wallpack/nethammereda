@@ -13,6 +13,7 @@ export const fetchFridgeData = async (token) => {
     return {
         items: activeResponse.data ?? [],
         history: historyResponse.data ?? [],
+        meta: activeResponse.meta ?? {},
     };
 };
 

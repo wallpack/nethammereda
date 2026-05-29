@@ -60,8 +60,8 @@ export const fridgeStatusLabel = (status) => {
     const labels = {
         in_fridge: 'В холодильнике',
         eaten: 'Съедено',
-        discarded: 'Выброшено',
-        expired: 'Просрочено',
+        discarded: 'Списано',
+        expired: 'Списано',
     };
 
     return labels[status] ?? status;
@@ -99,5 +99,5 @@ export const formatDateTime = (value) => {
 export const expiryLabel = (value) => {
     const formatted = formatDateTime(value);
 
-    return formatted ? `Годен до ${formatted}` : 'Срок хранения не указан';
+    return formatted ? `До ${formatted}` : 'Срок хранения не указан';
 };

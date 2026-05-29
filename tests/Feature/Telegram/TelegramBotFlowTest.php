@@ -40,7 +40,7 @@ class TelegramBotFlowTest extends TestCase
         $this->handler($bot)->handle($this->message('/start', telegramId: 777));
 
         $this->assertCount(1, $bot->messages);
-        $this->assertStringContainsString('бот Nethammer Eda', $bot->messages[0]['text']);
+        $this->assertStringContainsString('бот Nethammereda', $bot->messages[0]['text']);
         $this->assertStringContainsString('Помогу открыть меню', $bot->messages[0]['text']);
         $this->assertStringContainsString('привяжите telegram', mb_strtolower($bot->messages[0]['text']));
         $this->assertStringNotContainsString('пароль', mb_strtolower($bot->messages[0]['text']));
@@ -294,6 +294,22 @@ class TelegramBotFlowTest extends TestCase
     }
 
     #[Test]
+    public function unlinked_user_does_not_receive_private_fridge_or_history_data(): void
+    {
+        $bot = new CapturingTelegramBot;
+        $handler = $this->handler($bot);
+
+        $handler->handle($this->message('/fridge', telegramId: 901));
+        $handler->handle($this->message('/history', telegramId: 901));
+
+        $this->assertCount(2, $bot->messages);
+        $this->assertStringContainsString('Чтобы открыть холодильник', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Чтобы открыть холодильник', $bot->messages[1]['text']);
+        $this->assertStringNotContainsString('Лазанья', $bot->messages[0]['text']);
+        $this->assertStringNotContainsString('Лазанья', $bot->messages[1]['text']);
+    }
+
+    #[Test]
     public function status_is_public_and_says_when_ordering_is_open(): void
     {
         $this->createCycle(OrderCycleStatus::Open, now()->addDay());
@@ -378,44 +394,86 @@ class TelegramBotFlowTest extends TestCase
     }
 
     #[Test]
-    public function fridge_shows_active_food_with_expiry_status_and_actions(): void
+    public function fridge_sends_single_compact_summary_with_open_and_refresh_actions(): void
     {
+        config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
+
         $user = User::factory()->create(['telegram_id' => '807']);
         $this->createFridgeItem($user, quantity: 2, expiresAt: now()->addDay());
+        $this->createFridgeItem($user, quantity: 1, expiresAt: now()->addDays(2), title: 'Котлета');
 
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/fridge', telegramId: 807));
 
-        $this->assertCount(2, $bot->messages);
-        $this->assertStringContainsString('Холодильник', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Доступные позиции', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Лазанья', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Годен до:', $bot->messages[0]['text']);
-        $this->assertStringContainsString('Статус: В холодильнике', $bot->messages[0]['text']);
+        $this->assertCount(1, $bot->messages);
+        $message = $bot->messages[0];
+        $this->assertStringContainsString('Мой холодильник', $message['text']);
+        $this->assertStringContainsString('Сейчас у вас 2 блюда', $message['text']);
+        $this->assertStringContainsString('Лазанья', $message['text']);
+        $this->assertStringContainsString('Котлета', $message['text']);
+        $this->assertStringContainsString('Откройте холодильник, чтобы отметить блюдо.', $message['text']);
 
-        $itemMessage = $bot->messages[1];
-        $this->assertStringContainsString('Осталось порций: 2', $itemMessage['text']);
-        $buttons = collect($itemMessage['reply_markup']['inline_keyboard'])->flatten(1)->pluck('text')->all();
-        $this->assertContains('Съел 1', $buttons);
-        $this->assertContains('Съел всё', $buttons);
-        $this->assertContains('Выбросил', $buttons);
+        $this->assertSame(
+            'Открыть мой холодильник',
+            $message['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
+        );
+        $this->assertSame(
+            'https://lunch.example.test',
+            $message['reply_markup']['inline_keyboard'][0][0]['web_app']['url'] ?? null,
+        );
+        $this->assertSame(
+            'Обновить',
+            $message['reply_markup']['inline_keyboard'][1][0]['text'] ?? null,
+        );
+    }
+
+    #[Test]
+    public function fridge_limits_visible_items_and_reports_extra_count(): void
+    {
+        $user = User::factory()->create(['telegram_id' => '836']);
+
+        for ($index = 1; $index <= 9; $index++) {
+            $this->createFridgeItem(
+                $user,
+                quantity: 1,
+                expiresAt: now()->addDay(),
+                title: "Блюдо {$index}",
+            );
+        }
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/fridge', telegramId: 836));
+
+        $this->assertCount(1, $bot->messages);
+        $text = $bot->messages[0]['text'];
+        $this->assertStringContainsString('Сейчас у вас 9 блюд', $text);
+        $this->assertStringContainsString('И ещё 2', $text);
+        preg_match_all('/^\d+\./m', $text, $matches);
+        $this->assertCount(7, $matches[0]);
     }
 
     #[Test]
     public function fridge_has_a_clear_empty_state(): void
     {
+        config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
         User::factory()->create(['telegram_id' => '808']);
 
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/fridge', telegramId: 808));
 
         $this->assertCount(1, $bot->messages);
-        $this->assertStringContainsString('В холодильнике пока ничего нет.', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Мой холодильник', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Сейчас в холодильнике пусто.', $bot->messages[0]['text']);
+        $this->assertSame(
+            'Открыть мой холодильник',
+            $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
+        );
     }
 
     #[Test]
-    public function history_shows_completed_items_with_russian_status_and_action_date(): void
+    public function history_sends_compact_summary_with_open_button(): void
     {
+        config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
         $user = User::factory()->create(['telegram_id' => '809']);
         $this->createFridgeItem($user, status: FridgeItemStatus::Eaten);
         $this->createFridgeItem($user, status: FridgeItemStatus::Discarded);
@@ -424,23 +482,66 @@ class TelegramBotFlowTest extends TestCase
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/history', telegramId: 809));
 
+        $this->assertCount(1, $bot->messages);
         $text = $bot->messages[0]['text'];
-        $this->assertStringContainsString('История заказов', $text);
-        $this->assertStringContainsString('Съедено', $text);
-        $this->assertStringContainsString('Выброшено', $text);
-        $this->assertStringContainsString('Просрочено', $text);
-        $this->assertStringContainsString(now()->format('d.m.Y'), $text);
+        $this->assertStringContainsString('Моя история', $text);
+        $this->assertStringContainsString('Последние действия:', $text);
+        $this->assertStringContainsString('съедено', $text);
+        $this->assertStringContainsString('списано', $text);
+        $this->assertStringNotContainsString('выброшено', mb_strtolower($text));
+        $this->assertSame(
+            'Открыть историю',
+            $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
+        );
+    }
+
+    #[Test]
+    public function history_limits_visible_entries_and_shows_website_hint(): void
+    {
+        $user = User::factory()->create(['telegram_id' => '837']);
+
+        for ($index = 1; $index <= 8; $index++) {
+            $this->createFridgeItem(
+                $user,
+                status: $index % 2 === 0 ? FridgeItemStatus::Discarded : FridgeItemStatus::Eaten,
+                title: "История {$index}",
+            );
+        }
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/history', telegramId: 837));
+
+        $text = $bot->messages[0]['text'];
+        preg_match_all('/^• /m', $text, $matches);
+        $this->assertCount(7, $matches[0]);
+        $this->assertStringContainsString('Ещё записи доступны на сайте.', $text);
     }
 
     #[Test]
     public function history_has_a_clear_empty_state(): void
     {
+        config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
         User::factory()->create(['telegram_id' => '819']);
 
         $bot = new CapturingTelegramBot;
         $this->handler($bot)->handle($this->message('/history', telegramId: 819));
 
-        $this->assertStringContainsString('Истории заказов пока нет.', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Моя история', $bot->messages[0]['text']);
+        $this->assertStringContainsString('Истории пока нет.', $bot->messages[0]['text']);
+    }
+
+    #[Test]
+    public function fridge_refresh_callback_resends_compact_summary_message(): void
+    {
+        $user = User::factory()->create(['telegram_id' => '838']);
+        $this->createFridgeItem($user, quantity: 2);
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->callbackUpdate('fridge:refresh', telegramId: 838));
+
+        $this->assertSame('Обновлено', $bot->callbacks[0]['text']);
+        $this->assertCount(1, $bot->messages);
+        $this->assertStringContainsString('Мой холодильник', $bot->messages[0]['text']);
     }
 
     #[Test]
@@ -700,10 +801,11 @@ class TelegramBotFlowTest extends TestCase
         int $quantity = 1,
         FridgeItemStatus $status = FridgeItemStatus::InFridge,
         mixed $expiresAt = null,
+        string $title = 'Лазанья',
     ): FridgeItem {
         return FridgeItem::query()->create([
             'user_id' => $user->id,
-            'title_snapshot' => 'Лазанья',
+            'title_snapshot' => $title,
             'quantity_total' => $quantity,
             'quantity_remaining' => $status === FridgeItemStatus::InFridge ? $quantity : 0,
             'status' => $status,
