@@ -10,6 +10,7 @@ use App\Services\CurrentOrderCycleResolver;
 use App\Services\OrderCycleAutoCloser;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class MyOrderController extends Controller
 {
@@ -61,6 +62,34 @@ class MyOrderController extends Controller
                     ? 'Цикл закрыт, черновик заказа больше недоступен.'
                     : null,
             ],
+        ]);
+    }
+
+    public function history(
+        CurrentOrderCycleResolver $resolver,
+        OrderCycleAutoCloser $autoCloser,
+    ): JsonResponse {
+        $cycle = $resolver->resolve();
+        $autoCloser->closeIfExpired($cycle);
+        $user = request()->user();
+
+        abort_if($user === null, 401);
+
+        $canRepeat = $cycle !== null && $cycle->isOpenForOrdering();
+
+        $orders = Order::query()
+            ->with(['cycle', 'items.menuItem'])
+            ->where('user_id', $user->id)
+            ->where('status', OrderStatus::Submitted)
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'data' => $orders
+                ->map(fn (Order $order) => $this->orderHistoryPayload($order, $canRepeat))
+                ->values(),
         ]);
     }
 
@@ -122,6 +151,57 @@ class MyOrderController extends Controller
 
         return response()->json([
             'data' => $this->orderPayload($order),
+        ]);
+    }
+
+    public function repeat(
+        Request $request,
+        Order $order,
+        CurrentOrderCycleResolver $resolver,
+        OrderCycleAutoCloser $autoCloser,
+        OrderService $orderService,
+    ): JsonResponse {
+        $cycle = $resolver->resolve();
+        $autoCloser->closeIfExpired($cycle);
+        $user = $request->user();
+
+        abort_if($user === null, 401);
+        abort_if((int) $order->user_id !== (int) $user->id, 404);
+
+        if ($order->status !== OrderStatus::Submitted) {
+            return response()->json([
+                'message' => 'Можно повторять только отправленные заказы.',
+            ], 422);
+        }
+
+        if ($cycle === null || ! $cycle->isOpenForOrdering()) {
+            return response()->json([
+                'message' => 'Повторить заказ можно, когда открыт приём заказов.',
+            ], 422);
+        }
+
+        $mode = (string) $request->input('mode', 'replace');
+        if ($mode !== 'replace') {
+            return response()->json([
+                'message' => 'Поддерживается только режим replace.',
+            ], 422);
+        }
+
+        $result = $orderService->repeatSubmittedOrderForUser($order, $user, $cycle, $mode);
+
+        if ($result['added_items_count'] === 0) {
+            return response()->json([
+                'message' => 'Не удалось повторить заказ: блюда из него сейчас недоступны.',
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'order' => $this->orderPayload($result['order']),
+                'skipped_items' => $result['skipped_items'],
+                'message' => 'Заказ добавлен в корзину.',
+                'warning' => $result['warning'],
+            ],
         ]);
     }
 }

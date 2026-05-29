@@ -205,6 +205,281 @@ class OrderFlowTest extends TestCase
     }
 
     #[Test]
+    public function history_returns_only_own_submitted_orders_sorted_newest_first(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $currentCycle = $this->createCycle(OrderCycleStatus::Open, now()->addDay());
+        $pastCycleA = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(8));
+        $pastCycleB = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(15));
+
+        $menuItem = $this->createMenuItem(price: 250);
+
+        $newerOrder = $this->createOrderWithItem(
+            $user,
+            $pastCycleA,
+            $menuItem,
+            OrderStatus::Submitted,
+            quantity: 2,
+            submittedAt: now()->subDay(),
+        );
+        $olderOrder = $this->createOrderWithItem(
+            $user,
+            $pastCycleB,
+            $menuItem,
+            OrderStatus::Submitted,
+            quantity: 1,
+            submittedAt: now()->subDays(3),
+        );
+        $draftOrder = $this->createOrderWithItem(
+            $user,
+            $currentCycle,
+            $menuItem,
+            OrderStatus::Draft,
+            quantity: 1,
+        );
+        $foreignOrder = $this->createOrderWithItem(
+            $otherUser,
+            $pastCycleA,
+            $menuItem,
+            OrderStatus::Submitted,
+            quantity: 1,
+        );
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/my-orders/history')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $newerOrder->id)
+            ->assertJsonPath('data.1.id', $olderOrder->id)
+            ->assertJsonPath('data.0.can_repeat', true);
+
+        $historyIds = collect($response->json('data'))->pluck('id')->all();
+        $this->assertNotContains($draftOrder->id, $historyIds);
+        $this->assertNotContains($foreignOrder->id, $historyIds);
+    }
+
+    #[Test]
+    public function user_can_repeat_submitted_order_into_current_open_cycle_using_current_prices(): void
+    {
+        $user = User::factory()->create();
+        $pastCycle = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(10));
+        $currentCycle = $this->createCycle(OrderCycleStatus::Open, now()->addDay());
+        $menuItem = $this->createMenuItem(price: 180);
+
+        $sourceOrder = $this->createOrderWithItem(
+            $user,
+            $pastCycle,
+            $menuItem,
+            OrderStatus::Submitted,
+            quantity: 2,
+            priceSnapshot: 180,
+        );
+
+        $menuItem->forceFill(['price' => 230])->save();
+
+        Sanctum::actingAs($user);
+
+        $this->postJson("/api/my-orders/{$sourceOrder->id}/repeat", ['mode' => 'replace'])
+            ->assertOk()
+            ->assertJsonPath('data.order.order_cycle_id', $currentCycle->id)
+            ->assertJsonPath('data.order.status', OrderStatus::Draft->value)
+            ->assertJsonPath('data.order.items.0.quantity', 2)
+            ->assertJsonPath('data.order.items.0.price_snapshot', '230.00')
+            ->assertJsonPath('data.message', 'Заказ добавлен в корзину.');
+
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => Order::query()
+                ->where('user_id', $user->id)
+                ->where('order_cycle_id', $currentCycle->id)
+                ->value('id'),
+            'menu_item_id' => $menuItem->id,
+            'price_snapshot' => 230,
+            'quantity' => 2,
+        ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $sourceOrder->id,
+            'status' => OrderStatus::Submitted->value,
+        ]);
+    }
+
+    #[Test]
+    public function repeat_replaces_current_draft_items_when_mode_is_replace(): void
+    {
+        $user = User::factory()->create();
+        $pastCycle = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(10));
+        $currentCycle = $this->createCycle(OrderCycleStatus::Open, now()->addDay());
+        $sourceMenuItem = $this->createMenuItem(title: 'Source dish', price: 200);
+        $oldDraftMenuItem = $this->createMenuItem(title: 'Old draft dish', price: 120);
+
+        $sourceOrder = $this->createOrderWithItem(
+            $user,
+            $pastCycle,
+            $sourceMenuItem,
+            OrderStatus::Submitted,
+            quantity: 1,
+            priceSnapshot: 200,
+        );
+        $draftOrder = $this->createOrderWithItem(
+            $user,
+            $currentCycle,
+            $oldDraftMenuItem,
+            OrderStatus::Draft,
+            quantity: 3,
+            priceSnapshot: 120,
+        );
+
+        Sanctum::actingAs($user);
+
+        $this->postJson("/api/my-orders/{$sourceOrder->id}/repeat", ['mode' => 'replace'])
+            ->assertOk()
+            ->assertJsonPath('data.order.id', $draftOrder->id)
+            ->assertJsonPath('data.order.items_count', 1)
+            ->assertJsonPath('data.order.items.0.menu_item_id', $sourceMenuItem->id);
+
+        $this->assertDatabaseMissing('order_items', [
+            'order_id' => $draftOrder->id,
+            'menu_item_id' => $oldDraftMenuItem->id,
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $draftOrder->id,
+            'menu_item_id' => $sourceMenuItem->id,
+        ]);
+    }
+
+    #[Test]
+    public function repeat_skips_inactive_items_and_returns_warning(): void
+    {
+        $user = User::factory()->create();
+        $pastCycle = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(10));
+        $this->createCycle(OrderCycleStatus::Open, now()->addDay());
+        $availableItem = $this->createMenuItem(title: 'Available dish', price: 150);
+        $inactiveItem = $this->createMenuItem(title: 'Unavailable dish', price: 200);
+        $inactiveItem->forceFill(['is_active' => false])->save();
+
+        $sourceOrder = Order::query()->create([
+            'user_id' => $user->id,
+            'order_cycle_id' => $pastCycle->id,
+            'status' => OrderStatus::Submitted,
+            'total_price' => 350,
+            'submitted_at' => now()->subDay(),
+        ]);
+        OrderItem::query()->create([
+            'order_id' => $sourceOrder->id,
+            'menu_item_id' => $availableItem->id,
+            'title_snapshot' => $availableItem->title,
+            'price_snapshot' => 150,
+            'quantity' => 1,
+            'status' => OrderItemStatus::Ordered,
+        ]);
+        OrderItem::query()->create([
+            'order_id' => $sourceOrder->id,
+            'menu_item_id' => $inactiveItem->id,
+            'title_snapshot' => $inactiveItem->title,
+            'price_snapshot' => 200,
+            'quantity' => 1,
+            'status' => OrderItemStatus::Ordered,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson("/api/my-orders/{$sourceOrder->id}/repeat", ['mode' => 'replace'])
+            ->assertOk()
+            ->assertJsonPath('data.order.items_count', 1)
+            ->assertJsonPath('data.skipped_items.0', $inactiveItem->title)
+            ->assertJsonPath('data.warning', 'Некоторые блюда сейчас недоступны.');
+    }
+
+    #[Test]
+    public function repeat_returns_error_when_all_items_are_unavailable_and_does_not_create_empty_draft(): void
+    {
+        $user = User::factory()->create();
+        $pastCycle = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(10));
+        $currentCycle = $this->createCycle(OrderCycleStatus::Open, now()->addDay());
+        $menuItem = $this->createMenuItem(title: 'Gone dish', price: 220);
+        $menuItem->forceFill(['is_active' => false])->save();
+
+        $sourceOrder = $this->createOrderWithItem(
+            $user,
+            $pastCycle,
+            $menuItem,
+            OrderStatus::Submitted,
+            quantity: 1,
+            priceSnapshot: 220,
+        );
+
+        Sanctum::actingAs($user);
+
+        $this->postJson("/api/my-orders/{$sourceOrder->id}/repeat", ['mode' => 'replace'])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->repeatUnavailableMessage());
+
+        $this->assertDatabaseMissing('orders', [
+            'user_id' => $user->id,
+            'order_cycle_id' => $currentCycle->id,
+            'status' => OrderStatus::Draft->value,
+        ]);
+    }
+
+    #[Test]
+    public function repeat_is_blocked_when_current_cycle_is_closed(): void
+    {
+        $user = User::factory()->create();
+        $pastCycle = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(10));
+        $this->createCycle(OrderCycleStatus::Closed, now()->subDay());
+        $menuItem = $this->createMenuItem(price: 180);
+
+        $sourceOrder = $this->createOrderWithItem(
+            $user,
+            $pastCycle,
+            $menuItem,
+            OrderStatus::Submitted,
+            quantity: 1,
+        );
+
+        Sanctum::actingAs($user);
+
+        $this->postJson("/api/my-orders/{$sourceOrder->id}/repeat", ['mode' => 'replace'])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->repeatWhenClosedMessage());
+    }
+
+    #[Test]
+    public function user_cannot_repeat_foreign_or_draft_order(): void
+    {
+        $user = User::factory()->create();
+        $attacker = User::factory()->create();
+        $pastCycle = $this->createCycle(OrderCycleStatus::Closed, now()->subDays(10));
+        $this->createCycle(OrderCycleStatus::Open, now()->addDay());
+        $menuItem = $this->createMenuItem(price: 180);
+
+        $foreignSubmitted = $this->createOrderWithItem(
+            $user,
+            $pastCycle,
+            $menuItem,
+            OrderStatus::Submitted,
+            quantity: 1,
+        );
+        $ownDraft = $this->createOrderWithItem(
+            $attacker,
+            $pastCycle,
+            $menuItem,
+            OrderStatus::Draft,
+            quantity: 1,
+        );
+
+        Sanctum::actingAs($attacker);
+
+        $this->postJson("/api/my-orders/{$foreignSubmitted->id}/repeat", ['mode' => 'replace'])
+            ->assertNotFound();
+
+        $this->postJson("/api/my-orders/{$ownDraft->id}/repeat", ['mode' => 'replace'])
+            ->assertUnprocessable();
+    }
+
+    #[Test]
     public function when_new_cycle_opens_active_cart_does_not_pull_draft_from_previous_closed_cycle(): void
     {
         $user = User::factory()->create();
@@ -922,6 +1197,36 @@ class OrderFlowTest extends TestCase
         ]);
     }
 
+    private function createOrderWithItem(
+        User $user,
+        OrderCycle $cycle,
+        MenuItem $menuItem,
+        OrderStatus $status = OrderStatus::Draft,
+        int $quantity = 1,
+        ?int $priceSnapshot = null,
+        ?\DateTimeInterface $submittedAt = null,
+    ): Order {
+        $price = $priceSnapshot ?? (int) $menuItem->price;
+        $order = Order::query()->create([
+            'user_id' => $user->id,
+            'order_cycle_id' => $cycle->id,
+            'status' => $status,
+            'total_price' => $price * $quantity,
+            'submitted_at' => $status === OrderStatus::Submitted ? ($submittedAt ?? now()) : null,
+        ]);
+
+        OrderItem::query()->create([
+            'order_id' => $order->id,
+            'menu_item_id' => $menuItem->id,
+            'title_snapshot' => $menuItem->title,
+            'price_snapshot' => $price,
+            'quantity' => $quantity,
+            'status' => OrderItemStatus::Ordered,
+        ]);
+
+        return $order->fresh(['items', 'cycle']);
+    }
+
     private function openAvailabilityLabel(): string
     {
         return json_decode(
@@ -962,6 +1267,24 @@ class OrderFlowTest extends TestCase
     {
         return json_decode(
             '"\u0426\u0438\u043a\u043b \u0437\u0430\u043a\u0440\u044b\u0442, \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a \u0437\u0430\u043a\u0430\u0437\u0430 \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d."',
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+    }
+
+    private function repeatWhenClosedMessage(): string
+    {
+        return json_decode(
+            '"\u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u044c \u0437\u0430\u043a\u0430\u0437 \u043c\u043e\u0436\u043d\u043e, \u043a\u043e\u0433\u0434\u0430 \u043e\u0442\u043a\u0440\u044b\u0442 \u043f\u0440\u0438\u0451\u043c \u0437\u0430\u043a\u0430\u0437\u043e\u0432."',
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+    }
+
+    private function repeatUnavailableMessage(): string
+    {
+        return json_decode(
+            '"\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u044c \u0437\u0430\u043a\u0430\u0437: \u0431\u043b\u044e\u0434\u0430 \u0438\u0437 \u043d\u0435\u0433\u043e \u0441\u0435\u0439\u0447\u0430\u0441 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b."',
             true,
             flags: JSON_THROW_ON_ERROR,
         );

@@ -3,7 +3,9 @@ import { defineStore } from 'pinia';
 import {
     addOrderItem,
     deleteOrderItem,
+    fetchOrderHistory,
     fetchMyOrder,
+    repeatOrder,
     reopenMyOrder,
     submitMyOrder,
     updateOrderItemQuantity,
@@ -14,6 +16,9 @@ import { orderStatusLabel } from '@/lib/formatters';
 export const useOrderStore = defineStore('order', () => {
     const order = ref(null);
     const orderNotice = ref('');
+    const orderHistory = ref([]);
+    const orderHistoryLoading = ref(false);
+    const orderHistoryError = ref('');
 
     const orderItems = computed(() => order.value?.items ?? []);
 
@@ -73,6 +78,24 @@ export const useOrderStore = defineStore('order', () => {
         return response;
     };
 
+    const loadOrderHistory = async (token) => {
+        orderHistoryLoading.value = true;
+        orderHistoryError.value = '';
+
+        try {
+            const response = await fetchOrderHistory(token);
+            orderHistory.value = Array.isArray(response.data) ? response.data : [];
+
+            return response;
+        } catch (error) {
+            orderHistory.value = [];
+            orderHistoryError.value = error.message;
+            throw error;
+        } finally {
+            orderHistoryLoading.value = false;
+        }
+    };
+
     const addItem = async (token, menuItemId) => {
         const response = await addOrderItem(token, menuItemId, 1);
         setOrderFromResponse(response);
@@ -108,6 +131,14 @@ export const useOrderStore = defineStore('order', () => {
         return response;
     };
 
+    const repeatFromHistory = async (token, historyOrderId, mode = 'replace') => {
+        const response = await repeatOrder(token, historyOrderId, mode);
+        order.value = response.data?.order ?? null;
+        orderNotice.value = '';
+
+        return response;
+    };
+
     const clearOrder = async (token) => {
         if (!orderItems.value.length) {
             return null;
@@ -128,11 +159,17 @@ export const useOrderStore = defineStore('order', () => {
     const resetOrder = () => {
         order.value = null;
         orderNotice.value = '';
+        orderHistory.value = [];
+        orderHistoryLoading.value = false;
+        orderHistoryError.value = '';
     };
 
     return {
         order,
         orderNotice,
+        orderHistory,
+        orderHistoryLoading,
+        orderHistoryError,
         orderItems,
         totalPositions,
         orderItemByMenuItem,
@@ -140,10 +177,12 @@ export const useOrderStore = defineStore('order', () => {
         lastOrderLabel,
         setOrderFromResponse,
         loadCurrentOrder,
+        loadOrderHistory,
         addItem,
         changeQuantity,
         submitOrder,
         reopenOrder,
+        repeatFromHistory,
         clearOrder,
         resetOrder,
     };

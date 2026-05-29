@@ -6,6 +6,7 @@ use App\Enums\OrderCycleStatus;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\OrderCycle;
+use App\Models\OrderItem;
 use Carbon\CarbonInterface;
 
 trait FormatsApiPayloads
@@ -59,6 +60,45 @@ trait FormatsApiPayloads
                 && $isOpenForOrdering,
             'status_label' => $this->orderStatusLabel($order->status),
         ]);
+    }
+
+    protected function orderHistoryPayload(Order $order, bool $canRepeat): array
+    {
+        $order->loadMissing(['cycle', 'items.menuItem']);
+
+        return [
+            'id' => $order->id,
+            'status' => $order->status->value,
+            'status_label' => $this->orderStatusLabel($order->status),
+            'submitted_at' => $order->submitted_at,
+            'total_price' => $order->total_price,
+            'items_count' => $order->items->count(),
+            'cycle' => $order->cycle === null ? null : [
+                'id' => $order->cycle->id,
+                'title' => $order->cycle->title,
+                'status' => $order->cycle->status->value,
+                'status_label' => $this->orderCycleStatusLabel($order->cycle->status),
+            ],
+            'items' => $order->items
+                ->map(fn (OrderItem $item) => $this->orderHistoryItemPayload($item))
+                ->values(),
+            'can_repeat' => $canRepeat && $order->status === OrderStatus::Submitted,
+        ];
+    }
+
+    protected function orderHistoryItemPayload(OrderItem $item): array
+    {
+        $unitPrice = (float) $item->price_snapshot;
+        $quantity = (int) $item->quantity;
+
+        return [
+            'id' => $item->id,
+            'menu_item_id' => $item->menu_item_id,
+            'title' => $item->title_snapshot,
+            'quantity' => $quantity,
+            'unit_price' => $item->price_snapshot,
+            'total_price' => number_format($unitPrice * $quantity, 2, '.', ''),
+        ];
     }
 
     protected function orderStatusLabel(OrderStatus $status): string

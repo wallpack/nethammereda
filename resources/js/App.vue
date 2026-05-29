@@ -64,6 +64,9 @@ const {
 const {
     order,
     orderNotice,
+    orderHistory,
+    orderHistoryLoading,
+    orderHistoryError,
     orderItems,
     totalPositions,
     orderItemByMenuItem,
@@ -112,6 +115,8 @@ const requiredFullNameError = ref('');
 const telegramLinkStatusTimeoutMs = 4000;
 const closedOrderingMessage = 'Приём заказов закрыт.';
 const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина очищена.';
+const repeatWhenClosedMessage = 'Повторить заказ можно, когда открыт приём заказов.';
+const repeatReplaceConfirmMessage = 'Заменить текущую корзину этим заказом?';
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
@@ -272,6 +277,7 @@ const syncClosedOrderingState = async (message = closedOrderingCartClearedMessag
 
         if (auth.token) {
             await orderStore.loadCurrentOrder(auth.token);
+            await orderStore.loadOrderHistory(auth.token);
         }
     } catch (e) {
         ui.error = e.message;
@@ -284,6 +290,7 @@ const refreshOrderingState = async () => {
 
         if (auth.token) {
             await orderStore.loadCurrentOrder(auth.token);
+            await orderStore.loadOrderHistory(auth.token);
             if (orderNotice.value) {
                 ui.info = orderNotice.value;
             }
@@ -505,6 +512,7 @@ const loadData = async () => {
         if (auth.token) {
             await Promise.all([
                 orderStore.loadCurrentOrder(auth.token),
+                orderStore.loadOrderHistory(auth.token),
                 fridge.loadFridgeData(auth.token),
             ]);
             if (orderNotice.value) {
@@ -853,6 +861,52 @@ const reopenOrder = async () => {
     }
 };
 
+const repeatOrderFromHistory = async (historyOrder) => {
+    if (!auth.token) {
+        openAuthModal('Войдите, чтобы повторить заказ.');
+        return;
+    }
+
+    if (!isOrderingWindowOpen.value) {
+        ui.error = repeatWhenClosedMessage;
+        return;
+    }
+
+    const hasDraftItems = order.value?.status === 'draft' && orderItems.value.length > 0;
+    if (hasDraftItems && !window.confirm(repeatReplaceConfirmMessage)) {
+        return;
+    }
+
+    ui.actionLoading = true;
+    ui.error = '';
+    ui.info = '';
+
+    try {
+        const response = await orderStore.repeatFromHistory(auth.token, historyOrder.id, 'replace');
+        reopenedForEditing.value = false;
+
+        const notices = [response.data?.message || 'Заказ добавлен в корзину.'];
+        const skippedItems = Array.isArray(response.data?.skipped_items) ? response.data.skipped_items : [];
+        if (skippedItems.length > 0) {
+            notices.push(`Некоторые блюда сейчас недоступны: ${skippedItems.join(', ')}.`);
+        }
+        if (response.data?.warning) {
+            notices.push(response.data.warning);
+        }
+
+        ui.info = notices.join(' ');
+    } catch (e) {
+        if (isClosedOrderingErrorMessage(e.message)) {
+            await syncClosedOrderingState(closedOrderingMessage);
+            ui.error = repeatWhenClosedMessage;
+        } else {
+            ui.error = e.message;
+        }
+    } finally {
+        ui.actionLoading = false;
+    }
+};
+
 const eatOneFromFridge = async (fridgeItemId) => {
     ui.actionLoading = true;
     ui.error = '';
@@ -1004,9 +1058,15 @@ onBeforeUnmount(() => {
                             :loading="loading"
                             :action-loading="actionLoading"
                             :order-skeleton-rows="orderSkeletonRows"
+                            :order-history="orderHistory"
+                            :order-history-loading="orderHistoryLoading"
+                            :order-history-error="orderHistoryError"
+                            :can-repeat-history="isOrderingWindowOpen"
+                            :repeat-action-loading="actionLoading"
                             @change-quantity="changeQuantity"
                             @reopen-order="reopenOrder"
                             @submit-order="submitOrder"
+                            @repeat-order="repeatOrderFromHistory"
                         />
                     </CardContent>
                 </Card>
@@ -1064,10 +1124,16 @@ onBeforeUnmount(() => {
                             :action-loading="actionLoading"
                             :error="error"
                             :order-skeleton-rows="orderSkeletonRows"
+                            :order-history="orderHistory"
+                            :order-history-loading="orderHistoryLoading"
+                            :order-history-error="orderHistoryError"
+                            :can-repeat-history="isOrderingWindowOpen"
+                            :repeat-action-loading="actionLoading"
                             @open-auth="openAuthModal('Войдите, чтобы оформить заказ.')"
                             @change-quantity="changeQuantity"
                             @reopen-order="reopenOrder"
                             @submit-order="submitOrder"
+                            @repeat-order="repeatOrderFromHistory"
                         />
                     </CardContent>
                 </Card>
@@ -1107,9 +1173,15 @@ onBeforeUnmount(() => {
                 :action-loading="actionLoading"
                 :error="error"
                 :order-skeleton-rows="orderSkeletonRows"
+                :order-history="orderHistory"
+                :order-history-loading="orderHistoryLoading"
+                :order-history-error="orderHistoryError"
+                :can-repeat-history="isOrderingWindowOpen"
+                :repeat-action-loading="actionLoading"
                 @change-quantity="changeQuantity"
                 @reopen-order="reopenOrder"
                 @submit-order="submitOrder"
+                @repeat-order="repeatOrderFromHistory"
             />
         </MobilePanelSheet>
 

@@ -1,6 +1,7 @@
 import { apiRequest } from './http';
 
 export const fetchMyOrder = (token) => apiRequest('/my-order', { token });
+export const fetchOrderHistory = (token) => apiRequest('/my-orders/history', { token });
 
 export const addOrderItem = (token, menuItemId, quantity = 1) => apiRequest('/my-order/items', {
     method: 'POST',
@@ -30,4 +31,10 @@ export const submitMyOrder = (token) => apiRequest('/my-order/submit', {
 export const reopenMyOrder = (token) => apiRequest('/my-order/reopen', {
     method: 'POST',
     token,
+});
+
+export const repeatOrder = (token, orderId, mode = 'replace') => apiRequest(`/my-orders/${orderId}/repeat`, {
+    method: 'POST',
+    token,
+    body: { mode },
 });

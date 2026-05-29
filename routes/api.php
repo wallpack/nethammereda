@@ -52,8 +52,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/my-order', [MyOrderController::class, 'show']);
+    Route::get('/my-orders/history', [MyOrderController::class, 'history']);
     Route::post('/my-order/submit', [MyOrderController::class, 'submit']);
     Route::post('/my-order/reopen', [MyOrderController::class, 'reopen']);
+    Route::post('/my-orders/{order}/repeat', [MyOrderController::class, 'repeat']);
 
     Route::post('/my-order/items', [MyOrderItemController::class, 'store']);
     Route::patch('/my-order/items/{orderItem}', [MyOrderItemController::class, 'update']);

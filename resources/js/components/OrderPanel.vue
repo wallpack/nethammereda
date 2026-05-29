@@ -64,9 +64,29 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    orderHistory: {
+        type: Array,
+        default: () => [],
+    },
+    orderHistoryLoading: {
+        type: Boolean,
+        default: false,
+    },
+    orderHistoryError: {
+        type: String,
+        default: '',
+    },
+    canRepeatHistory: {
+        type: Boolean,
+        default: false,
+    },
+    repeatActionLoading: {
+        type: Boolean,
+        default: false,
+    },
 });
 
-const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order', 'open-auth']);
+const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order', 'open-auth', 'repeat-order']);
 const failedOrderImages = ref(new Set());
 
 const isSubmittedOrder = computed(() => props.order?.status === 'submitted');
@@ -98,6 +118,32 @@ const positionsLabel = computed(() => {
 
     return 'позиций';
 });
+
+const historyPositionsLabel = (count) => {
+    if (count % 10 === 1 && count % 100 !== 11) {
+        return 'блюдо';
+    }
+
+    if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+        return 'блюда';
+    }
+
+    return 'блюд';
+};
+
+const historyOrderDateLabel = (value) => {
+    if (!value) {
+        return 'Заказ';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return 'Заказ';
+    }
+
+    return `Заказ от ${date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long' })}`;
+};
 
 watch(() => props.menuItemsById, () => {
     failedOrderImages.value = new Set();
@@ -241,6 +287,74 @@ watch(() => props.menuItemsById, () => {
                 </div>
             </article>
         </div>
+
+        <section
+            v-if="!showGuestAuthPrompt"
+            class="mt-3 shrink-0 rounded-2xl border border-slate-200 bg-slate-50/60 p-3"
+            data-testid="order-history-section"
+        >
+            <h3 class="text-sm font-semibold text-slate-900">История заказов</h3>
+
+            <div v-if="orderHistoryLoading" class="mt-2 space-y-2">
+                <Skeleton class="h-14 w-full rounded-xl bg-slate-100" />
+                <Skeleton class="h-14 w-full rounded-xl bg-slate-100" />
+            </div>
+
+            <Alert
+                v-else-if="orderHistoryError"
+                variant="destructive"
+                class="mt-2 rounded-xl border-red-200 bg-red-50 text-red-700"
+            >
+                <AlertDescription>{{ orderHistoryError }}</AlertDescription>
+            </Alert>
+
+            <div
+                v-else-if="!orderHistory.length"
+                class="mt-2 rounded-xl bg-white px-3 py-3 text-sm text-slate-600"
+                data-testid="order-history-empty-state"
+            >
+                <p class="font-medium text-slate-900">У вас пока нет прошлых заказов.</p>
+                <p class="mt-1 text-xs text-slate-500">После оформления заказа он появится здесь.</p>
+            </div>
+
+            <div v-else class="mt-2 max-h-52 space-y-2 overflow-y-auto pr-1">
+                <article
+                    v-for="historyOrder in orderHistory"
+                    :key="historyOrder.id"
+                    class="rounded-xl border border-slate-200 bg-white p-3"
+                >
+                    <p class="text-sm font-semibold text-slate-900">{{ historyOrderDateLabel(historyOrder.submitted_at) }}</p>
+                    <p class="mt-0.5 text-xs text-slate-600">
+                        {{ historyOrder.items_count }} {{ historyPositionsLabel(Number(historyOrder.items_count || 0)) }}
+                        · {{ formatPrice(historyOrder.total_price ?? 0) }}
+                    </p>
+                    <ul class="mt-2 space-y-1 text-xs text-slate-600">
+                        <li
+                            v-for="item in historyOrder.items?.slice(0, 3) ?? []"
+                            :key="`${historyOrder.id}-${item.id}`"
+                            class="truncate"
+                        >
+                            {{ item.title }} ×{{ item.quantity }}
+                        </li>
+                    </ul>
+                    <Button
+                        type="button"
+                        size="sm"
+                        data-testid="order-repeat-button"
+                        class="mt-2 h-8 rounded-full bg-blue-700 px-3 text-xs font-semibold text-white hover:bg-blue-800 disabled:bg-slate-200 disabled:text-slate-500"
+                        :disabled="!canRepeatHistory || !historyOrder.can_repeat || repeatActionLoading"
+                        @click="emit('repeat-order', historyOrder)"
+                    >
+                        <Loader2 v-if="repeatActionLoading" aria-hidden="true" class="size-3 animate-spin" />
+                        Повторить заказ
+                    </Button>
+                </article>
+            </div>
+
+            <p v-if="!canRepeatHistory" data-testid="order-repeat-closed-hint" class="mt-2 text-xs text-slate-500">
+                Повторить заказ можно, когда открыт приём заказов.
+            </p>
+        </section>
 
         <div
             data-testid="order-panel-footer"
