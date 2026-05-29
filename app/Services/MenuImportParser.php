@@ -44,8 +44,13 @@ class MenuImportParser
             throw new RuntimeException('Файл импорта не удалось открыть.');
         }
 
-        $firstLine = fgets($handle);
-        $delimiter = $this->detectDelimiter($firstLine === false ? '' : $firstLine);
+        $sampleLines = [];
+
+        while (($line = fgets($handle)) !== false && count($sampleLines) < 50) {
+            $sampleLines[] = $line;
+        }
+
+        $delimiter = $this->detectDelimiter($sampleLines);
         rewind($handle);
 
         $headers = [];
@@ -120,14 +125,23 @@ class MenuImportParser
         ];
     }
 
-    private function detectDelimiter(string $headerLine): string
+    /**
+     * @param  array<int, string>  $sampleLines
+     */
+    private function detectDelimiter(array $sampleLines): string
     {
         $candidates = [';', ',', "\t"];
         $bestDelimiter = ';';
         $bestCount = -1;
 
         foreach ($candidates as $candidate) {
-            $count = substr_count($headerLine, $candidate);
+            $count = 0;
+
+            foreach ($sampleLines as $line) {
+                $lineCount = substr_count($line, $candidate);
+                $columns = count(str_getcsv($line, $candidate));
+                $count += ($lineCount * 10) + ($columns > 1 ? $columns : 0);
+            }
 
             if ($count > $bestCount) {
                 $bestCount = $count;

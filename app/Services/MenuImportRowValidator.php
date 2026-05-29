@@ -10,9 +10,9 @@ class MenuImportRowValidator
      * @var array<string, array<int, string>>
      */
     private const HEADER_ALIASES = [
-        'category' => ['category', 'категория'],
-        'name' => ['name', 'title', 'название', 'блюдо', 'наименование', 'наименование продукции'],
-        'price' => ['price', 'цена'],
+        'category' => ['category', 'категория', 'раздел', 'группа'],
+        'name' => ['name', 'title', 'название', 'блюдо', 'наименование', 'наименование продукции', 'товар'],
+        'price' => ['price', 'цена', 'цена руб.', 'цена руб', 'цена ₽', 'стоимость'],
         'weight' => ['weight', 'вес'],
         'calories' => ['calories', 'calorie', 'ккал', 'калории'],
         'proteins' => ['proteins', 'protein', 'белки'],
@@ -25,6 +25,18 @@ class MenuImportRowValidator
         'supplier_name' => ['supplier_name', 'название для поставщика', 'наименование для поставщика'],
         'is_active' => ['is_active', 'active', 'активно', 'доступно'],
     ];
+
+    /**
+     * Заголовки, которые однозначно указывают на прайс-лист поставщика.
+     *
+     * @var array<int, string>
+     */
+    private const SUPPLIER_HEADER_HINTS = [
+        'наименование',
+        'наименование продукции',
+    ];
+
+    private const STRUCTURE_ERROR_MESSAGE = 'Не удалось определить структуру файла. Поддерживаются форматы: «Категория, Название, Цена» или прайс-лист «Наименование продукции, Цена руб., Срок годности».';
 
     /**
      * @return array{
@@ -43,23 +55,51 @@ class MenuImportRowValidator
      */
     public function validate(array $parsed): array
     {
-        $headerMap = $this->mapHeaders($parsed['headers'] ?? []);
+        $allRows = $this->prepareRows($parsed);
+        $header = $this->detectHeader($allRows);
+
+        if ($header === null) {
+            return $this->unsupportedStructureResult($allRows);
+        }
+
+        $rowsAfterHeader = array_values(array_filter(
+            $allRows,
+            fn (array $row): bool => (int) ($row['number'] ?? 0) > $header['header_row'],
+        ));
+
+        return match ($header['format']) {
+            'canonical' => $this->validateCanonical($header['header_map'], $rowsAfterHeader),
+            'supplier' => $this->validateSupplier($header['header_map'], $rowsAfterHeader),
+            'missing_category' => $this->missingCategoryResult($rowsAfterHeader),
+            default => $this->unsupportedStructureResult($allRows),
+        };
+    }
+
+    /**
+     * @param  array<string, int>  $headerMap
+     * @param  array<int, array{number: int, cells: array<int, string>}>  $rows
+     * @return array{
+     *     rows_total: int,
+     *     rows_valid: int,
+     *     rows_failed: int,
+     *     rows: array<int, array{
+     *         row_number: int,
+     *         category: string,
+     *         name: string,
+     *         price: float,
+     *         fields: array<string, mixed>
+     *     }>,
+     *     errors: array<int, array{row: ?int, field: ?string, message: string, value?: mixed}>
+     * }
+     */
+    private function validateCanonical(array $headerMap, array $rows): array
+    {
         $nonBlankRows = array_values(array_filter(
-            $parsed['rows'] ?? [],
+            $rows,
             fn (array $row): bool => ! $this->isBlankRow($row['cells'] ?? []),
         ));
         $rowsTotal = count($nonBlankRows);
         $errors = [];
-
-        foreach (self::REQUIRED_FIELDS as $field) {
-            if (! array_key_exists($field, $headerMap)) {
-                $errors[] = [
-                    'row' => null,
-                    'field' => $field,
-                    'message' => 'В файле нет обязательной колонки «'.$this->fieldLabel($field).'».',
-                ];
-            }
-        }
 
         if ($rowsTotal === 0) {
             $errors[] = [
@@ -133,24 +173,411 @@ class MenuImportRowValidator
     }
 
     /**
+     * @param  array<string, int>  $headerMap
+     * @param  array<int, array{number: int, cells: array<int, string>}>  $rows
+     * @return array{
+     *     rows_total: int,
+     *     rows_valid: int,
+     *     rows_failed: int,
+     *     rows: array<int, array{
+     *         row_number: int,
+     *         category: string,
+     *         name: string,
+     *         price: float,
+     *         fields: array<string, mixed>
+     *     }>,
+     *     errors: array<int, array{row: ?int, field: ?string, message: string, value?: mixed}>
+     * }
+     */
+    private function validateSupplier(array $headerMap, array $rows): array
+    {
+        $validRows = [];
+        $errors = [];
+        $failedRows = [];
+        $seenKeys = [];
+        $rowsTotal = 0;
+        $currentCategory = '';
+
+        foreach ($rows as $row) {
+            $rowNumber = (int) $row['number'];
+            $cells = $row['cells'] ?? [];
+            $name = $this->cleanText($cells[$headerMap['name']] ?? '');
+            $priceRaw = $this->cleanText($cells[$headerMap['price']] ?? '');
+
+            if ($name === '' && $priceRaw === '') {
+                continue;
+            }
+
+            if ($priceRaw === '') {
+                if ($name !== '') {
+                    $currentCategory = $name;
+                }
+
+                continue;
+            }
+
+            $rowsTotal++;
+            $rowErrors = [];
+
+            if ($name === '') {
+                $rowErrors[] = [
+                    'row' => $rowNumber,
+                    'field' => 'name',
+                    'message' => 'Поле «'.$this->fieldLabel('name').'» обязательно.',
+                ];
+            }
+
+            if ($currentCategory === '') {
+                $rowErrors[] = [
+                    'row' => $rowNumber,
+                    'field' => 'category',
+                    'message' => 'Не удалось определить категорию для строки.',
+                ];
+            } elseif (mb_strlen($currentCategory) > 255) {
+                $rowErrors[] = [
+                    'row' => $rowNumber,
+                    'field' => 'category',
+                    'message' => 'Поле «'.$this->fieldLabel('category').'» не должно быть длиннее 255 символов.',
+                ];
+            }
+
+            $price = $this->parseDecimal($priceRaw);
+
+            if ($priceRaw === '' || $price === null) {
+                $rowErrors[] = [
+                    'row' => $rowNumber,
+                    'field' => 'price',
+                    'message' => 'Поле «'.$this->fieldLabel('price').'» должно быть неотрицательным числом.',
+                    'value' => $priceRaw,
+                ];
+                $price = 0.0;
+            }
+
+            $fields = $this->optionalFields($cells, $headerMap, $rowNumber, $rowErrors);
+
+            if ($rowErrors === []) {
+                $matchKey = $this->matchKey($currentCategory, $name, $fields);
+
+                if (isset($seenKeys[$matchKey])) {
+                    $rowErrors[] = [
+                        'row' => $rowNumber,
+                        'field' => null,
+                        'message' => 'В файле есть повторяющаяся строка меню.',
+                    ];
+                }
+
+                $seenKeys[$matchKey] = true;
+            }
+
+            if ($rowErrors !== []) {
+                $failedRows[$rowNumber] = true;
+                array_push($errors, ...$rowErrors);
+
+                continue;
+            }
+
+            $validRows[] = [
+                'row_number' => $rowNumber,
+                'category' => $currentCategory,
+                'name' => $name,
+                'price' => $price,
+                'fields' => $fields,
+            ];
+        }
+
+        if ($rowsTotal === 0 && $errors === []) {
+            $errors[] = [
+                'row' => null,
+                'field' => null,
+                'message' => 'Файл не содержит строк меню.',
+            ];
+        }
+
+        return [
+            'rows_total' => $rowsTotal,
+            'rows_valid' => count($validRows),
+            'rows_failed' => count($failedRows),
+            'rows' => $validRows,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * @param  array<int, array{number: int, cells: array<int, string>}>  $rows
+     * @return array{
+     *     rows_total: int,
+     *     rows_valid: int,
+     *     rows_failed: int,
+     *     rows: array<int, array{
+     *         row_number: int,
+     *         category: string,
+     *         name: string,
+     *         price: float,
+     *         fields: array<string, mixed>
+     *     }>,
+     *     errors: array<int, array{row: ?int, field: ?string, message: string, value?: mixed}>
+     * }
+     */
+    private function missingCategoryResult(array $rows): array
+    {
+        $rowsTotal = count(array_filter(
+            $rows,
+            fn (array $row): bool => ! $this->isBlankRow($row['cells'] ?? []),
+        ));
+
+        return [
+            'rows_total' => $rowsTotal,
+            'rows_valid' => 0,
+            'rows_failed' => $rowsTotal,
+            'rows' => [],
+            'errors' => [
+                [
+                    'row' => null,
+                    'field' => 'category',
+                    'message' => 'В файле нет обязательной колонки «'.$this->fieldLabel('category').'».',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<int, array{number: int, cells: array<int, string>}>  $allRows
+     * @return array{
+     *     rows_total: int,
+     *     rows_valid: int,
+     *     rows_failed: int,
+     *     rows: array<int, array{
+     *         row_number: int,
+     *         category: string,
+     *         name: string,
+     *         price: float,
+     *         fields: array<string, mixed>
+     *     }>,
+     *     errors: array<int, array{row: ?int, field: ?string, message: string, value?: mixed}>
+     * }
+     */
+    private function unsupportedStructureResult(array $allRows): array
+    {
+        $rowsTotal = count(array_filter(
+            $allRows,
+            fn (array $row): bool => ! $this->isBlankRow($row['cells'] ?? []),
+        ));
+
+        return [
+            'rows_total' => $rowsTotal,
+            'rows_valid' => 0,
+            'rows_failed' => $rowsTotal,
+            'rows' => [],
+            'errors' => [
+                [
+                    'row' => null,
+                    'field' => null,
+                    'message' => self::STRUCTURE_ERROR_MESSAGE,
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $parsed
+     * @return array<int, array{number: int, cells: array<int, string>}>
+     */
+    private function prepareRows(array $parsed): array
+    {
+        $rows = [];
+        $headers = $parsed['headers'] ?? [];
+
+        if (is_array($headers) && $headers !== []) {
+            $rows[] = [
+                'number' => 1,
+                'cells' => array_values(array_map(
+                    fn (mixed $value): string => (string) $value,
+                    $headers,
+                )),
+            ];
+        }
+
+        foreach ($parsed['rows'] ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $rows[] = [
+                'number' => (int) ($row['number'] ?? 0),
+                'cells' => array_values(array_map(
+                    fn (mixed $value): string => (string) $value,
+                    (array) ($row['cells'] ?? []),
+                )),
+            ];
+        }
+
+        usort($rows, fn (array $left, array $right): int => $left['number'] <=> $right['number']);
+
+        return $rows;
+    }
+
+    /**
+     * @param  array<int, array{number: int, cells: array<int, string>}>  $allRows
+     * @return array{
+     *     format: 'canonical'|'supplier'|'missing_category',
+     *     header_row: int,
+     *     header_map: array<string, int>
+     * }|null
+     */
+    private function detectHeader(array $allRows): ?array
+    {
+        $supplierCandidate = null;
+
+        foreach ($allRows as $row) {
+            $cells = $row['cells'] ?? [];
+
+            if ($this->isBlankRow($cells)) {
+                continue;
+            }
+
+            $headerMap = $this->mapHeaders($cells);
+            $hasName = array_key_exists('name', $headerMap);
+            $hasPrice = array_key_exists('price', $headerMap);
+            $hasCategory = array_key_exists('category', $headerMap);
+
+            if ($hasCategory && $hasName && $hasPrice) {
+                return [
+                    'format' => 'canonical',
+                    'header_row' => (int) $row['number'],
+                    'header_map' => $headerMap,
+                ];
+            }
+
+            if (! $hasName || ! $hasPrice) {
+                continue;
+            }
+
+            if (
+                $this->looksLikeSupplierHeader($cells)
+                || $this->hasSupplierCategoryRowsAfter($allRows, (int) $row['number'], $headerMap)
+            ) {
+                return [
+                    'format' => 'supplier',
+                    'header_row' => (int) $row['number'],
+                    'header_map' => $headerMap,
+                ];
+            }
+
+            if ($supplierCandidate === null) {
+                $supplierCandidate = [
+                    'format' => 'missing_category',
+                    'header_row' => (int) $row['number'],
+                    'header_map' => $headerMap,
+                ];
+            }
+        }
+
+        return $supplierCandidate;
+    }
+
+    /**
+     * @param  array<int, string>  $headerCells
+     */
+    private function looksLikeSupplierHeader(array $headerCells): bool
+    {
+        $normalizedHeaders = array_map(
+            fn (string $value): string => $this->normalizeHeader($value),
+            $headerCells,
+        );
+
+        foreach ($normalizedHeaders as $header) {
+            if (in_array($header, self::SUPPLIER_HEADER_HINTS, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<int, array{number: int, cells: array<int, string>}>  $allRows
+     * @param  array<string, int>  $headerMap
+     */
+    private function hasSupplierCategoryRowsAfter(array $allRows, int $headerRowNumber, array $headerMap): bool
+    {
+        $nameIndex = $headerMap['name'] ?? null;
+        $priceIndex = $headerMap['price'] ?? null;
+
+        if (! is_int($nameIndex) || ! is_int($priceIndex)) {
+            return false;
+        }
+
+        foreach ($allRows as $row) {
+            if ((int) ($row['number'] ?? 0) <= $headerRowNumber) {
+                continue;
+            }
+
+            $cells = $row['cells'] ?? [];
+            $name = $this->cleanText($cells[$nameIndex] ?? '');
+            $price = $this->cleanText($cells[$priceIndex] ?? '');
+
+            if ($name === '' && $price === '') {
+                continue;
+            }
+
+            if ($name !== '' && $price === '') {
+                return true;
+            }
+
+            if ($name !== '' && $price !== '') {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param  array<int, string>  $headers
      * @return array<string, int>
      */
     private function mapHeaders(array $headers): array
     {
         $map = [];
+        $aliases = $this->headerAliasLookup();
 
         foreach ($headers as $index => $header) {
             $normalized = $this->normalizeHeader($header);
 
-            foreach (self::HEADER_ALIASES as $field => $aliases) {
-                if (in_array($normalized, array_map($this->normalizeHeader(...), $aliases), true)) {
-                    $map[$field] = $index;
-                }
+            if ($normalized === '' || ! array_key_exists($normalized, $aliases)) {
+                continue;
+            }
+
+            $field = $aliases[$normalized];
+
+            if (! array_key_exists($field, $map)) {
+                $map[$field] = $index;
             }
         }
 
         return $map;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function headerAliasLookup(): array
+    {
+        static $lookup = null;
+
+        if (is_array($lookup)) {
+            return $lookup;
+        }
+
+        $lookup = [];
+
+        foreach (self::HEADER_ALIASES as $field => $aliases) {
+            foreach ($aliases as $alias) {
+                $lookup[$this->normalizeHeader($alias)] = $field;
+            }
+        }
+
+        return $lookup;
     }
 
     /**
@@ -342,9 +769,30 @@ class MenuImportRowValidator
 
     private function parseDecimal(string $value): ?float
     {
-        $normalized = preg_replace('/\s+/u', '', $value) ?? $value;
-        $normalized = preg_replace('/(?:₽|руб\.?|р\.?)$/ui', '', $normalized) ?? $normalized;
-        $normalized = str_replace(',', '.', $normalized);
+        $normalized = str_replace(["\u{00A0}", ' '], '', $value);
+        $normalized = preg_replace('/(?:\x{20BD}|руб\.?|р\.?)$/ui', '', $normalized) ?? $normalized;
+        $normalized = preg_replace('/[^\d,.\-]/u', '', $normalized) ?? $normalized;
+
+        if ($normalized === '' || str_starts_with($normalized, '-')) {
+            return null;
+        }
+
+        $hasComma = str_contains($normalized, ',');
+        $hasDot = str_contains($normalized, '.');
+
+        if ($hasComma && $hasDot) {
+            $lastComma = strrpos($normalized, ',');
+            $lastDot = strrpos($normalized, '.');
+
+            if ($lastComma !== false && $lastDot !== false && $lastComma > $lastDot) {
+                $normalized = str_replace('.', '', $normalized);
+                $normalized = str_replace(',', '.', $normalized);
+            } else {
+                $normalized = str_replace(',', '', $normalized);
+            }
+        } else {
+            $normalized = str_replace(',', '.', $normalized);
+        }
 
         if (preg_match('/^\d+(?:\.\d+)?$/', $normalized) !== 1) {
             return null;
@@ -373,9 +821,14 @@ class MenuImportRowValidator
 
     private function cleanText(string $value): string
     {
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $value = str_replace("\0", '', $value);
         $value = strip_tags($value);
-        $value = str_replace("\u{00A0}", ' ', $value);
+        $value = str_replace(
+            ["\u{00A0}", "\u{200B}", "\u{200C}", "\u{200D}", "\u{FEFF}"],
+            ' ',
+            $value,
+        );
         $value = preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
 
         return mb_substr($value, 0, 1000);
@@ -384,7 +837,8 @@ class MenuImportRowValidator
     private function normalizeHeader(string $value): string
     {
         $value = $this->cleanText($value);
-        $value = str_replace('ё', 'е', mb_strtolower($value));
+        $value = mb_strtolower($value, 'UTF-8');
+        $value = str_replace('ё', 'е', $value);
         $value = str_replace(['_', '-', '.'], ' ', $value);
         $value = preg_replace('/\s+/u', ' ', trim($value)) ?? trim($value);
 

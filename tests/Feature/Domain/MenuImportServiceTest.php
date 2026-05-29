@@ -423,6 +423,174 @@ class MenuImportServiceTest extends TestCase
         }
     }
 
+    #[Test]
+    public function supplier_price_list_csv_with_service_rows_and_category_rows_is_imported(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'Прайс лист поставщика',
+            'Менеджер по продажам',
+            '',
+            'Наименование продукции;Цена руб.;Срок годности',
+            'Вторые блюда;;',
+            'Запеканка Чиз;130;5 суток',
+            'Баветте с курицей;105;5 суток',
+            'Супы;;',
+            'Суп Солянка;120;3 суток',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertSame(3, $import->rows_total);
+        $this->assertSame(3, $import->rows_valid);
+        $this->assertSame(0, $import->rows_failed);
+        $this->assertDatabaseHas('menu_categories', ['name' => 'Вторые блюда']);
+        $this->assertDatabaseHas('menu_categories', ['name' => 'Супы']);
+        $this->assertDatabaseHas('menu_items', ['supplier_name' => 'Запеканка Чиз', 'price' => 130]);
+        $this->assertDatabaseHas('menu_items', ['supplier_name' => 'Баветте с курицей', 'price' => 105]);
+        $this->assertDatabaseHas('menu_items', ['supplier_name' => 'Суп Солянка', 'price' => 120]);
+    }
+
+    #[Test]
+    #[RunInSeparateProcess]
+    public function supplier_price_list_xlsx_is_imported(): void
+    {
+        Storage::fake('local');
+        $path = Storage::disk('local')->path('menu-imports/supplier.xlsx');
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0777, true);
+        }
+
+        $spreadsheet = new Spreadsheet;
+
+        try {
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->fromArray([
+                ['Прайс лист поставщика'],
+                [''],
+                ['Наименование продукции', 'Цена руб.', 'Срок годности'],
+                ['Выпечка', '', ''],
+                ['Булочка с маком', 90, '3 суток'],
+                ['Супы', '', ''],
+                ['Суп пюре', 140, '2 суток'],
+            ]);
+            (new Xlsx($spreadsheet))->save($path);
+
+            $import = app(MenuImportService::class)->importStoredFile(
+                storedPath: 'menu-imports/supplier.xlsx',
+                originalFilename: 'supplier.xlsx',
+                importedBy: User::factory()->create(),
+            );
+
+            $this->assertSame(MenuImportStatus::Imported, $import->status);
+            $this->assertDatabaseHas('menu_items', [
+                'supplier_name' => 'Булочка с маком',
+                'price' => 90,
+            ]);
+            $this->assertDatabaseHas('menu_items', [
+                'supplier_name' => 'Суп пюре',
+                'price' => 140,
+            ]);
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+    }
+
+    #[Test]
+    public function utf8_bom_csv_with_cyrillic_is_imported_correctly(): void
+    {
+        $utf8WithBom = "\xEF\xBB\xBF".implode("\n", [
+            'Категория;Название;Цена',
+            'Супы;Борщ;210',
+        ]);
+
+        $import = $this->importRawCsv($utf8WithBom);
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Борщ',
+            'price' => 210,
+        ]);
+    }
+
+    #[Test]
+    public function windows_1251_csv_with_cyrillic_is_imported_correctly(): void
+    {
+        $utf8Content = implode("\n", [
+            'Категория;Название;Цена',
+            'Супы;Рассольник;230',
+        ]);
+        $cp1251Content = mb_convert_encoding($utf8Content, 'Windows-1251', 'UTF-8');
+
+        $import = $this->importRawCsv($cp1251Content);
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Рассольник',
+            'price' => 230,
+        ]);
+    }
+
+    #[Test]
+    public function comma_delimiter_csv_is_imported(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'category,name,price',
+            'soups,Cream soup,180',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Cream soup',
+            'price' => 180,
+        ]);
+    }
+
+    #[Test]
+    public function semicolon_delimiter_csv_is_imported(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'category;name;price',
+            'soups;Corn soup;199',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Corn soup',
+            'price' => 199,
+        ]);
+    }
+
+    #[Test]
+    public function supplier_item_without_category_row_returns_friendly_error(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'Наименование продукции;Цена руб.;Срок годности',
+            'Запеканка Чиз;130;5 суток',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Failed, $import->status);
+        $this->assertSame(1, $import->rows_total);
+        $this->assertSame(1, $import->rows_failed);
+        $this->assertStringContainsString(
+            'Не удалось определить категорию для строки',
+            (string) data_get($import->error_report, 'errors.0.message'),
+        );
+    }
+
+    #[Test]
+    public function unsupported_import_structure_returns_friendly_error(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'foo;bar;baz',
+            'one;two;three',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Failed, $import->status);
+        $this->assertStringContainsString(
+            'Не удалось определить структуру файла',
+            (string) data_get($import->error_report, 'errors.0.message'),
+        );
+    }
+
     /**
      * @param  array<int, string>  $lines
      */
@@ -430,6 +598,18 @@ class MenuImportServiceTest extends TestCase
     {
         Storage::fake('local');
         Storage::disk('local')->put('menu-imports/menu.csv', implode("\n", $lines));
+
+        return app(MenuImportService::class)->importStoredFile(
+            storedPath: 'menu-imports/menu.csv',
+            originalFilename: 'menu.csv',
+            importedBy: User::factory()->create(),
+        );
+    }
+
+    private function importRawCsv(string $content)
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('menu-imports/menu.csv', $content);
 
         return app(MenuImportService::class)->importStoredFile(
             storedPath: 'menu-imports/menu.csv',
