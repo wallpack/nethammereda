@@ -324,6 +324,14 @@ class MenuImportService
             }
         }
 
+        if (
+            array_key_exists('weight', $attributes)
+            && ! filled($attributes['weight'])
+            && filled($menuItem->weight)
+        ) {
+            unset($attributes['weight']);
+        }
+
         return $attributes;
     }
 
@@ -353,8 +361,12 @@ class MenuImportService
                 : true,
         ];
 
+        $weight = $this->resolveWeightForRow($row, $supplierName);
+        if ($weight !== null) {
+            $attributes['weight'] = $weight;
+        }
+
         foreach ([
-            'weight',
             'calories',
             'proteins',
             'fats',
@@ -370,6 +382,49 @@ class MenuImportService
         }
 
         return $attributes;
+    }
+
+    /**
+     * @param  array{
+     *     category: string,
+     *     name: string,
+     *     price: float,
+     *     fields: array<string, mixed>
+     * }  $row
+     */
+    private function resolveWeightForRow(array $row, string $supplierName): ?string
+    {
+        $fields = $row['fields'];
+
+        if (array_key_exists('weight', $fields)) {
+            $weightFromField = $this->normalizeImportedWeightValue($fields['weight'] ?? null);
+
+            if ($weightFromField !== null) {
+                return $weightFromField;
+            }
+        }
+
+        $weightFromSupplierName = $this->textNormalizer->extractWeightFromItemTitle($supplierName);
+        if ($weightFromSupplierName !== null) {
+            return $weightFromSupplierName;
+        }
+
+        return $this->textNormalizer->extractWeightFromItemTitle((string) $row['name']);
+    }
+
+    private function normalizeImportedWeightValue(mixed $weight): ?string
+    {
+        if ($weight === null) {
+            return null;
+        }
+
+        $clean = $this->textNormalizer->clean((string) $weight);
+
+        if ($clean === '') {
+            return null;
+        }
+
+        return $this->textNormalizer->extractWeightFromItemTitle($clean) ?? $clean;
     }
 
     /**

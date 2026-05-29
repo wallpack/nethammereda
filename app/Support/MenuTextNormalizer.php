@@ -116,6 +116,36 @@ class MenuTextNormalizer
         return mb_strtolower($normalized, 'UTF-8');
     }
 
+    public function extractWeightFromItemTitle(string $value): ?string
+    {
+        $title = $this->clean($value);
+
+        if ($title === '') {
+            return null;
+        }
+
+        $patterns = [
+            '/\(\s*(\d{1,4})(?:[.,]\d+)?\s*\.?\s*(?:г|гр|грамм(?:а|ов)?|g|gr)\.?\s*\)\s*$/ui',
+            '/(?:^|[\s,;:])(\d{1,4})(?:[.,]\d+)?\s*\.?\s*(?:г|гр|грамм(?:а|ов)?|g|gr)\.?\s*$/ui',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $title, $match) !== 1) {
+                continue;
+            }
+
+            $grams = (int) ($match[1] ?? 0);
+
+            if ($grams <= 0) {
+                return null;
+            }
+
+            return $grams.' г';
+        }
+
+        return null;
+    }
+
     public function menuItemMatchKey(string $categoryName, string $itemTitle): string
     {
         $categoryKey = $this->normalizeName($this->normalizeImportedCategoryName($categoryName));

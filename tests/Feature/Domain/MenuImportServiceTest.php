@@ -748,6 +748,68 @@ class MenuImportServiceTest extends TestCase
     }
 
     #[Test]
+    public function supplier_import_extracts_weight_from_item_title_when_weight_column_is_missing(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'Наименование продукции;Цена руб.;Срок годности',
+            'Вторые блюда;;',
+            'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г);125;2 суток',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)',
+            'weight' => '260 г',
+            'price' => 125,
+        ]);
+    }
+
+    #[Test]
+    public function canonical_import_extracts_weight_from_item_title_when_weight_column_is_missing(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена',
+            'Супы;Суп Солянка (300г.);210',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Суп Солянка (300г.)',
+            'weight' => '300 г',
+            'price' => 210,
+        ]);
+    }
+
+    #[Test]
+    public function existing_item_weight_is_not_overwritten_by_empty_import_weight(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Супы',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        $existing = MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Борщ',
+            'supplier_name' => 'Борщ',
+            'price' => 150,
+            'weight' => '350 г',
+            'supplier_code' => 'SUP-001',
+            'is_active' => true,
+        ]);
+
+        $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена;Вес;supplier_code',
+            'Супы;Борщ;210;;SUP-001',
+        ]));
+
+        $existing->refresh();
+
+        $this->assertSame('210.00', (string) $existing->price);
+        $this->assertSame('350 г', $existing->weight);
+    }
+
+    #[Test]
     public function repeated_canonical_csv_import_is_idempotent(): void
     {
         $content = implode("\n", [
