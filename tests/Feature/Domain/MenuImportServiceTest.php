@@ -591,6 +591,87 @@ class MenuImportServiceTest extends TestCase
         );
     }
 
+    #[Test]
+    public function supplier_category_row_with_weight_suffix_is_normalized_to_base_category(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'Наименование продукции;Цена руб.;Срок годности',
+            'Салаты (170 г.);;',
+            'Салат Овощной;130;2 суток',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_categories', ['name' => 'Салаты']);
+        $this->assertDatabaseMissing('menu_categories', ['name' => 'Салаты (170 г.)']);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Салат Овощной',
+            'price' => 130,
+        ]);
+    }
+
+    #[Test]
+    public function supplier_import_reuses_existing_normalized_category_and_does_not_create_duplicate(): void
+    {
+        $existing = MenuCategory::query()->create([
+            'name' => 'Салаты',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+
+        $import = $this->importRawCsv(implode("\n", [
+            'Наименование продукции;Цена руб.;Срок годности',
+            'Салаты 170гр;;',
+            'Салат Цезарь;210;2 суток',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertSame(1, MenuCategory::query()->where('name', 'Салаты')->count());
+        $this->assertDatabaseMissing('menu_categories', ['name' => 'Салаты 170гр']);
+        $this->assertDatabaseHas('menu_items', [
+            'category_id' => $existing->id,
+            'supplier_name' => 'Салат Цезарь',
+            'price' => 210,
+        ]);
+    }
+
+    #[Test]
+    public function canonical_category_with_weight_suffix_is_normalized_to_base_category(): void
+    {
+        MenuCategory::query()->create([
+            'name' => 'Салаты',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+
+        $import = $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена',
+            'Салаты (170 г.);Салат Крабовый;190',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_categories', ['name' => 'Салаты']);
+        $this->assertDatabaseMissing('menu_categories', ['name' => 'Салаты (170 г.)']);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Салат Крабовый',
+            'price' => 190,
+        ]);
+    }
+
+    #[Test]
+    public function item_title_with_weight_suffix_is_preserved(): void
+    {
+        $import = $this->importRawCsv(implode("\n", [
+            'Категория;Название;Цена',
+            'Салаты;Салат овощной 170 г;150',
+        ]));
+
+        $this->assertSame(MenuImportStatus::Imported, $import->status);
+        $this->assertDatabaseHas('menu_items', [
+            'supplier_name' => 'Салат овощной 170 г',
+            'price' => 150,
+        ]);
+    }
+
     /**
      * @param  array<int, string>  $lines
      */

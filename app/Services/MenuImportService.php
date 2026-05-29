@@ -8,6 +8,7 @@ use App\Models\MenuCategory;
 use App\Models\MenuImport;
 use App\Models\MenuItem;
 use App\Support\MenuCatalogTitleFormatter;
+use App\Support\MenuTextNormalizer;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -23,6 +24,7 @@ class MenuImportService
         private readonly MenuImportParser $parser,
         private readonly MenuImportRowValidator $validator,
         private readonly MenuCatalogTitleFormatter $titleFormatter,
+        private readonly MenuTextNormalizer $textNormalizer,
     ) {}
 
     /**
@@ -152,7 +154,8 @@ class MenuImportService
 
     private function findOrCreateCategory(string $name): MenuCategory
     {
-        $category = MenuCategory::query()->where('name', $name)->first();
+        $normalizedName = $this->normalizeImportedCategoryName($name);
+        $category = MenuCategory::query()->where('name', $normalizedName)->first();
 
         if ($category instanceof MenuCategory) {
             if (! $category->is_active) {
@@ -165,10 +168,26 @@ class MenuImportService
         $sortOrder = ((int) MenuCategory::query()->max('sort_order')) + 10;
 
         return MenuCategory::query()->create([
-            'name' => $name,
+            'name' => $normalizedName,
             'sort_order' => $sortOrder,
             'is_active' => true,
         ]);
+    }
+
+    private function normalizeImportedCategoryName(string $value): string
+    {
+        $category = $this->textNormalizer->clean($value);
+
+        // Remove trailing weight suffix like "(170 г.)", "170 г", "170гр", "300 мл".
+        $category = preg_replace(
+            '/\s*(?:\(\s*\d+(?:[.,]\d+)?\s*(?:г|гр|грамм(?:а|ов)?|kg|кг|ml|мл|л)\.?\s*\)|\d+(?:[.,]\d+)?\s*(?:г|гр|грамм(?:а|ов)?|kg|кг|ml|мл|л)\.?)\s*$/ui',
+            '',
+            $category,
+        ) ?? $category;
+
+        $category = $this->textNormalizer->clean($category);
+
+        return $category !== '' ? $category : $this->textNormalizer->clean($value);
     }
 
     /**
