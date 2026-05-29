@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Log;
 
 class UpdateHandler
 {
+    private const TELEGRAM_FRIDGE_SAFE_TEXT_LIMIT = 3500;
+
     public function __construct(
         private readonly BotClient $botClient,
         private readonly KeyboardBuilder $keyboardBuilder,
@@ -457,7 +459,6 @@ class UpdateHandler
 
     private function sendActiveFridgeItems(int|string $chatId, User $user): void
     {
-        $visibleLimit = 7;
         $query = FridgeItem::query()
             ->where('user_id', $user->id)
             ->where('status', FridgeItemStatus::InFridge)
@@ -466,9 +467,7 @@ class UpdateHandler
             ->orderByDesc('id');
 
         $totalCount = (clone $query)->count();
-        $items = (clone $query)
-            ->limit($visibleLimit)
-            ->get();
+        $items = (clone $query)->get();
 
         if ($items->isEmpty()) {
             $openFridgeKeyboard = $this->keyboardBuilder->webAppAction('Открыть мой холодильник')
@@ -485,34 +484,53 @@ class UpdateHandler
             return;
         }
 
-        $lines = $items
-            ->values()
-            ->map(function (FridgeItem $item, int $index): string {
-                $quantityLabel = "{$item->quantity_remaining} шт.";
-
-                return sprintf(
-                    '%d. %s — %s',
-                    $index + 1,
-                    $item->title_snapshot,
-                    $quantityLabel,
-                );
-            })
-            ->implode("\n");
-
-        $remaining = max(0, $totalCount - $items->count());
-        $text = "Мой холодильник 🧊\n\n".
+        $header = "Мой холодильник 🧊\n\n".
             sprintf(
-                'Сейчас у вас %d %s:',
+                'В холодильнике: %d %s',
                 $totalCount,
                 $this->pluralize($totalCount, ['блюдо', 'блюда', 'блюд']),
-            )."\n".
-            $lines;
+            )."\n\n";
+        $footer = "\n\nОтметить блюдо удобнее в холодильнике.";
+        $overflowTemplate = "\n\nПоказаны первые %d. Остальные доступны в холодильнике.";
 
-        if ($remaining > 0) {
-            $text .= "\n\nИ ещё {$remaining} — откройте холодильник, чтобы посмотреть все.";
+        $visibleLines = [];
+        foreach ($items->values() as $index => $item) {
+            $line = sprintf(
+                '%d. %s — %d шт.',
+                $index + 1,
+                $item->title_snapshot,
+                $item->quantity_remaining,
+            );
+            $hasMoreAfterCurrent = ($index + 1) < $totalCount;
+            $overflowLine = $hasMoreAfterCurrent
+                ? sprintf($overflowTemplate, $index + 1)
+                : '';
+            $candidateText = $header.implode("\n", [...$visibleLines, $line]).$overflowLine.$footer;
+
+            if (mb_strlen($candidateText) > self::TELEGRAM_FRIDGE_SAFE_TEXT_LIMIT) {
+                break;
+            }
+
+            $visibleLines[] = $line;
         }
 
-        $text .= "\n\nОткройте холодильник, чтобы отметить блюдо.";
+        if ($visibleLines === []) {
+            $first = $items->first();
+            if ($first !== null) {
+                $visibleLines[] = sprintf(
+                    '1. %s — %d шт.',
+                    $first->title_snapshot,
+                    $first->quantity_remaining,
+                );
+            }
+        }
+
+        $visibleCount = count($visibleLines);
+        $text = $header.implode("\n", $visibleLines);
+        if ($visibleCount < $totalCount) {
+            $text .= sprintf($overflowTemplate, $visibleCount);
+        }
+        $text .= $footer;
 
         $replyMarkup = $this->keyboardBuilder->webAppAction('Открыть мой холодильник');
         if ($replyMarkup !== null) {

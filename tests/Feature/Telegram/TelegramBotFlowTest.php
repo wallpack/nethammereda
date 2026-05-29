@@ -453,13 +453,13 @@ class TelegramBotFlowTest extends TestCase
         $this->assertCount(1, $bot->messages);
         $message = $bot->messages[0];
         $this->assertStringContainsString('Мой холодильник', $message['text']);
-        $this->assertStringContainsString('Сейчас у вас 2 блюда', $message['text']);
+        $this->assertStringContainsString('В холодильнике: 2 блюда', $message['text']);
         $this->assertStringContainsString('Лазанья', $message['text']);
         $this->assertStringContainsString('Котлета', $message['text']);
-        $this->assertStringContainsString('Лазанья — 2 шт.', $message['text']);
-        $this->assertStringContainsString('Котлета — 1 шт.', $message['text']);
+        $this->assertMatchesRegularExpression('/^\d+\.\s.+\s—\s\d+\sшт\.$/mu', $message['text']);
         $this->assertDoesNotMatchRegularExpression('/\bдо\s+\d{1,2}\s+[а-яё]+,\s+\d{2}:\d{2}\b/ui', $message['text']);
-        $this->assertStringContainsString('Откройте холодильник, чтобы отметить блюдо.', $message['text']);
+        $this->assertStringContainsString('Отметить блюдо удобнее в холодильнике.', $message['text']);
+        $this->assertStringNotContainsString('И ещё', $message['text']);
 
         $this->assertSame(
             'Открыть мой холодильник',
@@ -476,11 +476,11 @@ class TelegramBotFlowTest extends TestCase
     }
 
     #[Test]
-    public function fridge_limits_visible_items_and_reports_extra_count(): void
+    public function fridge_shows_all_active_items_when_text_fits(): void
     {
         $user = User::factory()->create(['telegram_id' => '836']);
 
-        for ($index = 1; $index <= 9; $index++) {
+        for ($index = 1; $index <= 10; $index++) {
             $this->createFridgeItem(
                 $user,
                 quantity: 1,
@@ -494,11 +494,40 @@ class TelegramBotFlowTest extends TestCase
 
         $this->assertCount(1, $bot->messages);
         $text = $bot->messages[0]['text'];
-        $this->assertStringContainsString('Сейчас у вас 9 блюд', $text);
-        $this->assertStringContainsString('И ещё 2', $text);
+        $this->assertStringContainsString('В холодильнике: 10 блюд', $text);
+        $this->assertStringContainsString('Блюдо 1', $text);
+        $this->assertStringContainsString('Блюдо 10', $text);
         $this->assertDoesNotMatchRegularExpression('/\bдо\s+\d{1,2}\s+[а-яё]+,\s+\d{2}:\d{2}\b/ui', $text);
+        $this->assertStringNotContainsString('И ещё', $text);
+        $this->assertStringNotContainsString('Показаны первые', $text);
         preg_match_all('/^\d+\./m', $text, $matches);
-        $this->assertCount(7, $matches[0]);
+        $this->assertCount(10, $matches[0]);
+    }
+
+    #[Test]
+    public function fridge_uses_safe_fallback_when_text_too_long(): void
+    {
+        $user = User::factory()->create(['telegram_id' => '839']);
+
+        for ($index = 1; $index <= 70; $index++) {
+            $this->createFridgeItem(
+                $user,
+                quantity: 1,
+                expiresAt: now()->addDay(),
+                title: str_repeat("Очень длинное название блюда {$index} ", 8),
+            );
+        }
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/fridge', telegramId: 839));
+
+        $this->assertCount(1, $bot->messages);
+        $text = $bot->messages[0]['text'];
+        $this->assertStringContainsString('Показаны первые', $text);
+        $this->assertStringContainsString('Остальные доступны в холодильнике.', $text);
+        $this->assertStringContainsString('Отметить блюдо удобнее в холодильнике.', $text);
+        $this->assertLessThanOrEqual(3500, mb_strlen($text));
+        $this->assertDoesNotMatchRegularExpression('/\bдо\s+\d{1,2}\s+[а-яё]+,\s+\d{2}:\d{2}\b/ui', $text);
     }
 
     #[Test]
