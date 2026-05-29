@@ -728,6 +728,11 @@ const openProtectedPanel = (panel) => {
     navigateToView(panel);
 };
 
+const openProfileFromMobileNav = () => {
+    ui.closeMobilePanel();
+    ui.openProfileModal();
+};
+
 const returnToCatalog = () => {
     navigateToView('catalog');
 
@@ -982,7 +987,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="min-h-dvh bg-slate-50 text-slate-900">
+    <div class="min-h-dvh overflow-x-clip bg-[#f8f4ec] text-slate-900">
         <AppHeader
             :loading="loading"
             :is-authenticated="isAuthenticated"
@@ -1115,7 +1120,7 @@ onBeforeUnmount(() => {
                     v-if="isCatalogView"
                     data-testid="desktop-order-panel"
                     aria-label="Панель корзины"
-                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white text-slate-900 shadow-[0_18px_45px_rgb(15_23_42/0.08)] xl:mt-[9.75rem] xl:block xl:sticky xl:top-20 xl:h-[calc(100dvh-18.75rem)] xl:max-h-[calc(100dvh-18.75rem)]"
+                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.75rem] border border-slate-200/85 bg-white/95 text-slate-900 shadow-[0_20px_55px_rgb(148_163_184/0.2)] xl:mt-[9.75rem] xl:block xl:sticky xl:top-20 xl:h-[calc(100dvh-18.75rem)] xl:max-h-[calc(100dvh-18.75rem)]"
                 >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
                         <OrderPanel
@@ -1147,10 +1152,11 @@ onBeforeUnmount(() => {
             :active-panel="mobilePanel"
             :total-positions="totalPositions"
             :active-fridge-items-count="activeFridgeItemsCount"
+            :is-profile-open="isProfileModalOpen"
             @catalog="returnToCatalog"
             @order="openProtectedPanel('order')"
             @fridge="openProtectedPanel('fridge')"
-            @history="openProtectedPanel('history')"
+            @profile="openProfileFromMobileNav"
         />
 
         <MobilePanelSheet

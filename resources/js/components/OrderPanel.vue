@@ -105,7 +105,7 @@ watch(() => props.menuItemsById, () => {
 </script>
 
 <template>
-    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="loading || actionLoading">
+    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 xl:px-5" :aria-busy="loading || actionLoading">
         <div v-if="showHeading" class="shrink-0">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
@@ -120,12 +120,12 @@ watch(() => props.menuItemsById, () => {
                     v-else-if="!showGuestAuthPrompt"
                     variant="outline"
                     class="shrink-0 rounded-full px-3 text-xs font-semibold"
-                    :class="isSubmittedOrder ? 'border-blue-100 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'"
+                    :class="isSubmittedOrder ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50 text-slate-600'"
                 >
                     {{ orderStatusLabel(order?.status ?? 'draft') }}
                 </Badge>
             </div>
-            <p v-if="statusLine" class="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-pretty text-xs font-medium text-slate-600">
+            <p v-if="statusLine" class="mt-2 rounded-xl bg-slate-50/85 px-3 py-2 text-pretty text-xs font-medium text-slate-600">
                 {{ statusLine }}
             </p>
         </div>
@@ -133,7 +133,7 @@ watch(() => props.menuItemsById, () => {
         <Alert
             v-if="error"
             variant="destructive"
-            class="mt-3 shrink-0 rounded-xl border-red-200 bg-red-50 text-red-700"
+                class="mt-3 shrink-0 rounded-xl border-red-200 bg-red-50 text-red-700"
             role="alert"
             aria-live="assertive"
         >
@@ -154,7 +154,7 @@ watch(() => props.menuItemsById, () => {
 
         <div
             v-else-if="showGuestAuthPrompt"
-            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-5 py-10 text-center"
+            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-10 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Войдите, чтобы заказать</p>
@@ -163,7 +163,7 @@ watch(() => props.menuItemsById, () => {
 
         <div
             v-else-if="!order || orderItems.length === 0"
-            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-10 text-center"
+            class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-10 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Вы ещё ничего не добавили</p>
@@ -216,7 +216,7 @@ watch(() => props.menuItemsById, () => {
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-8 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                                class="size-8 rounded-full text-slate-900 hover:bg-amber-50 hover:text-slate-900"
                                 :disabled="actionLoading"
                                 :aria-label="`Уменьшить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity - 1)"
@@ -228,7 +228,7 @@ watch(() => props.menuItemsById, () => {
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-8 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-700"
+                                class="size-8 rounded-full text-slate-900 hover:bg-amber-50 hover:text-slate-900"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity + 1)"
@@ -263,7 +263,7 @@ watch(() => props.menuItemsById, () => {
                 <Button
                     v-if="showGuestAuthPrompt"
                     type="button"
-                    class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
+                    class="mt-3 h-12 w-full rounded-full bg-slate-900 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98]"
                     @click="emit('open-auth')"
                 >
                     Войти
@@ -272,7 +272,7 @@ watch(() => props.menuItemsById, () => {
                 <Button
                     v-else-if="canEditOrder"
                     type="button"
-                    class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
+                    class="mt-3 h-12 w-full rounded-full bg-slate-900 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
                     :disabled="!orderItems.length || actionLoading"
                     :title="!orderItems.length ? 'Добавьте блюда из каталога' : undefined"
                     @click="emit('submit-order')"
@@ -285,7 +285,7 @@ watch(() => props.menuItemsById, () => {
                     v-else-if="canReopenOrder"
                     type="button"
                     variant="outline"
-                    class="mt-3 h-12 w-full rounded-full border-blue-200 bg-white px-4 text-sm font-semibold text-blue-700 shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
+                    class="mt-3 h-12 w-full rounded-full border-amber-200 bg-white px-4 text-sm font-semibold text-amber-800 shadow-sm transition-[background-color,transform] duration-150 hover:bg-amber-50 active:scale-[0.98]"
                     :disabled="actionLoading"
                     @click="emit('reopen-order')"
                 >

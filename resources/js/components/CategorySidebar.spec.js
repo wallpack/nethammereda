@@ -7,7 +7,7 @@ const expectClasses = (element, classes) => {
 };
 
 describe('CategorySidebar', () => {
-    it('uses brand-blue selected states and badges in chip navigation', async () => {
+    it('uses visible selected states and muted idle states in category navigation', async () => {
         const wrapper = mount(CategorySidebar, {
             props: {
                 categories: [{ id: 1, name: 'Soups' }],
@@ -18,19 +18,19 @@ describe('CategorySidebar', () => {
 
         let [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(categoryButton, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
+        expectClasses(categoryButton, ['bg-slate-900', 'text-white', 'shadow-sm', 'ring-1']);
         expectClasses(categoryButton.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
-        expectClasses(allButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
+        expectClasses(allButton, ['text-slate-700', 'hover:bg-slate-50', 'hover:text-slate-900']);
 
         await wrapper.setProps({ selectedCategory: null });
         [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(allButton, ['bg-blue-600', 'text-white', 'shadow-sm', 'ring-1', 'ring-blue-500/20']);
+        expectClasses(allButton, ['bg-slate-900', 'text-white', 'shadow-sm', 'ring-1']);
         expectClasses(allButton.find('[data-slot="badge"]'), ['bg-white/20', 'text-white']);
-        expectClasses(categoryButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-700']);
+        expectClasses(categoryButton, ['text-slate-700', 'hover:bg-slate-50', 'hover:text-slate-900']);
     });
 
-    it('keeps categories row wrapping-safe without layout-breaking width classes', () => {
+    it('keeps categories wrapping-safe on mobile and prepared as a desktop rail', () => {
         const wrapper = mount(CategorySidebar, {
             props: {
                 categories: [
@@ -51,7 +51,7 @@ describe('CategorySidebar', () => {
         const row = wrapper.get('[data-testid="category-chip-row"]');
 
         expectClasses(nav, ['max-w-full', 'min-w-0']);
-        expectClasses(row, ['flex-wrap', 'max-w-full', 'min-w-0']);
+        expectClasses(row, ['flex-wrap', 'max-w-full', 'min-w-0', 'xl:flex-col', 'xl:rounded-[1.5rem]']);
         expect(row.classes()).not.toEqual(expect.arrayContaining(['w-max', 'min-w-full', 'flex-nowrap']));
     });
 

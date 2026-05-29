@@ -840,6 +840,17 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Корзина');
     });
 
+    it('renders desktop shell with category rail, catalog and order panel', async () => {
+        await mountApp({
+            authenticated: true,
+            order: orderWithItem,
+        });
+
+        expect(document.querySelector('[data-testid="menu-category-rail"]')).toBeTruthy();
+        expect(document.getElementById('menu-heading')?.textContent).toContain('Каталог');
+        expect(document.querySelector('[data-testid="desktop-order-panel"]')).toBeTruthy();
+    });
+
     it('opens profile modal with account actions', async () => {
         await mountApp({ authenticated: true });
 
@@ -1570,7 +1581,7 @@ describe('catalog auth UX', () => {
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
 
-        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
+        await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
         expect(mobileOrderText).toContain('Приём заказов закрыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
@@ -1591,16 +1602,16 @@ describe('catalog auth UX', () => {
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
 
-        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
+        await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
         expect(mobileOrderText).toContain('Приём заказов закрыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });
 
-    it('opens mobile order, fridge and history sheets from bottom navigation', async () => {
+    it('opens mobile order, fridge and profile from bottom navigation', async () => {
         await mountApp({ authenticated: true });
 
-        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
+        await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         expect(document.querySelector('[data-testid="mobile-order-panel"]')).toBeTruthy();
 
         await click(document.querySelector('[aria-label="Закрыть мой заказ"]'));
@@ -1608,8 +1619,8 @@ describe('catalog auth UX', () => {
         expect(document.querySelector('[data-testid="mobile-fridge-panel"]')).toBeTruthy();
 
         await click(document.querySelector('[aria-label="Закрыть холодильник"]'));
-        await click(document.querySelector('[aria-label="Открыть раздел: История"]'));
-        expect(document.querySelector('[data-testid="mobile-history-panel"]')).toBeTruthy();
+        await click(document.querySelector('[aria-label="Открыть раздел: Профиль"]'));
+        expect(document.querySelector('[data-testid="profile-name"]')).toBeTruthy();
     });
 
     it('closes an open mobile sheet after switching to a desktop viewport', async () => {
@@ -1632,7 +1643,7 @@ describe('catalog auth UX', () => {
         }));
 
         await mountApp({ authenticated: true });
-        await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
+        await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         expect(document.querySelector('[data-testid="mobile-order-panel"]')).toBeTruthy();
 
         desktop = true;

@@ -55,7 +55,7 @@ const primaryStatusText = computed(() => props.orderStatusText || guestStatusTex
     <section
         v-if="loading"
         data-testid="week-status-loading"
-        class="week-status rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm"
+        class="week-status rounded-2xl border border-slate-200/85 bg-white/95 px-4 py-3 shadow-[0_10px_30px_rgb(148_163_184/0.12)]"
         aria-busy="true"
         aria-label="Загрузка недельного цикла"
     >
@@ -67,16 +67,19 @@ const primaryStatusText = computed(() => props.orderStatusText || guestStatusTex
 
     <section
         v-else
-        class="week-status rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-sm"
+        class="week-status rounded-2xl border border-slate-200/85 bg-white/95 px-4 py-3 shadow-[0_10px_30px_rgb(148_163_184/0.12)]"
         aria-label="Текущий недельный цикл"
     >
         <div class="flex min-w-0 items-center gap-2 text-xs font-medium text-slate-500">
-            <CalendarDays aria-hidden="true" class="size-3.5 shrink-0 text-blue-700" />
+            <CalendarDays aria-hidden="true" class="size-3.5 shrink-0 text-amber-700" />
             <p class="min-w-0 truncate">{{ cycleCaption }}</p>
         </div>
 
         <p class="mt-1 text-pretty text-sm font-semibold leading-5 text-slate-950 sm:text-base">
             {{ primaryStatusText }}
+        </p>
+        <p v-if="availabilityDescription" class="mt-1 text-xs text-slate-500">
+            {{ availabilityDescription }}
         </p>
     </section>
 </template>

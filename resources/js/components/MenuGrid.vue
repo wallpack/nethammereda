@@ -198,124 +198,142 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
 </script>
 
 <template>
-    <section class="min-w-0" aria-labelledby="menu-heading">
-        <div class="mb-4 flex flex-col gap-3 sm:mb-5">
-            <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold tracking-[-0.03em] text-slate-950 outline-none sm:text-3xl">
-                Каталог
-            </h2>
-            <CategorySidebar
-                :loading="loading"
-                :categories="categories"
-                :items="items"
-                :selected-category="selectedCategory"
-                @update:selected-category="emit('update:selectedCategory', $event)"
-            >
-                <template #append>
-                    <button
-                        v-if="isAuthenticated"
-                        type="button"
-                        data-testid="menu-favorites-chip"
-                        class="inline-flex h-9 max-w-full flex-none shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 text-[11px] font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] max-[639px]:px-2.5 sm:h-10 sm:px-4 sm:text-sm"
-                        :class="favoritesOnly ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'"
-                        :aria-pressed="favoritesOnly"
-                        @click="emit('toggle-favorites-filter')"
-                    >
-                        <Heart aria-hidden="true" class="size-4" :class="favoritesOnly ? 'fill-current' : ''" />
-                        Избранное
-                        <span v-if="favoritesCount" class="tabular-nums text-xs opacity-75">{{ favoritesCount }}</span>
-                    </button>
-                </template>
-            </CategorySidebar>
+    <section class="menu-shell min-w-0" aria-labelledby="menu-heading">
+        <aside class="menu-shell__rail" data-testid="menu-category-rail">
+            <div class="menu-shell__rail-inner">
+                <p class="hidden px-1 text-xs font-semibold uppercase tracking-[0.13em] text-slate-400 xl:block">
+                    Категории
+                </p>
+                <CategorySidebar
+                    :loading="loading"
+                    :categories="categories"
+                    :items="items"
+                    :selected-category="selectedCategory"
+                    @update:selected-category="emit('update:selectedCategory', $event)"
+                >
+                    <template #append>
+                        <button
+                            v-if="isAuthenticated"
+                            type="button"
+                            data-testid="menu-favorites-chip"
+                            class="inline-flex h-9 max-w-full flex-none shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 text-[11px] font-semibold text-slate-700 shadow-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98] max-[639px]:px-2.5 sm:h-10 sm:px-4 sm:text-sm xl:h-11 xl:w-full xl:max-w-none xl:justify-between xl:rounded-xl xl:px-3"
+                            :class="favoritesOnly ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white hover:border-rose-200 hover:bg-rose-50/70 hover:text-rose-700'"
+                            :aria-pressed="favoritesOnly"
+                            @click="emit('toggle-favorites-filter')"
+                        >
+                            <Heart aria-hidden="true" class="size-4" :class="favoritesOnly ? 'fill-current' : ''" />
+                            Избранное
+                            <span v-if="favoritesCount" class="tabular-nums text-xs opacity-75">{{ favoritesCount }}</span>
+                        </button>
+                    </template>
+                </CategorySidebar>
+            </div>
+        </aside>
 
-            <label class="relative min-w-0 md:hidden">
-                <span class="sr-only">Найти блюдо</span>
-                <Search aria-hidden="true" class="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
-                <Input
-                    id="menu-search"
-                    v-model="searchModel"
-                    type="search"
-                    placeholder="Название или состав"
-                    class="h-12 rounded-2xl border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
-                />
-            </label>
-        </div>
+        <div class="menu-shell__content">
+            <div class="mb-4 flex flex-col gap-3 sm:mb-5">
+                <div class="flex min-w-0 items-start justify-between gap-3">
+                    <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold tracking-[-0.03em] text-slate-950 outline-none sm:text-3xl">
+                        Каталог
+                    </h2>
+                    <span class="hidden items-center rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 xl:inline-flex">
+                        Позиций: {{ filteredItems.length }}
+                    </span>
+                </div>
+                <p class="hidden text-sm text-slate-500 xl:block">
+                    Выберите категорию слева и добавьте блюда в корзину.
+                </p>
 
-        <div v-if="loading" class="dishes-grid" aria-busy="true" aria-label="Загрузка блюд">
-            <Card
-                v-for="skeleton in menuSkeletonRows"
-                :key="`menu-skeleton-${skeleton}`"
-                class="menu-card overflow-hidden rounded-[1.45rem] border-slate-200/80 bg-white shadow-sm max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none"
-            >
-                <CardContent class="space-y-3 p-0">
-                    <div class="p-2.5 pb-0 max-[430px]:p-0">
-                        <Skeleton class="h-[16rem] w-full rounded-[1.15rem] bg-slate-100 sm:h-[17rem] lg:h-[17.25rem] xl:h-[17.75rem] max-[430px]:h-[8.25rem] max-[430px]:rounded-2xl" />
-                    </div>
-                    <div class="space-y-3 px-5 pb-5 pt-2 max-[430px]:space-y-2.5 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0">
-                        <Skeleton class="h-4 w-20 rounded-md bg-slate-100" />
-                        <Skeleton class="h-5 w-4/5 rounded-md bg-slate-100" />
-                        <Skeleton class="h-4 w-full rounded-md bg-slate-100 max-[430px]:hidden" />
-                        <div class="flex items-center justify-between pt-3 max-[430px]:pt-2.5">
-                            <Skeleton class="h-7 w-24 rounded-md bg-slate-100" />
-                            <Skeleton class="h-11 w-28 rounded-xl bg-slate-100 max-[430px]:size-10 max-[430px]:rounded-full" />
+                <label class="relative min-w-0 md:hidden">
+                    <span class="sr-only">Найти блюдо</span>
+                    <Search aria-hidden="true" class="pointer-events-none absolute left-3.5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                    <Input
+                        id="menu-search"
+                        v-model="searchModel"
+                        type="search"
+                        placeholder="Название или состав"
+                        class="h-12 rounded-2xl border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                    />
+                </label>
+            </div>
+
+            <div v-if="loading" class="dishes-grid" aria-busy="true" aria-label="Загрузка блюд">
+                <Card
+                    v-for="skeleton in menuSkeletonRows"
+                    :key="`menu-skeleton-${skeleton}`"
+                    class="menu-card overflow-hidden rounded-[1.45rem] border-slate-200/80 bg-white shadow-sm max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none"
+                >
+                    <CardContent class="space-y-3 p-0">
+                        <div class="p-2.5 pb-0 max-[430px]:p-0">
+                            <Skeleton class="h-[16rem] w-full rounded-[1.15rem] bg-slate-100 sm:h-[17rem] lg:h-[17.25rem] xl:h-[17.75rem] max-[430px]:h-[8.25rem] max-[430px]:rounded-2xl" />
                         </div>
-                    </div>
+                        <div class="space-y-3 px-5 pb-5 pt-2 max-[430px]:space-y-2.5 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0">
+                            <Skeleton class="h-4 w-20 rounded-md bg-slate-100" />
+                            <Skeleton class="h-5 w-4/5 rounded-md bg-slate-100" />
+                            <Skeleton class="h-4 w-full rounded-md bg-slate-100 max-[430px]:hidden" />
+                            <div class="flex items-center justify-between pt-3 max-[430px]:pt-2.5">
+                                <Skeleton class="h-7 w-24 rounded-md bg-slate-100" />
+                                <Skeleton class="h-11 w-28 rounded-xl bg-slate-100 max-[430px]:size-10 max-[430px]:rounded-full" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Card v-else-if="filteredItems.length === 0" class="rounded-[1.5rem] border-slate-200/80 bg-white/90 shadow-sm">
+                <CardContent class="flex flex-col items-center px-5 py-12 text-center">
+                    <Search aria-hidden="true" class="size-7 text-slate-300" />
+                    <p class="mt-4 text-balance text-lg font-semibold text-slate-900">{{ emptyTitle }}</p>
+                    <p class="mt-2 max-w-sm text-pretty text-sm leading-6 text-slate-500">
+                        {{ emptyDescription }}
+                    </p>
+                    <Button
+                        v-if="hasActiveFilters"
+                        type="button"
+                        variant="outline"
+                        class="mt-5 h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold"
+                        @click="emit('clear-filters')"
+                    >
+                        <X aria-hidden="true" class="size-4" />
+                        {{ clearFiltersLabel }}
+                    </Button>
                 </CardContent>
             </Card>
-        </div>
 
-        <Card v-else-if="filteredItems.length === 0" class="rounded-[1.5rem] border-slate-200/80 bg-white/90 shadow-sm">
-            <CardContent class="flex flex-col items-center px-5 py-12 text-center">
-                <Search aria-hidden="true" class="size-7 text-slate-300" />
-                <p class="mt-4 text-balance text-lg font-semibold text-slate-900">{{ emptyTitle }}</p>
-                <p class="mt-2 max-w-sm text-pretty text-sm leading-6 text-slate-500">
-                    {{ emptyDescription }}
-                </p>
-                <Button
-                    v-if="hasActiveFilters"
-                    type="button"
-                    variant="outline"
-                    class="mt-5 h-11 rounded-xl border-slate-200 px-4 text-sm font-semibold"
-                    @click="emit('clear-filters')"
+            <div v-else class="space-y-6 sm:space-y-7">
+                <section
+                    v-for="group in renderGroups"
+                    :key="group.key"
+                    data-testid="menu-category-section"
+                    class="space-y-3"
                 >
-                    <X aria-hidden="true" class="size-4" />
-                    {{ clearFiltersLabel }}
-                </Button>
-            </CardContent>
-        </Card>
+                    <header
+                        class="flex items-end gap-3"
+                        :data-testid="showCategorySections ? undefined : 'menu-selected-category-summary'"
+                    >
+                        <h3 data-testid="menu-category-heading" class="text-balance text-lg font-semibold tracking-[-0.02em] text-slate-900 sm:text-xl">
+                            {{ group.name }}
+                        </h3>
+                    </header>
 
-        <div v-else class="space-y-6 sm:space-y-7">
-            <section
-                v-for="group in renderGroups"
-                :key="group.key"
-                data-testid="menu-category-section"
-                class="space-y-3"
-            >
-                <header
-                    class="flex items-end gap-3"
-                    :data-testid="showCategorySections ? undefined : 'menu-selected-category-summary'"
-                >
-                    <h3 data-testid="menu-category-heading" class="text-balance text-lg font-semibold tracking-[-0.02em] text-slate-900 sm:text-xl">
-                        {{ group.name }}
-                    </h3>
-                </header>
-
-                <div class="dishes-grid">
-                    <MenuItemCard
-                        v-for="item in group.items"
-                        :key="item.id"
-                        :item="item"
-                        :order-item="orderItemFor(item.id)"
-                        :is-favorite="isFavorite(item.id)"
-                        :is-authenticated="isAuthenticated"
-                        :can-edit-order="canEditOrder"
-                        :disabled-reason="disabledReason"
-                        :action-loading="actionLoading"
-                        @toggle-favorite="emit('toggle-favorite', $event)"
-                        @add-item="emit('add-item', $event)"
-                        @change-quantity="(...args) => emit('change-quantity', ...args)"
-                    />
-                </div>
-            </section>
+                    <div class="dishes-grid">
+                        <MenuItemCard
+                            v-for="item in group.items"
+                            :key="item.id"
+                            :item="item"
+                            :order-item="orderItemFor(item.id)"
+                            :is-favorite="isFavorite(item.id)"
+                            :is-authenticated="isAuthenticated"
+                            :can-edit-order="canEditOrder"
+                            :disabled-reason="disabledReason"
+                            :action-loading="actionLoading"
+                            @toggle-favorite="emit('toggle-favorite', $event)"
+                            @add-item="emit('add-item', $event)"
+                            @change-quantity="(...args) => emit('change-quantity', ...args)"
+                        />
+                    </div>
+                </section>
+            </div>
         </div>
     </section>
 </template>

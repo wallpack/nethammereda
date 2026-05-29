@@ -54,7 +54,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
 <template>
     <Card
         data-testid="menu-item-card"
-        class="menu-card overflow-hidden rounded-[1.45rem] border border-slate-200/80 bg-white text-slate-900 shadow-[0_12px_32px_rgb(15_23_42/0.06)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-blue-100 hover:shadow-[0_20px_38px_rgb(15_23_42/0.09)] max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
+        class="menu-card overflow-hidden rounded-[1.45rem] border border-slate-200/85 bg-white text-slate-900 shadow-[0_14px_36px_rgb(148_163_184/0.16)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-slate-300 hover:shadow-[0_22px_46px_rgb(148_163_184/0.22)] max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
     >
         <CardContent class="flex h-full flex-col p-0">
             <div class="relative p-2.5 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
@@ -81,7 +81,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
 
                 <button
                     type="button"
-                    class="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full border border-white/80 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98] max-[430px]:right-2 max-[430px]:top-2 max-[430px]:size-8 max-[430px]:border-white/70 max-[430px]:bg-white/85"
+                    class="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full border border-white/85 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98] max-[430px]:right-2 max-[430px]:top-2 max-[430px]:size-8 max-[430px]:border-white/70 max-[430px]:bg-white/85"
                     :class="isFavorite ? 'border-rose-200 bg-rose-50 text-rose-600' : ''"
                     :aria-label="isFavorite ? `Убрать из избранного: ${item.title}` : `Добавить в избранное: ${item.title}`"
                     :aria-pressed="isFavorite"
@@ -125,7 +125,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                             :disabled="controlsDisabled"
                             :title="controlsDisabled ? disabledReason : undefined"
                             :aria-label="`Добавить в заказ: ${item.title}`"
-                            class="h-11 shrink-0 rounded-full bg-blue-700 px-4.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
+                            class="h-11 shrink-0 rounded-full bg-slate-900 px-4.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-slate-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
                             @click="emit('add-item', item.id)"
                         >
                             <Plus aria-hidden="true" class="size-4 max-[430px]:m-0 max-[430px]:size-[18px]" />
@@ -143,7 +143,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-10 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-700 max-[430px]:size-8 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:leading-none"
+                                class="size-10 rounded-full text-slate-900 hover:bg-amber-50 hover:text-slate-900 max-[430px]:size-8 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:leading-none"
                                 :disabled="actionLoading"
                                 :aria-label="`Уменьшить количество: ${item.title}`"
                                 @click="emit('change-quantity', orderItem, orderItem.quantity - 1)"
@@ -155,7 +155,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-10 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-700 max-[430px]:size-8 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:leading-none"
+                                class="size-10 rounded-full text-slate-900 hover:bg-amber-50 hover:text-slate-900 max-[430px]:size-8 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:leading-none"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${item.title}`"
                                 @click="emit('change-quantity', orderItem, orderItem.quantity + 1)"

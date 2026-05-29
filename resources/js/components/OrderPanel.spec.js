@@ -36,6 +36,7 @@ describe('OrderPanel cart-only UX', () => {
 
         expect(wrapper.find('[data-testid="order-history-section"]').exists()).toBe(false);
         expect(wrapper.text()).not.toContain('История заказов');
+        expect(wrapper.text()).not.toContain('Уже заказывали');
         expect(wrapper.text()).not.toContain('Повторить заказ');
         expect(wrapper.find('[data-testid="order-repeat-button"]').exists()).toBe(false);
     });
