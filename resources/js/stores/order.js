@@ -13,6 +13,7 @@ import { orderStatusLabel } from '@/lib/formatters';
 
 export const useOrderStore = defineStore('order', () => {
     const order = ref(null);
+    const orderNotice = ref('');
 
     const orderItems = computed(() => order.value?.items ?? []);
 
@@ -42,6 +43,7 @@ export const useOrderStore = defineStore('order', () => {
 
     const setOrderFromResponse = (payload) => {
         order.value = payload?.data ?? payload ?? null;
+        orderNotice.value = '';
     };
 
     const loadCurrentOrder = async (token) => {
@@ -49,7 +51,24 @@ export const useOrderStore = defineStore('order', () => {
         const catalog = useCatalogStore();
 
         catalog.cycle = response.data?.cycle ?? catalog.cycle;
-        order.value = response.data?.order ?? null;
+        const cycle = response.data?.cycle ?? null;
+        const rawOrder = response.data?.order ?? null;
+        const canOrder = Boolean(
+            cycle?.can_order
+            ?? cycle?.is_orderable
+            ?? cycle?.is_open_for_ordering,
+        );
+        const isDraft = rawOrder?.status === 'draft';
+        const draftUnavailable = Boolean(response.data?.draft_unavailable);
+        const draftUnavailableMessage = response.data?.draft_unavailable_message ?? '';
+
+        if (draftUnavailable || (!canOrder && isDraft)) {
+            order.value = null;
+            orderNotice.value = draftUnavailableMessage || 'Цикл закрыт, черновик заказа больше недоступен.';
+        } else {
+            order.value = rawOrder;
+            orderNotice.value = '';
+        }
 
         return response;
     };
@@ -108,10 +127,12 @@ export const useOrderStore = defineStore('order', () => {
 
     const resetOrder = () => {
         order.value = null;
+        orderNotice.value = '';
     };
 
     return {
         order,
+        orderNotice,
         orderItems,
         totalPositions,
         orderItemByMenuItem,

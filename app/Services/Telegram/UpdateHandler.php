@@ -361,9 +361,10 @@ class UpdateHandler
         if ($cycle === null) {
             $this->botClient->sendMessage(
                 $chatId,
-                "У вас пока нет активного заказа.\n".
-                'Откройте меню и выберите блюда.',
-                $this->keyboardBuilder->navigation(),
+                "Приём заказов сейчас закрыт.\n".
+                'Мы сообщим, когда откроется новый цикл.',
+                $this->keyboardBuilder->webAppAction('Открыть меню')
+                    ?? $this->keyboardBuilder->navigation(),
             );
 
             return;
@@ -374,6 +375,35 @@ class UpdateHandler
             ->where('user_id', $user->id)
             ->where('order_cycle_id', $cycle->id)
             ->first();
+
+        $isOpen = $cycle->status === OrderCycleStatus::Open
+            && $cycle->isOpenForOrdering();
+
+        if (! $isOpen) {
+            if ($order !== null && $order->status->value === 'submitted') {
+                $this->botClient->sendMessage(
+                    $chatId,
+                    "Приём заказов сейчас закрыт.\n\n".
+                    "Ваш заказ:\n".
+                    "Статус: {$this->orderStatusLabel($order, $cycle)}\n\n".
+                    $this->summaryFormatter->format($order),
+                    $this->keyboardBuilder->webAppAction('Мой заказ')
+                        ?? $this->keyboardBuilder->navigation(),
+                );
+
+                return;
+            }
+
+            $this->botClient->sendMessage(
+                $chatId,
+                "Приём заказов сейчас закрыт.\n".
+                'Мы сообщим, когда откроется новый цикл.',
+                $this->keyboardBuilder->webAppAction('Открыть меню')
+                    ?? $this->keyboardBuilder->navigation(),
+            );
+
+            return;
+        }
 
         if ($order === null) {
             $this->botClient->sendMessage(

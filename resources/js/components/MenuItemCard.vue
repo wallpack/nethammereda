@@ -47,6 +47,7 @@ watch(imageSrc, () => {
 
 const showImage = computed(() => Boolean(imageSrc.value) && !imageFailed.value);
 const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoading || props.item.is_active === false);
+const showClosedStateCta = computed(() => !props.canEditOrder && !props.orderItem);
 const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(props.item.calories)} ккал` : null);
 </script>
 
@@ -107,20 +108,30 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                 <div class="mt-auto flex min-h-12 items-center justify-between gap-3 pt-5 max-[430px]:min-h-0 max-[430px]:gap-2 max-[430px]:pt-2.5">
                     <p class="shrink-0 whitespace-nowrap text-xl font-bold tabular-nums text-slate-950 max-[430px]:text-[0.98rem]">{{ formatPrice(item.price) }}</p>
 
-                    <Button
-                        v-if="!orderItem"
-                        data-testid="menu-item-add-button"
-                        type="button"
-                        size="sm"
-                        :disabled="controlsDisabled"
-                        :title="controlsDisabled ? disabledReason : undefined"
-                        :aria-label="`Добавить в заказ: ${item.title}`"
-                        class="h-11 shrink-0 rounded-full bg-blue-700 px-4.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
-                        @click="emit('add-item', item.id)"
-                    >
-                        <Plus aria-hidden="true" class="size-4 max-[430px]:m-0 max-[430px]:size-[18px]" />
-                        Добавить
-                    </Button>
+                    <template v-if="!orderItem">
+                        <Badge
+                            v-if="showClosedStateCta"
+                            variant="outline"
+                            class="h-11 shrink-0 rounded-full border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-600 max-[430px]:h-9 max-[430px]:px-2 max-[430px]:text-xs"
+                        >
+                            Приём закрыт
+                        </Badge>
+
+                        <Button
+                            v-else
+                            data-testid="menu-item-add-button"
+                            type="button"
+                            size="sm"
+                            :disabled="controlsDisabled"
+                            :title="controlsDisabled ? disabledReason : undefined"
+                            :aria-label="`Добавить в заказ: ${item.title}`"
+                            class="h-11 shrink-0 rounded-full bg-blue-700 px-4.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
+                            @click="emit('add-item', item.id)"
+                        >
+                            <Plus aria-hidden="true" class="size-4 max-[430px]:m-0 max-[430px]:size-[18px]" />
+                            Добавить
+                        </Button>
+                    </template>
 
                     <template v-else-if="canEditOrder">
 

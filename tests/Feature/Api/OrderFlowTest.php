@@ -38,8 +38,8 @@ class OrderFlowTest extends TestCase
             ->assertJsonPath('data.is_open', true)
             ->assertJsonPath('data.is_closed', false)
             ->assertJsonPath('data.is_delivered', false)
-            ->assertJsonPath('data.status_label', 'Открыт')
-            ->assertJsonPath('data.availability_label', 'Заказ открыт')
+            ->assertJsonPath('data.status_label', OrderCycleStatus::Open->label())
+            ->assertJsonPath('data.availability_label', $this->openAvailabilityLabel())
             ->assertJsonStructure([
                 'data' => [
                     'deadline_label',
@@ -85,9 +85,9 @@ class OrderFlowTest extends TestCase
             ->assertJsonPath('data.deadline_passed', true)
             ->assertJsonPath('data.is_open', false)
             ->assertJsonPath('data.is_closed', true)
-            ->assertJsonPath('data.status_label', 'Закрыт')
-            ->assertJsonPath('data.availability_label', 'Заказ закрыт')
-            ->assertJsonPath('data.availability_description', 'Администратор закрыл сбор заказов.');
+            ->assertJsonPath('data.status_label', OrderCycleStatus::Closed->label())
+            ->assertJsonPath('data.availability_label', $this->closedAvailabilityLabel())
+            ->assertJsonPath('data.availability_description', $this->closedAvailabilityDescription());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $cycle->id,
@@ -116,12 +116,13 @@ class OrderFlowTest extends TestCase
             'quantity' => 1,
         ])
             ->assertUnprocessable()
-            ->assertJsonPath('message', 'Прием заказов для этой недели закрыт.');
+            ->assertJsonPath('message', $this->closedOrderingMessage());
 
         $this->patchJson("/api/my-order/items/{$orderItem->id}", [
             'quantity' => 3,
         ])
-            ->assertForbidden();
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->closedOrderingMessage());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $order->order_cycle_id,
@@ -148,11 +149,98 @@ class OrderFlowTest extends TestCase
             ->assertJsonPath('data.cycle.id', $order->order_cycle_id)
             ->assertJsonPath('data.cycle.status', OrderCycleStatus::Closed->value)
             ->assertJsonPath('data.cycle.can_order', false)
-            ->assertJsonPath('data.cycle.is_closed', true);
+            ->assertJsonPath('data.cycle.is_closed', true)
+            ->assertJsonPath('data.order', null)
+            ->assertJsonPath('data.draft_unavailable', true)
+            ->assertJsonPath('data.draft_unavailable_message', $this->draftUnavailableMessage());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $order->order_cycle_id,
             'status' => OrderCycleStatus::Closed->value,
+        ]);
+    }
+
+    #[Test]
+    public function stale_draft_from_closed_cycle_is_hidden_from_active_cart(): void
+    {
+        [$user, $order] = $this->createDraftOrderItem(
+            cycleStatus: OrderCycleStatus::Closed,
+            closesAt: now()->subDay(),
+        );
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/my-order')
+            ->assertOk()
+            ->assertJsonPath('data.cycle.id', $order->order_cycle_id)
+            ->assertJsonPath('data.cycle.status', OrderCycleStatus::Closed->value)
+            ->assertJsonPath('data.order', null)
+            ->assertJsonPath('data.draft_unavailable', true)
+            ->assertJsonPath('data.draft_unavailable_message', $this->draftUnavailableMessage());
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Draft->value,
+        ]);
+    }
+
+    #[Test]
+    public function submitted_order_from_closed_cycle_remains_visible_in_my_order(): void
+    {
+        [$user, $order] = $this->createSubmittedOrderItem(
+            cycleStatus: OrderCycleStatus::Closed,
+            closesAt: now()->subDay(),
+        );
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/my-order')
+            ->assertOk()
+            ->assertJsonPath('data.cycle.id', $order->order_cycle_id)
+            ->assertJsonPath('data.cycle.status', OrderCycleStatus::Closed->value)
+            ->assertJsonPath('data.order.id', $order->id)
+            ->assertJsonPath('data.order.status', OrderStatus::Submitted->value)
+            ->assertJsonPath('data.draft_unavailable', false)
+            ->assertJsonPath('data.draft_unavailable_message', null);
+    }
+
+    #[Test]
+    public function when_new_cycle_opens_active_cart_does_not_pull_draft_from_previous_closed_cycle(): void
+    {
+        $user = User::factory()->create();
+        $menuItem = $this->createMenuItem(price: 200);
+
+        $previousCycle = $this->createCycle(OrderCycleStatus::Closed, now()->subDay());
+        $previousOrder = Order::query()->create([
+            'user_id' => $user->id,
+            'order_cycle_id' => $previousCycle->id,
+            'status' => OrderStatus::Draft,
+            'total_price' => 200,
+        ]);
+        OrderItem::query()->create([
+            'order_id' => $previousOrder->id,
+            'menu_item_id' => $menuItem->id,
+            'title_snapshot' => $menuItem->title,
+            'price_snapshot' => $menuItem->price,
+            'quantity' => 1,
+            'status' => OrderItemStatus::Ordered,
+        ]);
+
+        $newCycle = $this->createCycle(OrderCycleStatus::Open, now()->addDay());
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/my-order')
+            ->assertOk()
+            ->assertJsonPath('data.cycle.id', $newCycle->id)
+            ->assertJsonPath('data.cycle.status', OrderCycleStatus::Open->value)
+            ->assertJsonPath('data.order', null)
+            ->assertJsonPath('data.draft_unavailable', false)
+            ->assertJsonPath('data.draft_unavailable_message', null);
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $previousOrder->id,
+            'status' => OrderStatus::Draft->value,
         ]);
     }
 
@@ -171,7 +259,8 @@ class OrderFlowTest extends TestCase
             'menu_item_id' => $menuItem->id,
             'quantity' => 1,
         ])
-            ->assertUnprocessable();
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->closedOrderingMessage());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $order->order_cycle_id,
@@ -196,7 +285,8 @@ class OrderFlowTest extends TestCase
 
         $this->patchJson("/api/my-order/items/{$orderItem->id}", [
             'quantity' => 3,
-        ])->assertForbidden();
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', $this->closedOrderingMessage());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $order->order_cycle_id,
@@ -219,7 +309,8 @@ class OrderFlowTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->deleteJson("/api/my-order/items/{$orderItem->id}")
-            ->assertForbidden();
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->closedOrderingMessage());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $order->order_cycle_id,
@@ -241,7 +332,8 @@ class OrderFlowTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->postJson('/api/my-order/submit')
-            ->assertUnprocessable();
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->closedOrderingMessage());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $order->order_cycle_id,
@@ -265,7 +357,7 @@ class OrderFlowTest extends TestCase
 
         $this->postJson('/api/my-order/reopen')
             ->assertUnprocessable()
-            ->assertJsonPath('message', 'This order can no longer be edited.');
+            ->assertJsonPath('message', $this->closedOrderingMessage());
 
         $this->assertDatabaseHas('order_cycles', [
             'id' => $order->order_cycle_id,
@@ -478,7 +570,7 @@ class OrderFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $order->id)
             ->assertJsonPath('data.status', OrderStatus::Submitted->value)
-            ->assertJsonPath('data.status_label', 'Отправлен')
+            ->assertJsonPath('data.status_label', OrderStatus::Submitted->label())
             ->assertJsonPath('data.items_count', 1)
             ->assertJsonPath('data.can_submit', false);
 
@@ -735,7 +827,7 @@ class OrderFlowTest extends TestCase
             ->assertJsonPath('data.order.items_count', 1)
             ->assertJsonPath('data.order.total_price', '400.00')
             ->assertJsonPath('data.order.can_submit', true)
-            ->assertJsonPath('data.order.status_label', 'Черновик');
+            ->assertJsonPath('data.order.status_label', OrderStatus::Draft->label());
     }
 
     /**
@@ -828,5 +920,50 @@ class OrderFlowTest extends TestCase
             'price' => $price,
             'is_active' => true,
         ]);
+    }
+
+    private function openAvailabilityLabel(): string
+    {
+        return json_decode(
+            '"\u0417\u0430\u043a\u0430\u0437 \u043e\u0442\u043a\u0440\u044b\u0442"',
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+    }
+
+    private function closedAvailabilityLabel(): string
+    {
+        return json_decode(
+            '"\u0417\u0430\u043a\u0430\u0437 \u0437\u0430\u043a\u0440\u044b\u0442"',
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+    }
+
+    private function closedAvailabilityDescription(): string
+    {
+        return json_decode(
+            '"\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440 \u0437\u0430\u043a\u0440\u044b\u043b \u0441\u0431\u043e\u0440 \u0437\u0430\u043a\u0430\u0437\u043e\u0432."',
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+    }
+
+    private function closedOrderingMessage(): string
+    {
+        return json_decode(
+            '"\u041f\u0440\u0438\u0451\u043c \u0437\u0430\u043a\u0430\u0437\u043e\u0432 \u0437\u0430\u043a\u0440\u044b\u0442."',
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+    }
+
+    private function draftUnavailableMessage(): string
+    {
+        return json_decode(
+            '"\u0426\u0438\u043a\u043b \u0437\u0430\u043a\u0440\u044b\u0442, \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a \u0437\u0430\u043a\u0430\u0437\u0430 \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d."',
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
     }
 }

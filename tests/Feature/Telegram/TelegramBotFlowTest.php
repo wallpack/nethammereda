@@ -378,6 +378,51 @@ class TelegramBotFlowTest extends TestCase
     }
 
     #[Test]
+    public function order_closed_cycle_without_submitted_order_shows_closed_state_message(): void
+    {
+        config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
+        $user = User::factory()->create(['telegram_id' => '8051']);
+        $cycle = $this->createCycle(OrderCycleStatus::Closed, now()->subHour());
+        $this->createOrderItem($user, $cycle, quantity: 1, price: 250, status: OrderStatus::Draft);
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/order', telegramId: 8051));
+
+        $this->assertCount(1, $bot->messages);
+        $text = $bot->messages[0]['text'];
+        $this->assertStringContainsString('Приём заказов сейчас закрыт.', $text);
+        $this->assertStringContainsString('Мы сообщим, когда откроется новый цикл.', $text);
+        $this->assertStringNotContainsString('Ваш текущий заказ', $text);
+        $this->assertSame(
+            'Открыть меню',
+            $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
+        );
+    }
+
+    #[Test]
+    public function order_closed_cycle_with_submitted_order_shows_closed_state_and_order_summary(): void
+    {
+        config()->set('services.telegram.webapp_url', 'https://lunch.example.test');
+        $user = User::factory()->create(['telegram_id' => '8052']);
+        $cycle = $this->createCycle(OrderCycleStatus::Closed, now()->subHour());
+        $this->createOrderItem($user, $cycle, quantity: 1, price: 250, status: OrderStatus::Submitted);
+
+        $bot = new CapturingTelegramBot;
+        $this->handler($bot)->handle($this->message('/order', telegramId: 8052));
+
+        $this->assertCount(1, $bot->messages);
+        $text = $bot->messages[0]['text'];
+        $this->assertStringContainsString('Приём заказов сейчас закрыт.', $text);
+        $this->assertStringContainsString('Ваш заказ:', $text);
+        $this->assertStringContainsString('Статус: Закрыт', $text);
+        $this->assertStringContainsString('Лазанья ×1', $text);
+        $this->assertSame(
+            'Мой заказ',
+            $bot->messages[0]['reply_markup']['inline_keyboard'][0][0]['text'] ?? null,
+        );
+    }
+
+    #[Test]
     #[DataProvider('progressedOrderStatuses')]
     public function order_reflects_progressed_cycle_status(
         OrderCycleStatus $cycleStatus,

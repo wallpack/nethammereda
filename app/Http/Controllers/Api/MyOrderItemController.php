@@ -13,6 +13,7 @@ use App\Services\CurrentOrderCycleResolver;
 use App\Services\OrderCycleAutoCloser;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class MyOrderItemController extends Controller
 {
@@ -31,9 +32,7 @@ class MyOrderItemController extends Controller
         abort_if($user === null, 401);
 
         if ($cycle === null || ! $cycle->isOpenForOrdering()) {
-            return response()->json([
-                'message' => 'Прием заказов для этой недели закрыт.',
-            ], 422);
+            return $this->closedOrderingResponse();
         }
 
         $menuItem = MenuItem::query()
@@ -59,22 +58,29 @@ class MyOrderItemController extends Controller
     ): JsonResponse {
         $orderItem->loadMissing('order.cycle');
         $autoCloser->closeIfExpired($orderItem->order?->cycle);
-        $this->authorize('update', $orderItem);
 
-        if (! $orderItem->order?->cycle?->isOpenForOrdering()) {
-            return response()->json([
-                'message' => 'Заказ уже нельзя редактировать.',
-            ], 422);
+        $user = $request->user();
+        abort_if($user === null, 401);
+
+        $order = $orderItem->order;
+        abort_if($order === null, 404);
+        abort_if(! $user->isAdmin() && (int) $order->user_id !== (int) $user->id, 403);
+
+        if (! $order->cycle?->isOpenForOrdering()) {
+            return $this->closedOrderingResponse();
         }
 
-        $order = $orderService->updateItemQuantityForUser($orderItem, $request->integer('quantity'));
+        $this->authorize('update', $orderItem);
+
+        $updatedOrder = $orderService->updateItemQuantityForUser($orderItem, $request->integer('quantity'));
 
         return response()->json([
-            'data' => $this->orderPayload($order),
+            'data' => $this->orderPayload($updatedOrder),
         ]);
     }
 
     public function destroy(
+        Request $request,
         OrderItem $orderItem,
         OrderCycleAutoCloser $autoCloser,
         OrderService $orderService,
@@ -82,18 +88,24 @@ class MyOrderItemController extends Controller
     {
         $orderItem->loadMissing('order.cycle');
         $autoCloser->closeIfExpired($orderItem->order?->cycle);
-        $this->authorize('delete', $orderItem);
 
-        if (! $orderItem->order?->cycle?->isOpenForOrdering()) {
-            return response()->json([
-                'message' => 'Заказ уже нельзя редактировать.',
-            ], 422);
+        $user = $request->user();
+        abort_if($user === null, 401);
+
+        $order = $orderItem->order;
+        abort_if($order === null, 404);
+        abort_if(! $user->isAdmin() && (int) $order->user_id !== (int) $user->id, 403);
+
+        if (! $order->cycle?->isOpenForOrdering()) {
+            return $this->closedOrderingResponse();
         }
 
-        $order = $orderService->deleteItemForUser($orderItem);
+        $this->authorize('delete', $orderItem);
+
+        $updatedOrder = $orderService->deleteItemForUser($orderItem);
 
         return response()->json([
-            'data' => $order === null ? null : $this->orderPayload($order),
+            'data' => $updatedOrder === null ? null : $this->orderPayload($updatedOrder),
         ]);
     }
 
@@ -137,4 +149,10 @@ class MyOrderItemController extends Controller
         ]);
     }
 
+    private function closedOrderingResponse(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Приём заказов закрыт.',
+        ], 422);
+    }
 }

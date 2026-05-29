@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Api\Concerns\FormatsApiPayloads;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
@@ -28,20 +29,37 @@ class MyOrderController extends Controller
                 'data' => [
                     'cycle' => null,
                     'order' => null,
+                    'draft_unavailable' => false,
+                    'draft_unavailable_message' => null,
                 ],
             ]);
         }
 
-        $order = Order::query()
+        $orderQuery = Order::query()
             ->with(['items.menuItem'])
             ->where('user_id', $user->id)
-            ->where('order_cycle_id', $cycle->id)
-            ->first();
+            ->where('order_cycle_id', $cycle->id);
+
+        $draftUnavailable = false;
+
+        if (! $cycle->isOpenForOrdering()) {
+            $draftUnavailable = (clone $orderQuery)
+                ->where('status', OrderStatus::Draft)
+                ->exists();
+
+            $orderQuery->where('status', OrderStatus::Submitted);
+        }
+
+        $order = $orderQuery->first();
 
         return response()->json([
             'data' => [
                 'cycle' => $this->cyclePayload($cycle),
                 'order' => $order === null ? null : $this->orderPayload($order),
+                'draft_unavailable' => $draftUnavailable,
+                'draft_unavailable_message' => $draftUnavailable
+                    ? 'Цикл закрыт, черновик заказа больше недоступен.'
+                    : null,
             ],
         ]);
     }
@@ -59,7 +77,7 @@ class MyOrderController extends Controller
 
         if ($cycle === null || ! $cycle->isOpenForOrdering()) {
             return response()->json([
-                'message' => 'Прием заказов для этой недели закрыт.',
+                'message' => 'Приём заказов закрыт.',
             ], 422);
         }
 
@@ -84,10 +102,16 @@ class MyOrderController extends Controller
 
         abort_if($user === null, 401);
 
+        if ($cycle === null || ! $cycle->isOpenForOrdering()) {
+            return response()->json([
+                'message' => 'Приём заказов закрыт.',
+            ], 422);
+        }
+
         $order = Order::query()
             ->with(['cycle', 'items.menuItem'])
             ->where('user_id', $user->id)
-            ->when($cycle !== null, fn ($query) => $query->where('order_cycle_id', $cycle->id))
+            ->where('order_cycle_id', $cycle->id)
             ->latest('id')
             ->first();
 

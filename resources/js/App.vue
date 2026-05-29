@@ -63,6 +63,7 @@ const {
 
 const {
     order,
+    orderNotice,
     orderItems,
     totalPositions,
     orderItemByMenuItem,
@@ -109,6 +110,8 @@ const requiredFullNameDraft = ref('');
 const requiredFullNameSaving = ref(false);
 const requiredFullNameError = ref('');
 const telegramLinkStatusTimeoutMs = 4000;
+const closedOrderingMessage = 'Приём заказов закрыт.';
+const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина очищена.';
 
 const menuItemsById = computed(() => new Map(items.value.map((item) => [item.id, item])));
 const isSubmittedOrder = computed(() => order.value?.status === 'submitted');
@@ -250,12 +253,40 @@ const parseDeadlineTimestamp = () => {
     return Number.isNaN(timestamp) ? null : timestamp;
 };
 
+const isClosedOrderingErrorMessage = (message) => {
+    if (typeof message !== 'string') {
+        return false;
+    }
+
+    return message.includes(closedOrderingMessage);
+};
+
+const syncClosedOrderingState = async (message = closedOrderingCartClearedMessage) => {
+    orderStore.resetOrder();
+    reopenedForEditing.value = false;
+    ui.error = '';
+    ui.info = message;
+
+    try {
+        await catalog.loadCatalogData();
+
+        if (auth.token) {
+            await orderStore.loadCurrentOrder(auth.token);
+        }
+    } catch (e) {
+        ui.error = e.message;
+    }
+};
+
 const refreshOrderingState = async () => {
     try {
         await catalog.loadCatalogData();
 
         if (auth.token) {
             await orderStore.loadCurrentOrder(auth.token);
+            if (orderNotice.value) {
+                ui.info = orderNotice.value;
+            }
         }
     } catch (e) {
         ui.error = e.message;
@@ -476,6 +507,9 @@ const loadData = async () => {
                 orderStore.loadCurrentOrder(auth.token),
                 fridge.loadFridgeData(auth.token),
             ]);
+            if (orderNotice.value) {
+                ui.info = orderNotice.value;
+            }
             void loadTelegramLinkStatus();
         } else {
             orderStore.resetOrder();
@@ -737,7 +771,11 @@ const addItem = async (menuItemId) => {
     try {
         await orderStore.addItem(auth.token, menuItemId);
     } catch (e) {
-        ui.error = e.message;
+        if (isClosedOrderingErrorMessage(e.message)) {
+            await syncClosedOrderingState();
+        } else {
+            ui.error = e.message;
+        }
     } finally {
         ui.actionLoading = false;
     }
@@ -754,7 +792,11 @@ const changeQuantity = async (orderItem, quantity) => {
     try {
         await orderStore.changeQuantity(auth.token, orderItem, quantity);
     } catch (e) {
-        ui.error = e.message;
+        if (isClosedOrderingErrorMessage(e.message)) {
+            await syncClosedOrderingState();
+        } else {
+            ui.error = e.message;
+        }
     } finally {
         ui.actionLoading = false;
     }
@@ -773,7 +815,11 @@ const submitOrder = async () => {
         await orderStore.submitOrder(auth.token);
         reopenedForEditing.value = false;
     } catch (e) {
-        ui.error = e.message;
+        if (isClosedOrderingErrorMessage(e.message)) {
+            await syncClosedOrderingState();
+        } else {
+            ui.error = e.message;
+        }
     } finally {
         ui.actionLoading = false;
     }
@@ -797,7 +843,11 @@ const reopenOrder = async () => {
         await orderStore.reopenOrder(auth.token);
         reopenedForEditing.value = true;
     } catch (e) {
-        ui.error = e.message;
+        if (isClosedOrderingErrorMessage(e.message)) {
+            await syncClosedOrderingState(closedOrderingMessage);
+        } else {
+            ui.error = e.message;
+        }
     } finally {
         ui.actionLoading = false;
     }

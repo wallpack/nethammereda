@@ -112,6 +112,10 @@ const fridgeHistoryItem = {
     status: 'eaten',
 };
 
+const closedOrderingMessage = 'Приём заказов закрыт.';
+const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина очищена.';
+const draftUnavailableMessage = 'Цикл закрыт, черновик заказа больше недоступен.';
+
 const jsonResponse = (payload, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,
     status,
@@ -125,6 +129,14 @@ const createFetchMock = ({
     profilePatchMessage = 'Не удалось обновить профиль.',
     order = emptyOrder,
     currentCycle = cycle,
+    draftUnavailable = false,
+    draftUnavailableMessage: draftUnavailableReason = null,
+    orderItemPostStatus = 200,
+    orderItemPostMessage = closedOrderingMessage,
+    orderItemPatchStatus = 200,
+    orderItemPatchMessage = closedOrderingMessage,
+    submitOrderStatus = 200,
+    submitOrderMessage = closedOrderingMessage,
     fridgeItems = [],
     fridgeHistory = [],
     fridgePatchStatus = 200,
@@ -240,11 +252,55 @@ const createFetchMock = ({
         }
 
         if (path === '/my-order' && method === 'GET') {
-            return jsonResponse({ data: { cycle: currentCycle, order: currentOrder } });
+            return jsonResponse({
+                data: {
+                    cycle: currentCycle,
+                    order: currentOrder,
+                    draft_unavailable: draftUnavailable,
+                    draft_unavailable_message: draftUnavailableReason,
+                },
+            });
         }
 
         if (path === '/my-order/items' && method === 'POST') {
+            if (orderItemPostStatus >= 400) {
+                return jsonResponse({ message: orderItemPostMessage }, orderItemPostStatus);
+            }
+
             currentOrder = orderWithItem;
+            return jsonResponse({ data: currentOrder });
+        }
+
+        if (path.startsWith('/my-order/items/') && method === 'PATCH') {
+            if (orderItemPatchStatus >= 400) {
+                return jsonResponse({ message: orderItemPatchMessage }, orderItemPatchStatus);
+            }
+
+            const payload = options.body ? JSON.parse(options.body) : {};
+            const quantity = Number(payload.quantity ?? 1);
+            currentOrder = {
+                ...currentOrder,
+                items: (currentOrder?.items ?? []).map((item) => (
+                    String(item.id) === path.split('/').pop()
+                        ? { ...item, quantity }
+                        : item
+                )),
+            };
+
+            return jsonResponse({ data: currentOrder });
+        }
+
+        if (path === '/my-order/submit' && method === 'POST') {
+            if (submitOrderStatus >= 400) {
+                return jsonResponse({ message: submitOrderMessage }, submitOrderStatus);
+            }
+
+            currentOrder = {
+                ...currentOrder,
+                status: 'submitted',
+                can_submit: false,
+            };
+
             return jsonResponse({ data: currentOrder });
         }
 
@@ -1029,7 +1085,7 @@ describe('catalog auth UX', () => {
 
         expect(document.body.textContent).toContain('Приём заказов закрыт');
         expect(document.body.textContent).not.toContain('Заказ закрыт');
-        expect(buttonByText('Добавить')?.disabled).toBe(true);
+        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
     });
 
     it('shows delivery guidance when a cycle is delivered', async () => {
@@ -1061,7 +1117,7 @@ describe('catalog auth UX', () => {
         expect(buttonByText('Редактировать заказ')).toBeTruthy();
         expect(document.body.textContent).toContain('Заказ отправлен · Можно редактировать до');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
-        expect(buttonByText('Добавить')?.disabled).toBe(true);
+        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
     });
 
     it('uses API deadline display fields without timezone conversion shift', async () => {
@@ -1184,6 +1240,131 @@ describe('catalog auth UX', () => {
         vi.useRealTimers();
     });
 
+    it('hides stale closed-cycle draft from cart and shows draft-unavailable message', async () => {
+        await mountApp({
+            authenticated: true,
+            menuItems: [menuItem],
+            menuCategories: [category],
+            currentCycle: {
+                ...cycle,
+                status: 'closed',
+                is_open_for_ordering: false,
+                is_orderable: false,
+                can_order: false,
+                deadline_passed: true,
+                availability_label: 'Заказ закрыт',
+                availability_description: 'Администратор закрыл сбор заказов.',
+            },
+            order: {
+                ...orderWithItem,
+                status: 'draft',
+            },
+            draftUnavailable: true,
+            draftUnavailableMessage,
+        });
+
+        expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
+    });
+
+    it('clears active order when mutation returns closed-cycle response', async () => {
+        localStorage.setItem('lunch_mvp_token', 'test-token');
+
+        const openCycle = {
+            ...cycle,
+            status: 'open',
+            is_open_for_ordering: true,
+            is_orderable: true,
+            can_order: true,
+            deadline_passed: false,
+        };
+        const closedCycle = {
+            ...openCycle,
+            status: 'closed',
+            is_open_for_ordering: false,
+            is_orderable: false,
+            can_order: false,
+            deadline_passed: true,
+            availability_label: 'Заказ закрыт',
+            availability_description: 'Администратор закрыл сбор заказов.',
+        };
+
+        let closedStateApplied = false;
+        global.fetch = vi.fn((input, options = {}) => {
+            const path = String(input).replace('/api', '');
+            const method = options.method ?? 'GET';
+
+            if (path === '/me') {
+                return jsonResponse({ data: user });
+            }
+
+            if (path === '/current-cycle') {
+                return jsonResponse({ data: closedStateApplied ? closedCycle : openCycle });
+            }
+
+            if (path === '/menu/categories') {
+                return jsonResponse({ data: [category, secondCategory] });
+            }
+
+            if (path === '/menu/items') {
+                return jsonResponse({ data: [menuItem, secondMenuItem] });
+            }
+
+            if (path === '/my-order' && method === 'GET') {
+                if (!closedStateApplied) {
+                    return jsonResponse({
+                        data: {
+                            cycle: openCycle,
+                            order: orderWithItem,
+                            draft_unavailable: false,
+                            draft_unavailable_message: null,
+                        },
+                    });
+                }
+
+                return jsonResponse({
+                    data: {
+                        cycle: closedCycle,
+                        order: null,
+                        draft_unavailable: true,
+                        draft_unavailable_message: draftUnavailableMessage,
+                    },
+                });
+            }
+
+            if (path === '/my-order/items' && method === 'POST') {
+                closedStateApplied = true;
+                return jsonResponse({ message: closedOrderingMessage }, 422);
+            }
+
+            if (path === '/my-fridge' && method === 'GET') {
+                return jsonResponse({ data: [] });
+            }
+
+            if (path === '/my-fridge/history') {
+                return jsonResponse({ data: [] });
+            }
+
+            return jsonResponse({ data: null });
+        });
+
+        const wrapper = mount(App, {
+            attachTo: document.body,
+            global: {
+                plugins: [createPinia()],
+            },
+        });
+
+        await flushPromises();
+        await flushPromises();
+
+        await click(buttonByText('Добавить'));
+
+        expect(document.body.textContent).toContain(closedOrderingCartClearedMessage);
+        expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
+
+        wrapper.unmount();
+    });
+
     it('does not show editable-until copy when API returns a closed cycle', async () => {
         await mountApp({
             authenticated: true,
@@ -1254,7 +1435,7 @@ describe('catalog auth UX', () => {
         expect(buttonByText('Редактировать заказ')).toBeFalsy();
         expect(document.body.textContent).toContain('Приём заказов закрыт');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
-        expect(buttonByText('Добавить')?.disabled).toBe(true);
+        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
@@ -1275,7 +1456,7 @@ describe('catalog auth UX', () => {
 
         expect(document.body.textContent).toContain('Приём заказов закрыт');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
-        expect(buttonByText('Добавить')?.disabled).toBe(true);
+        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Заказ"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
