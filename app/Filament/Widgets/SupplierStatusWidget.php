@@ -6,6 +6,7 @@ use App\Enums\OrderCycleStatus;
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
 use App\Filament\Resources\SupplierOrderExports\SupplierOrderExportResource;
 use App\Filament\Support\AdminDashboard;
+use App\Models\OrderCycle;
 use App\Models\SupplierOrderExport;
 use Filament\Widgets\Widget;
 
@@ -45,6 +46,21 @@ class SupplierStatusWidget extends Widget
             'cycleUrl' => $cycle ? OrderCycleResource::getUrl('edit', ['record' => $cycle]) : OrderCycleResource::getUrl('index'),
             'historyUrl' => SupplierOrderExportResource::getUrl('index'),
             'lastExportUrl' => $export ? SupplierOrderExportResource::getUrl('view', ['record' => $export]) : null,
+            'primaryActionLabel' => $this->primaryActionLabel($cycle),
+            'primaryActionColor' => $cycle?->status === OrderCycleStatus::Closed ? 'success' : 'gray',
         ];
+    }
+
+    private function primaryActionLabel(?OrderCycle $cycle): string
+    {
+        if (! $cycle) {
+            return 'Открыть циклы';
+        }
+
+        return match ($cycle->status) {
+            OrderCycleStatus::Closed => 'Отправить поставщику',
+            OrderCycleStatus::SentToSupplier => 'Проверить доставку',
+            default => 'Перейти к циклу',
+        };
     }
 }

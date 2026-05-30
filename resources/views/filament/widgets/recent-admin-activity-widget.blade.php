@@ -22,14 +22,16 @@
 
                         <div class="nh-admin-activity-list__body">
                             <div class="nh-admin-activity-list__topline">
-                                <span>{{ $activity['kind'] }}</span>
+                                <span class="nh-admin-activity-list__kind nh-admin-activity-list__kind--{{ $activity['tone'] }}">
+                                    {{ $activity['kind'] }}
+                                </span>
                                 <time datetime="{{ $activity['happened_at']->toIso8601String() }}">
                                     {{ $activity['happened_at']->format('d.m H:i') }}
                                 </time>
                             </div>
                             <p class="nh-admin-activity-list__title">{{ $activity['title'] }}</p>
                             <p class="nh-admin-activity-list__description">{{ $activity['description'] }}</p>
-                            <p class="nh-admin-activity-list__actor">{{ $activity['actor'] }}</p>
+                            <p class="nh-admin-activity-list__actor">Ответственный: {{ $activity['actor'] }}</p>
                         </div>
 
                         @if ($activity['url'])

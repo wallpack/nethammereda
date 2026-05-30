@@ -36,7 +36,8 @@ class RecentAdminActivityWidget extends Widget
             ->get()
             ->toBase()
             ->map(fn (SupplierOrderExport $export): array => [
-                'kind' => 'Отправка поставщику',
+                'kind' => 'Отправка',
+                'tone' => 'info',
                 'title' => $export->orderCycle?->title ?? 'Цикл удален',
                 'description' => "{$export->rows_count} строк, {$export->total_quantity} порций, ".AdminDashboard::money($export->total_price),
                 'actor' => $export->exportedBy?->name ?? 'Администратор не указан',
@@ -53,6 +54,7 @@ class RecentAdminActivityWidget extends Widget
             ->toBase()
             ->map(fn (OrderCycle $cycle): array => [
                 'kind' => 'Доставка',
+                'tone' => 'success',
                 'title' => $cycle->title,
                 'description' => 'Блюда синхронизированы с холодильниками',
                 'actor' => $cycle->deliveredBy?->name ?? 'Администратор не указан',
@@ -67,6 +69,7 @@ class RecentAdminActivityWidget extends Widget
             ->toBase()
             ->map(fn (OrderCycle $cycle): array => [
                 'kind' => 'Цикл',
+                'tone' => $cycle->status->color(),
                 'title' => $cycle->title,
                 'description' => 'Статус: '.$cycle->status->label(),
                 'actor' => 'Система',

@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\MenuCategories\Tables;
 
+use App\Models\MenuCategory;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
@@ -18,19 +19,24 @@ class MenuCategoriesTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label('Название')
+                    ->label('Категория')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('semibold'),
                 TextColumn::make('sort_order')
                     ->label('Сортировка')
                     ->sortable(),
-                IconColumn::make('is_active')
-                    ->label('Активна')
-                    ->boolean()
+                TextColumn::make('is_active')
+                    ->label('Статус')
+                    ->state(fn (MenuCategory $record): string => $record->is_active ? 'Активна' : 'Выключена')
+                    ->badge()
+                    ->color(fn (MenuCategory $record): string => $record->is_active ? 'success' : 'gray')
                     ->sortable(),
                 TextColumn::make('items_count')
                     ->counts('items')
-                    ->label('Блюд'),
+                    ->label('Блюд')
+                    ->alignEnd()
+                    ->sortable(),
             ])
             ->filters([
                 TernaryFilter::make('is_active')
@@ -38,9 +44,15 @@ class MenuCategoriesTable
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Изменить'),
-                DeleteAction::make()
-                    ->label('Удалить'),
+                    ->label('Открыть')
+                    ->icon('heroicon-o-arrow-top-right-on-square'),
+                ActionGroup::make([
+                    DeleteAction::make()
+                        ->label('Удалить'),
+                ])
+                    ->label('Еще')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

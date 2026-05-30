@@ -3,11 +3,12 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Enums\UserRole;
+use App\Models\User;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -21,7 +22,9 @@ class UsersTable
             ->columns([
                 TextColumn::make('name')
                     ->label('Имя')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable()
+                    ->weight('semibold'),
                 TextColumn::make('full_name')
                     ->label('ФИО')
                     ->searchable()
@@ -32,20 +35,26 @@ class UsersTable
                 TextColumn::make('telegram_id')
                     ->label('Telegram ID')
                     ->searchable()
+                    ->placeholder('Не привязан')
                     ->toggleable(),
                 TextColumn::make('role')
                     ->label('Роль')
                     ->formatStateUsing(fn (UserRole $state): string => $state->label())
                     ->badge()
+                    ->color(fn (UserRole $state): string => $state === UserRole::Admin ? 'info' : 'gray')
                     ->sortable(),
-                IconColumn::make('is_active')
-                    ->label('Активен')
-                    ->boolean()
+                TextColumn::make('is_active')
+                    ->label('Статус')
+                    ->state(fn (User $record): string => $record->is_active ? 'Активен' : 'Выключен')
+                    ->badge()
+                    ->color(fn (User $record): string => $record->is_active ? 'success' : 'danger')
                     ->sortable(),
                 TextColumn::make('email_verified_at')
                     ->label('Email подтвержден')
-                    ->dateTime()
-                    ->sortable(),
+                    ->dateTime('d.m.Y H:i')
+                    ->placeholder('Нет')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->label('Создан')
                     ->dateTime()
@@ -66,9 +75,15 @@ class UsersTable
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Изменить'),
-                DeleteAction::make()
-                    ->label('Удалить'),
+                    ->label('Открыть')
+                    ->icon('heroicon-o-arrow-top-right-on-square'),
+                ActionGroup::make([
+                    DeleteAction::make()
+                        ->label('Удалить'),
+                ])
+                    ->label('Еще')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

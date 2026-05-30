@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SupplierOrderExports\Tables;
 use App\Filament\Resources\SupplierOrderExports\Actions\DownloadSupplierOrderExportCsvAction;
 use App\Filament\Resources\SupplierOrderExports\Actions\DownloadSupplierOrderExportXlsxAction;
 use App\Models\SupplierOrderExport;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -21,7 +22,9 @@ class SupplierOrderExportsTable
                     ->label('Недельный цикл')
                     ->state(fn (SupplierOrderExport $record): string => $record->cycleTitle())
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('semibold')
+                    ->wrap(),
                 TextColumn::make('exportedBy.name')
                     ->label('Кто отправил')
                     ->placeholder('Не указано')
@@ -56,13 +59,27 @@ class SupplierOrderExportsTable
             ->filters([
                 SelectFilter::make('order_cycle_id')
                     ->relationship('orderCycle', 'title')
-                    ->label('Недельный цикл'),
+                    ->label('Недельный цикл')
+                    ->searchable()
+                    ->preload(),
+                SelectFilter::make('format')
+                    ->label('Формат')
+                    ->options([
+                        'csv' => 'CSV',
+                        'xlsx' => 'XLSX',
+                    ]),
             ])
             ->recordActions([
                 ViewAction::make()
-                    ->label('Открыть'),
-                DownloadSupplierOrderExportCsvAction::make(),
-                DownloadSupplierOrderExportXlsxAction::make(),
+                    ->label('Открыть')
+                    ->icon('heroicon-o-document-magnifying-glass'),
+                ActionGroup::make([
+                    DownloadSupplierOrderExportCsvAction::make(),
+                    DownloadSupplierOrderExportXlsxAction::make(),
+                ])
+                    ->label('Скачать')
+                    ->icon('heroicon-m-arrow-down-tray')
+                    ->color('gray'),
             ])
             ->emptyStateHeading('Отправок поставщику пока нет')
             ->emptyStateDescription('История появится здесь после действия «Отправить поставщику» в недельном цикле.');

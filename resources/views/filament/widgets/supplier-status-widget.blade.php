@@ -39,13 +39,17 @@
             </div>
         </dl>
 
-        <div class="nh-admin-dashboard-card__footer">
-            <x-filament::button tag="a" :href="$cycleUrl" color="gray" outlined icon="heroicon-m-arrow-top-right-on-square">
-                Перейти к циклам
+        <div class="nh-admin-dashboard-card__footer nh-admin-action-strip" aria-label="Действия поставщика">
+            <x-filament::button tag="a" :href="$cycleUrl" :color="$primaryActionColor" icon="heroicon-m-paper-airplane">
+                {{ $primaryActionLabel }}
             </x-filament::button>
 
-            <x-filament::button tag="a" :href="$lastExportUrl ?? $historyUrl" color="gray" outlined icon="heroicon-m-paper-airplane">
-                Открыть историю отправок
+            <x-filament::button tag="a" :href="$lastExportUrl ?? $historyUrl" color="gray" outlined icon="heroicon-m-document-magnifying-glass">
+                {{ $lastExportUrl ? 'Открыть последнюю отправку' : 'История отправок' }}
+            </x-filament::button>
+
+            <x-filament::button tag="a" :href="$historyUrl" color="gray" outlined icon="heroicon-m-clock">
+                Аудит отправок
             </x-filament::button>
         </div>
     </section>

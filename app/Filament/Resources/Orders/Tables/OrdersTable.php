@@ -3,12 +3,14 @@
 namespace App\Filament\Resources\Orders\Tables;
 
 use App\Enums\OrderStatus;
+use App\Models\Order;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class OrdersTable
 {
@@ -18,15 +20,19 @@ class OrdersTable
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('user.name')
-                    ->label('Пользователь')
+                    ->label('Клиент')
+                    ->description(fn (Order $record): ?string => $record->user?->full_name ?: $record->user?->email)
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('semibold'),
                 TextColumn::make('cycle.title')
                     ->label('Неделя')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->wrap(),
                 TextColumn::make('status')
                     ->label('Статус')
                     ->formatStateUsing(fn (OrderStatus $state): string => $state->label())
@@ -36,10 +42,12 @@ class OrdersTable
                 TextColumn::make('total_price')
                     ->label('Сумма')
                     ->money('RUB')
-                    ->sortable(),
+                    ->sortable()
+                    ->alignEnd(),
                 TextColumn::make('submitted_at')
-                    ->label('Отправлен в')
-                    ->dateTime()
+                    ->label('Отправлен')
+                    ->dateTime('d.m.Y H:i')
+                    ->placeholder('Не отправлен')
                     ->sortable(),
             ])
             ->filters([
@@ -48,11 +56,30 @@ class OrdersTable
                     ->options(OrderStatus::labels()),
                 SelectFilter::make('order_cycle_id')
                     ->relationship('cycle', 'title')
-                    ->label('Неделя'),
+                    ->label('Неделя')
+                    ->searchable()
+                    ->preload(),
+                SelectFilter::make('submitted_state')
+                    ->label('Отправка')
+                    ->options([
+                        'submitted' => 'Отправлен',
+                        'not_submitted' => 'Не отправлен',
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'submitted' => $query->whereNotNull('submitted_at'),
+                        'not_submitted' => $query->whereNull('submitted_at'),
+                        default => $query,
+                    }),
+                SelectFilter::make('user_id')
+                    ->relationship('user', 'name')
+                    ->label('Пользователь')
+                    ->searchable()
+                    ->preload(),
             ])
             ->recordActions([
                 EditAction::make()
-                    ->label('Изменить'),
+                    ->label('Открыть')
+                    ->icon('heroicon-o-arrow-top-right-on-square'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
