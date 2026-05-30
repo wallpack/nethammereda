@@ -41,8 +41,9 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.find('[data-testid="order-repeat-button"]').exists()).toBe(false);
     });
 
-    it('shows empty current-cart state', () => {
+    it('shows centered empty current-cart state without closed/status service copy', () => {
         const wrapper = mountPanel({
+            panelTitle: 'Корзина',
             order: {
                 id: 15,
                 status: 'draft',
@@ -50,10 +51,25 @@ describe('OrderPanel cart-only UX', () => {
                 items: [],
             },
             orderItems: [],
+            statusLine: 'Приём заказов закрыт',
+            canEditOrder: false,
         });
 
+        const emptyState = wrapper.get('[data-testid="order-panel-empty-state"]');
+        const footer = wrapper.get('[data-testid="order-panel-footer"]');
+
+        expect(wrapper.text()).toContain('Корзина');
         expect(wrapper.text()).toContain('Корзина пуста');
         expect(wrapper.text()).toContain('Добавьте блюда из каталога.');
+        expect(emptyState.classes()).toContain('flex-1');
+        expect(emptyState.classes()).toContain('justify-center');
+        expect(footer.text()).toContain('Итого');
+        expect(footer.text()).toContain('0 ₽');
+        expect(footer.find('button').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('0 позиций');
+        expect(wrapper.text()).not.toContain('закрыта');
+        expect(wrapper.text()).not.toContain('Закрыта');
+        expect(wrapper.text()).not.toContain('Приём заказов закрыт');
     });
 
     it('renders internal scroll and sticky footer structure for current cart', () => {
@@ -117,6 +133,7 @@ describe('OrderPanel cart-only UX', () => {
         });
 
         const item = wrapper.get('[data-testid="order-panel-item"]');
+        const imageWrap = wrapper.get('[data-testid="order-panel-item-image-wrap"]');
         const image = wrapper.get('[data-testid="order-panel-item-image"]');
         const title = wrapper.get('[data-testid="order-panel-item-title"]');
         const weight = wrapper.get('[data-testid="order-panel-item-weight"]');
@@ -124,8 +141,9 @@ describe('OrderPanel cart-only UX', () => {
         const price = wrapper.get('[data-testid="order-panel-item-price"]');
 
         expect(item.classes()).toContain('grid-cols-[4rem_minmax(0,1fr)]');
+        expect(imageWrap.classes()).toContain('bg-white');
+        expect(imageWrap.classes().join(' ')).not.toContain('blue');
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
-        expect(image.classes()).toContain('bg-white');
         expect(image.classes().join(' ')).not.toContain('blue');
         expect(title.text()).toContain('Суп с курицей');
         expect(weight.text()).toContain('300 г');
@@ -135,7 +153,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(price.classes()).toContain('ml-auto');
     });
 
-    it('uses compact cart status copy and never exposes draft wording', () => {
+    it('does not render order history or repeat copy in cart panel', () => {
         const wrapper = mountPanel({
             order: {
                 id: 15,
@@ -147,7 +165,10 @@ describe('OrderPanel cart-only UX', () => {
             canEditOrder: false,
         });
 
-        expect(wrapper.text()).toContain('Приём заказов закрыт');
+        expect(wrapper.text()).not.toContain('История заказов');
+        expect(wrapper.text()).not.toContain('Уже заказывали');
+        expect(wrapper.text()).not.toContain('Повторить заказ');
+        expect(wrapper.text()).not.toContain('Приём заказов закрыт');
         expect(wrapper.text().toLowerCase()).not.toContain('черновик');
     });
 });

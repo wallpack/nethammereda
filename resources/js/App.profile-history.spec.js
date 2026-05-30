@@ -213,7 +213,7 @@ describe('App profile order-history repeat flow', () => {
 
         expect(postedTo(fetchMock, `/my-orders/${historyOrder.id}/repeat`)).toBe(true);
         expect(document.body.textContent).toContain('Заказ добавлен в корзину.');
-        expect(document.body.textContent).toContain('1 позиция');
+        expect(document.querySelector('[data-testid="order-panel-item"]')?.textContent).toContain('Котлета');
     });
 
     it('asks confirm before replace when current cart is not empty and can be cancelled', async () => {

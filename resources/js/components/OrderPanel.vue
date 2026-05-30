@@ -1,7 +1,6 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatPrice } from '@/lib/formatters';
@@ -69,45 +68,6 @@ const props = defineProps({
 const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order', 'open-auth']);
 const failedOrderImages = ref(new Set());
 
-const isClosedForOrdering = computed(() => props.statusLine?.includes('Приём заказов закрыт'));
-const showGuestAuthPrompt = computed(() => !props.isAuthenticated);
-const cartStatusLabel = computed(() => {
-    if (props.order?.status === 'submitted') {
-        return 'Отправлен';
-    }
-
-    if (props.order?.status === 'cancelled') {
-        return 'Отменён';
-    }
-
-    return isClosedForOrdering.value || !props.canEditOrder ? 'Закрыта' : 'Активна';
-});
-const cartStatusTone = computed(() => {
-    if (props.order?.status === 'submitted') {
-        return 'border-amber-200 bg-amber-50 text-amber-800';
-    }
-
-    if (isClosedForOrdering.value || !props.canEditOrder) {
-        return 'border-slate-200 bg-slate-50 text-slate-600';
-    }
-
-    return 'border-blue-100 bg-blue-50 text-blue-700';
-});
-const footerStatusText = computed(() => {
-    if (isClosedForOrdering.value) {
-        return 'Приём заказов закрыт';
-    }
-
-    if (props.order?.status === 'submitted') {
-        return 'Заказ отправлен';
-    }
-
-    if (props.order?.status === 'cancelled') {
-        return 'Заказ отменён';
-    }
-
-    return props.canEditOrder ? 'Добавьте блюда и оформите заказ' : 'Приём заказов закрыт';
-});
 const orderItemImage = (orderItem) => {
     if (failedOrderImages.value.has(orderItem.menu_item_id)) {
         return null;
@@ -122,19 +82,6 @@ const markOrderItemImageFailed = (orderItem) => {
 };
 const orderItemWeight = (orderItem) => props.menuItemsById.get(orderItem.menu_item_id)?.weight ?? null;
 const orderItemTotal = (orderItem) => formatPrice(Number(orderItem.price_snapshot) * Number(orderItem.quantity));
-const positionsLabel = computed(() => {
-    const count = props.totalPositions;
-
-    if (count % 10 === 1 && count % 100 !== 11) {
-        return 'позиция';
-    }
-
-    if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
-        return 'позиции';
-    }
-
-    return 'позиций';
-});
 
 watch(() => props.menuItemsById, () => {
     failedOrderImages.value = new Set();
@@ -147,24 +94,9 @@ watch(() => props.menuItemsById, () => {
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <h2 class="text-balance text-xl font-semibold text-slate-950">{{ panelTitle }}</h2>
-                    <Skeleton v-if="loading" class="mt-1 h-4 w-20 rounded-md bg-slate-100" />
-                    <p v-else-if="!showGuestAuthPrompt" class="mt-0.5 text-xs font-medium tabular-nums text-slate-500">
-                        <span>{{ totalPositions }}</span> {{ positionsLabel }}
-                    </p>
+                    <Skeleton v-if="loading" class="mt-2 h-4 w-20 rounded-md bg-slate-100" />
                 </div>
-                <Skeleton v-if="loading" class="h-7 w-20 rounded-lg bg-slate-100" />
-                <Badge
-                    v-else-if="!showGuestAuthPrompt"
-                    variant="outline"
-                    class="shrink-0 rounded-full px-3 text-xs font-semibold"
-                    :class="cartStatusTone"
-                >
-                    {{ cartStatusLabel }}
-                </Badge>
             </div>
-            <p v-if="statusLine" class="mt-3 rounded-2xl bg-blue-50/70 px-3.5 py-2.5 text-pretty text-xs font-medium text-blue-800">
-                {{ statusLine }}
-            </p>
         </div>
 
         <Alert
@@ -190,17 +122,9 @@ watch(() => props.menuItemsById, () => {
         </div>
 
         <div
-            v-else-if="showGuestAuthPrompt"
-            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-5 text-center"
-        >
-            <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
-            <p class="mt-3 text-balance text-base font-semibold text-slate-900">Войдите, чтобы заказать</p>
-            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">После входа корзина сохранит выбранные блюда.</p>
-        </div>
-
-        <div
             v-else-if="!order || orderItems.length === 0"
-            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-5 text-center"
+            data-testid="order-panel-empty-state"
+            class="flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-8 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Корзина пуста</p>
@@ -214,18 +138,20 @@ watch(() => props.menuItemsById, () => {
                 class="relative grid grid-cols-[4rem_minmax(0,1fr)] gap-3.5 rounded-2xl bg-white p-3 ring-1 ring-inset ring-slate-100 xl:grid-cols-[4.5rem_minmax(0,1fr)]"
                 data-testid="order-panel-item"
             >
-                <img
-                    v-if="orderItemImage(item)"
-                    data-testid="order-panel-item-image"
-                    :src="orderItemImage(item)"
-                    :alt="item.title_snapshot"
-                    class="size-16 rounded-2xl bg-white object-contain p-1 xl:size-[4.5rem]"
-                    loading="lazy"
-                    decoding="async"
-                    @error="markOrderItemImageFailed(item)"
-                />
-                <div v-else data-testid="order-panel-item-image" class="grid size-16 place-items-center rounded-2xl bg-white text-slate-400 ring-1 ring-inset ring-slate-100 xl:size-[4.5rem]">
-                    <UtensilsCrossed aria-hidden="true" class="size-5" />
+                <div data-testid="order-panel-item-image-wrap" class="grid size-16 place-items-center rounded-2xl bg-white xl:size-[4.5rem]">
+                    <img
+                        v-if="orderItemImage(item)"
+                        data-testid="order-panel-item-image"
+                        :src="orderItemImage(item)"
+                        :alt="item.title_snapshot"
+                        class="size-full rounded-2xl object-contain p-1"
+                        loading="lazy"
+                        decoding="async"
+                        @error="markOrderItemImageFailed(item)"
+                    />
+                    <span v-else data-testid="order-panel-item-image" class="grid size-full place-items-center rounded-2xl bg-white text-slate-400 ring-1 ring-inset ring-slate-100">
+                        <UtensilsCrossed aria-hidden="true" class="size-5" />
+                    </span>
                 </div>
 
                 <div class="min-w-0 self-stretch">
@@ -287,37 +213,24 @@ watch(() => props.menuItemsById, () => {
         >
             <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
             <template v-else>
-                <div class="rounded-2xl px-4 py-3" :class="showGuestAuthPrompt ? 'bg-slate-50/80' : 'bg-slate-50'">
+                <div class="rounded-2xl bg-slate-50 px-4 py-3">
                     <div class="flex items-center justify-between gap-4">
-                        <p class="text-sm font-medium" :class="showGuestAuthPrompt ? 'text-slate-500' : 'text-slate-600'">Итого</p>
-                        <strong
-                            class="whitespace-nowrap tabular-nums"
-                            :class="showGuestAuthPrompt ? 'text-lg font-medium text-slate-400' : 'text-xl font-semibold text-slate-950'"
-                        >
+                        <p class="text-sm font-medium text-slate-600">Итого</p>
+                        <strong class="whitespace-nowrap text-xl font-semibold tabular-nums text-slate-950">
                             {{ formatPrice(order?.total_price ?? 0) }}
                         </strong>
                     </div>
                 </div>
 
                 <Button
-                    v-if="showGuestAuthPrompt"
-                    type="button"
-                    class="mt-3 h-[3.25rem] min-h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
-                    @click="emit('open-auth')"
-                >
-                    Войти
-                </Button>
-
-                <Button
-                    v-else-if="canEditOrder"
+                    v-if="canEditOrder && orderItems.length"
                     type="button"
                     class="mt-3 h-[3.25rem] min-h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
-                    :disabled="!orderItems.length || actionLoading"
-                    :title="!orderItems.length ? 'Добавьте блюда из каталога' : undefined"
+                    :disabled="actionLoading"
                     @click="emit('submit-order')"
                 >
                     <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
-                    {{ orderItems.length ? 'Оформить заказ' : 'Добавьте блюда' }}
+                    Оформить заказ
                 </Button>
 
                 <Button
@@ -331,10 +244,6 @@ watch(() => props.menuItemsById, () => {
                     <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
                     Редактировать заказ
                 </Button>
-
-                <p v-else class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-pretty text-sm leading-5 text-slate-600">
-                    {{ footerStatusText }}
-                </p>
             </template>
         </div>
     </div>

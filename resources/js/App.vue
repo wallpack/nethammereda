@@ -14,7 +14,6 @@ import MobilePanelSheet from '@/components/MobilePanelSheet.vue';
 import OrderPanel from '@/components/OrderPanel.vue';
 import RequiredFullNameModal from '@/components/RequiredFullNameModal.vue';
 import UserProfileModal from '@/components/UserProfileModal.vue';
-import WeekStatus from '@/components/WeekStatus.vue';
 import { createTelegramLinkToken, fetchTelegramLinkStatus } from '@/api/auth';
 import { withTimeout } from '@/lib/async';
 import { useAuthStore } from '@/stores/auth';
@@ -215,9 +214,7 @@ const compactOrderStatusText = computed(() => {
     return closedOrderingStatusText;
 });
 
-const orderPanelDescription = computed(() => {
-    return compactOrderStatusText.value || orderReadOnlyReason.value;
-});
+const orderPanelDescription = computed(() => 'Ваши выбранные блюда.');
 
 const normalizeFullName = (value) => {
     if (typeof value !== 'string') {
@@ -305,7 +302,8 @@ const refreshOrderingState = async () => {
             await orderStore.loadCurrentOrder(auth.token);
             await orderStore.loadOrderHistory(auth.token);
             if (orderNotice.value) {
-                ui.info = normalizeClosedCycleCopy(orderNotice.value);
+                const normalizedNotice = normalizeClosedCycleCopy(orderNotice.value);
+                ui.info = normalizedNotice === closedOrderingInfoMessage ? '' : normalizedNotice;
             }
         }
     } catch (e) {
@@ -541,7 +539,8 @@ const loadData = async () => {
                 fridge.loadFridgeData(auth.token),
             ]);
             if (orderNotice.value) {
-                ui.info = normalizeClosedCycleCopy(orderNotice.value);
+                const normalizedNotice = normalizeClosedCycleCopy(orderNotice.value);
+                ui.info = normalizedNotice === closedOrderingInfoMessage ? '' : normalizedNotice;
             }
             void loadTelegramLinkStatus();
         } else {
@@ -753,6 +752,17 @@ const returnToCatalog = () => {
         document.getElementById('menu-heading')?.focus({ preventScroll: true });
         document.getElementById('menu-heading')?.scrollIntoView?.({ block: 'start' });
     });
+};
+
+const handleHeaderNavigate = (view) => {
+    if (view === 'catalog') {
+        clearCatalogFilters();
+        ui.closeProfileModal();
+        returnToCatalog();
+        return;
+    }
+
+    navigateToView(view);
 };
 
 const showFavoritesFromProfile = () => {
@@ -1016,7 +1026,7 @@ onBeforeUnmount(() => {
             :active-view="activeSidebarTab"
             v-model:search="search"
             @open-auth="openAuthModal()"
-            @navigate="navigateToView"
+            @navigate="handleHeaderNavigate"
             @open-profile="ui.openProfileModal"
         />
 
@@ -1067,19 +1077,7 @@ onBeforeUnmount(() => {
                     @clear-filters="clearCatalogFilters"
                     @add-item="addItem"
                     @change-quantity="changeQuantity"
-                >
-                    <template #status>
-                        <WeekStatus
-                            :loading="loading"
-                            :cycle="cycle"
-                            :weekly-deadline-label="weeklyDeadlineLabel"
-                            :is-open-for-ordering="isOrderingWindowOpen"
-                            :availability-label="effectiveAvailabilityLabel"
-                            :availability-description="effectiveAvailabilityDescription"
-                            :order-status-text="compactOrderStatusText"
-                        />
-                    </template>
-                </MenuGrid>
+                />
 
                 <Card
                     v-else-if="isOrderView"

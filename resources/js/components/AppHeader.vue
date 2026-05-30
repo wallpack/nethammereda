@@ -49,28 +49,33 @@ const searchModel = computed({
     <header class="sticky top-0 z-30 border-b border-slate-200/60 bg-white">
         <div class="header-inner flex min-h-[4.5rem] items-center gap-3 py-2.5 md:min-h-[4.875rem] md:gap-5">
             <div class="flex min-w-[10rem] shrink-0 items-center sm:min-w-[12.5rem] xl:min-w-[14.5rem]">
-                <div class="min-w-0">
+                <button
+                    type="button"
+                    class="group -ml-1 min-w-0 rounded-2xl px-1 py-1 text-left outline-none transition-[background-color,transform] duration-150 hover:bg-[#f2f2f2] active:scale-[0.99] focus-visible:ring-3 focus-visible:ring-blue-600/15"
+                    aria-label="Вернуться в каталог"
+                    @click="emit('navigate', 'catalog')"
+                >
                     <BrandLogo />
                     <p class="-mt-0.5 hidden truncate text-[11px] font-medium text-slate-500 lg:block">
                         корпоративное питание
                     </p>
-                </div>
+                </button>
             </div>
 
             <label class="relative mx-auto hidden min-w-0 flex-1 md:block md:max-w-[66rem]">
-                <span class="sr-only">Поиск по меню</span>
-                <Search aria-hidden="true" class="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+                <span class="sr-only">Искать в меню</span>
+                <Search aria-hidden="true" data-testid="global-search-icon" class="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 <Input
                     id="global-menu-search"
                     v-model="searchModel"
                     type="search"
-                    placeholder="Поиск по меню"
-                    class="h-14 rounded-full border-transparent bg-[#f2f2f2] pl-12 pr-6 text-base font-medium text-slate-950 shadow-none placeholder:text-slate-500 focus-visible:border-blue-300 focus-visible:bg-[#f2f2f2] focus-visible:ring-blue-600/15"
+                    placeholder="Искать в меню"
+                    class="h-12 rounded-full border-transparent bg-[#f2f2f2] pl-11 pr-6 text-[0.95rem] font-medium text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-blue-300 focus-visible:bg-[#f2f2f2] focus-visible:ring-blue-600/15"
                 />
             </label>
 
             <div v-if="loading" data-testid="header-auth-loading" class="ml-auto flex shrink-0 items-center gap-2" aria-label="Загрузка профиля" aria-busy="true">
-                <Skeleton class="hidden h-14 w-48 rounded-full bg-[#f2f2f2] sm:block" />
+                <Skeleton class="hidden h-12 w-52 rounded-full bg-[#f2f2f2] sm:block" />
                 <Skeleton class="size-12 rounded-full bg-[#f2f2f2] sm:hidden" />
             </div>
 
@@ -78,14 +83,12 @@ const searchModel = computed({
                 v-else-if="isAuthenticated"
                 type="button"
                 variant="outline"
-                class="ml-auto hidden h-14 w-60 min-w-0 max-w-72 shrink-0 justify-center rounded-full border-transparent bg-[#f2f2f2] px-3.5 text-slate-800 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:inline-flex"
+                class="ml-auto hidden h-12 min-w-[13.5rem] max-w-60 shrink-0 justify-center rounded-full border-transparent bg-[#f2f2f2] px-5 text-slate-800 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:inline-flex"
                 :aria-label="`Открыть профиль: ${displayUserName}`"
                 :title="displayUserName"
                 @click="emit('open-profile')"
             >
-                <span class="grid size-9 shrink-0 place-items-center rounded-full bg-white text-slate-600 shadow-sm">
-                    <UserRound aria-hidden="true" class="size-4" />
-                </span>
+                <UserRound aria-hidden="true" class="size-4 shrink-0 text-slate-500" />
                 <span class="min-w-0 truncate text-center text-sm font-semibold">{{ displayUserName }}</span>
             </Button>
 
@@ -98,18 +101,16 @@ const searchModel = computed({
                 :title="displayUserName"
                 @click="emit('open-profile')"
             >
-                <span class="grid size-9 place-items-center rounded-full bg-white text-slate-600 shadow-sm">
-                    <UserRound aria-hidden="true" class="size-4" />
-                </span>
+                <UserRound aria-hidden="true" class="size-4 text-slate-500" />
             </Button>
 
             <Button
                 v-if="!isAuthenticated && !loading"
                 type="button"
-                class="ml-auto h-12 shrink-0 rounded-full bg-blue-700 px-5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] sm:h-14 sm:px-6"
+                class="ml-auto h-12 min-w-[11.5rem] shrink-0 rounded-full bg-[#f2f2f2] px-6 text-sm font-semibold text-slate-900 shadow-none transition-[background-color,color,transform] duration-150 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] max-sm:min-w-0 max-sm:px-4"
                 @click="emit('open-auth')"
             >
-                <UserRound aria-hidden="true" class="size-4" />
+                <UserRound aria-hidden="true" class="size-4 text-slate-500" />
                 Войти
             </Button>
         </div>

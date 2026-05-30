@@ -214,10 +214,6 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
         </aside>
 
         <div class="menu-shell__content" data-testid="catalog-shelf-panel">
-            <div class="menu-shell__status" data-testid="menu-status-strip">
-                <slot name="status" />
-            </div>
-
             <div
                 class="menu-shell__catalog-scroll scrollbar-none"
                 data-testid="catalog-scroll-panel"
@@ -239,8 +235,8 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                             id="menu-search"
                             v-model="searchModel"
                             type="search"
-                            placeholder="Поиск по меню"
-                            class="h-12 rounded-2xl border-transparent bg-[#f2f2f2] pl-11 pr-4 text-base text-slate-900 shadow-none placeholder:text-slate-500 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                            placeholder="Искать в меню"
+                            class="h-12 rounded-2xl border-transparent bg-[#f2f2f2] pl-11 pr-4 text-base text-slate-900 shadow-none placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                         />
                     </label>
                 </div>

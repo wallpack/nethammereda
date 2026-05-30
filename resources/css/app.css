@@ -149,11 +149,6 @@
     box-shadow: none;
 }
 
-.menu-shell__status {
-    flex: 0 0 auto;
-    padding: 0.9rem 0.9rem 0;
-}
-
 .menu-shell__catalog-scroll {
     min-height: 0;
     flex: 1 1 auto;
@@ -331,10 +326,6 @@
     .menu-shell__content {
         height: 100%;
         min-height: 0;
-    }
-
-    .menu-shell__status {
-        padding: 1rem 1rem 0;
     }
 
     .menu-shell__content-inner {

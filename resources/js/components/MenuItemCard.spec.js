@@ -28,15 +28,21 @@ const mountCard = (props = {}) => mount(MenuItemCard, {
 });
 
 describe('MenuItemCard UI', () => {
-    it('renders title, price, placeholder and add CTA', () => {
+    it('renders title, price, placeholder and a price stepper control', () => {
         const wrapper = mountCard();
+
+        const stepper = wrapper.find('[data-testid="menu-item-price-stepper"]');
+        const buttons = stepper.findAll('button');
 
         expect(wrapper.find('[data-testid="menu-item-card"]').exists()).toBe(true);
         expect(wrapper.text()).toContain(baseItem.title);
         expect(wrapper.text()).toContain('250');
         expect(wrapper.text()).toContain('Фото скоро');
-        expect(wrapper.find('[data-testid="menu-item-add-button"]').exists()).toBe(true);
-        expect(wrapper.text()).toContain('Добавить');
+        expect(stepper.exists()).toBe(true);
+        expect(buttons).toHaveLength(2);
+        expect(buttons[0].attributes('aria-label')).toContain('Уменьшить количество');
+        expect(buttons[1].attributes('aria-label')).toContain('Добавить в заказ');
+        expect(wrapper.text()).not.toContain('Добавить');
     });
 
     it('renders image on a clean white image area without dashboard tint', () => {
@@ -70,18 +76,47 @@ describe('MenuItemCard UI', () => {
         expect(title.classes()).toContain('line-clamp-2');
     });
 
-    it('keeps card visible in closed state and shows a compact muted CTA badge', () => {
+    it('does not render closed text and shows a muted disabled price stepper when ordering is closed', () => {
         const wrapper = mountCard({
             canEditOrder: false,
         });
-        const closedBadge = wrapper.find('[data-slot="badge"]');
+        const stepper = wrapper.find('[data-testid="menu-item-price-stepper"]');
+        const buttons = stepper.findAll('button');
 
         expect(wrapper.find('[data-testid="menu-item-card"]').exists()).toBe(true);
         expect(wrapper.text()).toContain(baseItem.title);
-        expect(wrapper.text()).toContain('Приём закрыт');
-        expect(closedBadge.classes()).toContain('h-9');
-        expect(closedBadge.classes()).toContain('bg-slate-50');
-        expect(wrapper.find('[data-testid="menu-item-add-button"]').exists()).toBe(false);
+        expect(wrapper.text()).toContain('250');
+        expect(wrapper.text()).not.toContain('Приём закрыт');
+        expect(stepper.classes()).toContain('bg-blue-50/60');
+        expect(stepper.classes()).toContain('text-blue-300');
+        expect(buttons).toHaveLength(2);
+        expect(buttons.every((button) => button.attributes('disabled') !== undefined)).toBe(true);
+    });
+
+    it('renders active blue control and quantity overlay when item is already selected', () => {
+        const wrapper = mountCard({
+            orderItem: {
+                id: 77,
+                menu_item_id: baseItem.id,
+                quantity: 2,
+                price_snapshot: baseItem.price,
+                title_snapshot: baseItem.title,
+            },
+        });
+
+        const stepper = wrapper.find('[data-testid="menu-item-price-stepper"]');
+        const overlay = wrapper.find('[data-testid="menu-item-quantity-overlay"]');
+
+        expect(stepper.classes()).toContain('bg-blue-700');
+        expect(stepper.text()).toContain('250');
+        expect(overlay.exists()).toBe(true);
+        expect(overlay.text()).toContain('2');
+    });
+
+    it('does not render quantity overlay when quantity is zero', () => {
+        const wrapper = mountCard();
+
+        expect(wrapper.find('[data-testid="menu-item-quantity-overlay"]').exists()).toBe(false);
     });
 
     it('keeps favorite button visible', () => {

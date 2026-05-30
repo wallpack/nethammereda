@@ -470,6 +470,10 @@ const buttonByText = (text) => {
     return Array.from(document.querySelectorAll('button')).find((button) => button.textContent.includes(text));
 };
 
+const buttonByAriaLabel = (text) => {
+    return Array.from(document.querySelectorAll('button')).find((button) => button.getAttribute('aria-label')?.includes(text));
+};
+
 const click = async (element) => {
     expect(element).toBeTruthy();
     element.click();
@@ -528,7 +532,7 @@ describe('catalog auth UX', () => {
 
         await nextTick();
 
-        expect(document.querySelector('[data-testid="week-status-loading"]')).toBeTruthy();
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
         const menuLoadingGrid = document.querySelector('.dishes-grid[aria-busy="true"]');
         const menuCardSkeleton = menuLoadingGrid?.querySelector('.menu-card [data-slot="skeleton"]');
         expect(menuCardSkeleton?.className).toContain('max-[430px]:h-[7.35rem]');
@@ -599,13 +603,13 @@ describe('catalog auth UX', () => {
     it('shows no-cycle guidance only after a loaded response has no cycle', async () => {
         await mountApp({ currentCycle: null, menuItems: [], menuCategories: [] });
 
-        const weekStatusText = document.querySelector('.week-status')?.textContent ?? '';
-        expect(weekStatusText).toContain('Приём заказов закрыт');
-        expect(weekStatusText).not.toContain('Недельный цикл не создан');
-        expect(weekStatusText).not.toContain('Меню появится после создания цикла администратором.');
+        expect(document.querySelector('.week-status')).toBeNull();
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Недельный цикл не создан');
+        expect(document.body.textContent).not.toContain('Меню появится после создания цикла администратором.');
     });
 
-    it('renders compact status strip with short copy only', async () => {
+    it('does not render a global status strip under the header in the desktop main shell', async () => {
         await mountApp({
             authenticated: true,
             currentCycle: {
@@ -624,25 +628,28 @@ describe('catalog auth UX', () => {
             },
         });
 
-        const weekStatus = document.querySelector('.week-status');
-        const statusStrip = document.querySelector('[data-testid="menu-status-strip"]');
-        const catalogScroll = document.querySelector('[data-testid="catalog-scroll-panel"]');
-        const weekStatusText = weekStatus?.textContent ?? '';
-
-        expect(statusStrip).toBeTruthy();
-        expect(catalogScroll?.contains(weekStatus)).toBe(false);
-        expect(weekStatus?.className).toContain('h-10');
-        expect(weekStatusText).toContain('Приём заказов закрыт');
-        expect(weekStatusText).not.toContain('Администратор закрыл сбор заказов');
-        expect(weekStatusText.toLowerCase()).not.toContain('черновик');
+        expect(document.querySelector('.week-status')).toBeNull();
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
         expect(document.body.textContent).not.toContain('Администратор закрыл сбор заказов');
         expect(document.body.textContent?.toLowerCase()).not.toContain('черновик');
     });
 
-    it('renders guest header with a single login action and no old guest copy', async () => {
+    it('renders guest header with a wide neutral login action, muted search and no old guest copy', async () => {
         await mountApp();
 
-        expect(buttonByText('Войти')).toBeTruthy();
+        const loginButton = buttonByText('Войти');
+        const searchInput = document.querySelector('#global-menu-search');
+        const searchIcon = document.querySelector('[data-testid="global-search-icon"]');
+
+        expect(loginButton).toBeTruthy();
+        expect(loginButton?.className).toContain('min-w-[11.5rem]');
+        expect(loginButton?.className).toContain('bg-[#f2f2f2]');
+        expect(loginButton?.querySelector('.bg-white')).toBeNull();
+        expect(searchInput?.getAttribute('placeholder')).toBe('Искать в меню');
+        expect(searchInput?.className).toContain('placeholder:text-slate-400');
+        expect(searchIcon?.getAttribute('class')).toContain('size-4');
+        expect(searchIcon?.getAttribute('class')).toContain('text-slate-400');
         expect(document.body.textContent).not.toContain('Гость');
         expect(document.body.textContent).not.toContain('Вход в панели заказа');
     });
@@ -666,13 +673,34 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain('113 блюд в меню');
     });
 
-    it('renders brand with uppercase N', async () => {
+    it('renders brand with uppercase N and a catalog-home button label', async () => {
         await mountApp();
 
         const brand = document.querySelector('[aria-label="NethammerEda"]');
+        const homeButton = document.querySelector('button[aria-label="Вернуться в каталог"]');
 
         expect(brand).toBeTruthy();
         expect(brand?.textContent?.trim().startsWith('N')).toBe(true);
+        expect(homeButton).toBeTruthy();
+    });
+
+    it('returns to the full catalog when the logo is clicked', async () => {
+        await mountApp({
+            menuItems: [menuItem, secondMenuItem],
+            menuCategories: [category, secondCategory],
+        });
+
+        const searchInput = document.querySelector('#global-menu-search');
+        await fillInput(searchInput, 'котлета');
+        await click(buttonByText(secondCategory.name));
+        expect(document.querySelector('#menu-heading')?.textContent).toContain(secondCategory.name);
+
+        await click(document.querySelector('button[aria-label="Вернуться в каталог"]'));
+
+        expect(searchInput.value).toBe('');
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
+        expect(document.body.textContent).toContain(menuItem.title);
+        expect(document.body.textContent).toContain(secondMenuItem.title);
     });
 
     it('opens and closes login modal from the header', async () => {
@@ -705,7 +733,8 @@ describe('catalog auth UX', () => {
 
         expect(requestCount(fetchMock, '/me')).toBeGreaterThan(0);
         expect(localStorage.getItem('lunch_mvp_token')).toBeNull();
-        expect(document.body.textContent).toContain('Войдите, чтобы заказать');
+        expect(buttonByText('Войти')).toBeTruthy();
+        expect(document.querySelector('[data-testid="desktop-order-panel"]')?.textContent).toContain('Корзина пуста');
     });
 
     it('renders catalog even when telegram site-login endpoints fail', async () => {
@@ -714,7 +743,7 @@ describe('catalog auth UX', () => {
             telegramSiteLoginStatus: 422,
         });
 
-        expect(document.querySelector('[data-testid="week-status-loading"]')).toBeNull();
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
         expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
         expect(document.querySelector('script[src*="telegram-widget.js"], script[src*="telegram-web-app.js"]')).toBeNull();
         expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
@@ -819,7 +848,7 @@ describe('catalog auth UX', () => {
         secondWrapper.unmount();
     });
 
-    it('shows guest cart with auth prompt instead of fake order items', async () => {
+    it('shows a clean guest cart empty state without auth/status service copy', async () => {
         await mountApp();
 
         const panel = document.querySelector('[data-testid="desktop-order-panel"]');
@@ -827,31 +856,23 @@ describe('catalog auth UX', () => {
         const footer = panel?.querySelector('[data-testid="order-panel-footer"]');
 
         expect(panel).toBeTruthy();
-        expect(panelButtons).toHaveLength(1);
-        expect(footer?.querySelector('button')).toBeTruthy();
+        expect(panelButtons).toHaveLength(0);
+        expect(footer?.querySelector('button')).toBeNull();
         expect(panel?.textContent).toContain('Корзина');
-        expect(panel?.textContent).toContain('Войдите, чтобы заказать');
-        expect(panel?.textContent).toContain('После входа корзина сохранит выбранные блюда.');
-        expect(panel?.textContent).not.toContain('Корзина пуста');
+        expect(panel?.textContent).toContain('Корзина пуста');
+        expect(panel?.textContent).toContain('Добавьте блюда из каталога.');
+        expect(panel?.textContent).toContain('Итого');
+        expect(panel?.textContent).toContain('0 ₽');
+        expect(panel?.textContent).not.toContain('Войдите, чтобы заказать');
+        expect(panel?.textContent).not.toContain('0 позиций');
+        expect(panel?.textContent).not.toContain('закрыта');
+        expect(panel?.textContent).not.toContain('Приём заказов закрыт');
     });
 
-    it('opens login modal from guest cart CTA', async () => {
-        await mountApp();
-
-        const panel = document.querySelector('[data-testid="desktop-order-panel"]');
-        const footer = panel?.querySelector('[data-testid="order-panel-footer"]');
-        const loginButton = footer?.querySelector('button');
-
-        await click(loginButton);
-
-        expect(document.body.textContent).toContain('Вход в аккаунт');
-        expect(document.body.textContent).toContain('Войдите, чтобы оформить заказ.');
-    });
-
-    it('keeps product CTA as Add for guests and opens login modal instead of adding to cart', async () => {
+    it('opens login modal from guest product plus control instead of adding to cart', async () => {
         const { fetchMock } = await mountApp();
 
-        await click(buttonByText('Добавить'));
+        await click(buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`));
 
         expect(postedTo(fetchMock, '/my-order/items')).toBe(false);
         expect(document.body.textContent).toContain('Вход в аккаунт');
@@ -888,12 +909,15 @@ describe('catalog auth UX', () => {
         expect(header?.textContent).not.toContain('Холодильник · 13');
         expect(searchLabel?.className).toContain('md:max-w-[66rem]');
         expect(searchInput).toBeTruthy();
-        expect(searchInput?.getAttribute('placeholder')).toBe('Поиск по меню');
-        expect(searchInput?.className).toContain('h-14');
+        expect(searchInput?.getAttribute('placeholder')).toBe('Искать в меню');
+        expect(searchInput?.className).toContain('h-12');
         expect(searchInput?.className).toContain('rounded-full');
         expect(searchInput?.className).toContain('bg-[#f2f2f2]');
-        expect(profileButton?.className).toContain('h-14');
+        expect(searchInput?.className).toContain('placeholder:text-slate-400');
+        expect(profileButton?.className).toContain('h-12');
+        expect(profileButton?.className).toContain('min-w-[13.5rem]');
         expect(profileButton?.className).toContain('bg-[#f2f2f2]');
+        expect(profileButton?.querySelector('.bg-white')).toBeNull();
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
         expect(document.body.textContent).toContain('Корзина');
         expect(document.body.textContent).not.toContain('Позиций:');
@@ -937,7 +961,7 @@ describe('catalog auth UX', () => {
         expect(catalogScroll?.className).toContain('menu-shell__catalog-scroll');
         expect(catalogScroll?.className).toContain('scrollbar-none');
         expect(document.querySelector('[data-testid="catalog-shelf-panel"]')).toBeTruthy();
-        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeTruthy();
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
         expect(cartPanel).toBeTruthy();
         expect(cartPanel?.className).toContain('xl:sticky');
         expect(cartPanel?.className).toContain('xl:top-[5.75rem]');
@@ -1210,16 +1234,16 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain(user.name);
         expect(buttonByText('Войти')).toBeTruthy();
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
-        expect(document.body.textContent).toContain('Войдите, чтобы заказать');
+        expect(document.querySelector('.catalog-order-panel')?.textContent).toContain('Корзина пуста');
     });
 
     it('lets authenticated users add items to the order', async () => {
         const { fetchMock } = await mountApp({ authenticated: true });
 
-        await click(buttonByText('Добавить'));
+        await click(buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`));
 
         expect(postedTo(fetchMock, '/my-order/items')).toBe(true);
-        expect(document.body.textContent).toContain('1 позиция');
+        expect(document.querySelector('[data-testid="menu-item-quantity-overlay"]')?.textContent).toContain('1');
     });
 
     it('filters dishes by search and category selection', async () => {
@@ -1295,8 +1319,12 @@ describe('catalog auth UX', () => {
     it('shows the catalog as orderable when the cycle can accept orders', async () => {
         await mountApp({ authenticated: true });
 
-        expect(document.body.textContent).toContain('Приём заказов открыт');
-        expect(buttonByText('Добавить')?.disabled).toBe(false);
+        const plusButton = buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`);
+        const stepper = document.querySelector('[data-testid="menu-item-price-stepper"]');
+
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
+        expect(plusButton?.disabled).toBe(false);
+        expect(stepper?.textContent).toContain('250');
     });
 
     it('shows deadline passed separately from a closed cycle', async () => {
@@ -1313,9 +1341,13 @@ describe('catalog auth UX', () => {
             },
         });
 
-        expect(document.body.textContent).toContain('Приём заказов закрыт');
+        const plusButton = buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`);
+        const stepper = document.querySelector('[data-testid="menu-item-price-stepper"]');
+
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
         expect(document.body.textContent).not.toContain('Заказ закрыт');
-        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
+        expect(plusButton?.disabled).toBe(true);
+        expect(stepper?.className).toContain('bg-blue-50/60');
     });
 
     it('shows delivery guidance when a cycle is delivered', async () => {
@@ -1331,9 +1363,9 @@ describe('catalog auth UX', () => {
             },
         });
 
-        const weekStatusText = document.querySelector('.week-status')?.textContent ?? '';
-        expect(weekStatusText).toContain('Приём заказов закрыт');
-        expect(weekStatusText).not.toContain('Проверьте холодильник.');
+        expect(document.querySelector('.week-status')).toBeNull();
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
+        expect(document.body.textContent).not.toContain('Проверьте холодильник.');
     });
 
     it('shows a reopen action for a submitted order before the deadline', async () => {
@@ -1344,10 +1376,13 @@ describe('catalog auth UX', () => {
             order: submittedOrder,
         });
 
+        const selectedPlus = buttonByAriaLabel(`Увеличить количество: ${menuItem.title}`);
+        const unselectedPlus = buttonByAriaLabel(`Добавить в заказ: ${secondMenuItem.title}`);
+
         expect(buttonByText('Редактировать заказ')).toBeTruthy();
-        expect(document.body.textContent).toContain('Приём заказов открыт · до');
-        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
-        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
+        expect(document.body.textContent).not.toContain('Приём заказов открыт · до');
+        expect(selectedPlus?.disabled).toBe(true);
+        expect(unselectedPlus?.disabled).toBe(true);
     });
 
     it('uses API deadline display fields without timezone conversion shift', async () => {
@@ -1365,7 +1400,7 @@ describe('catalog auth UX', () => {
         });
 
         const pageText = document.body.textContent ?? '';
-        expect(pageText).toContain('29.05, 12:00');
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
         expect(pageText).not.toContain('29.05, 17:00');
     });
 
@@ -1461,10 +1496,12 @@ describe('catalog auth UX', () => {
         await flushPromises();
         await flushPromises();
 
+        const addPlus = buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`);
+
         expect(currentCycleRequestCount).toBeGreaterThan(1);
-        expect(document.body.textContent).toContain('Приём заказов закрыт');
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
         expect(document.body.textContent).not.toContain('Можно редактировать до');
-        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
+        expect(addPlus?.disabled).toBe(true);
 
         wrapper.unmount();
         vi.useRealTimers();
@@ -1494,7 +1531,7 @@ describe('catalog auth UX', () => {
         });
 
         expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
-        expect(document.body.textContent).toContain(closedOrderingInfoMessage);
+        expect(document.body.textContent).not.toContain(closedOrderingInfoMessage);
         expect(document.body.textContent).not.toContain('черновик');
     });
 
@@ -1589,7 +1626,7 @@ describe('catalog auth UX', () => {
         await flushPromises();
         await flushPromises();
 
-        await click(buttonByText('Добавить'));
+        await click(buttonByAriaLabel(`Добавить в заказ: ${secondMenuItem.title}`));
 
         expect(document.body.textContent).toContain(closedOrderingCartClearedMessage);
         expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
@@ -1619,12 +1656,12 @@ describe('catalog auth UX', () => {
         });
 
         const pageText = document.body.textContent ?? '';
-        const addButton = buttonByText('Добавить');
+        const selectedPlus = buttonByAriaLabel(`Увеличить количество: ${menuItem.title}`);
 
-        expect(pageText).toContain('Приём заказов закрыт');
+        expect(pageText).not.toContain('Приём заказов закрыт');
         expect(pageText).not.toContain('Можно редактировать до');
         expect(buttonByText('Редактировать заказ')).toBeFalsy();
-        expect(addButton === undefined || addButton.disabled).toBe(true);
+        expect(selectedPlus?.disabled).toBe(true);
     });
 
     it('reopens a submitted order and enables order controls again', async () => {
@@ -1639,9 +1676,9 @@ describe('catalog auth UX', () => {
 
         expect(postedTo(fetchMock, '/my-order/reopen')).toBe(true);
         expect(buttonByText('Редактировать заказ')).toBeFalsy();
-        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeTruthy();
+        expect(buttonByAriaLabel(`Увеличить количество: ${menuItem.title}`)?.disabled).toBe(false);
         expect(buttonByText('Оформить заказ')?.disabled).toBe(false);
-        expect(buttonByText('Добавить')?.disabled).toBe(false);
+        expect(buttonByAriaLabel(`Добавить в заказ: ${secondMenuItem.title}`)?.disabled).toBe(false);
     });
 
     it('does not show reopen action after the deadline and keeps submitted controls disabled', async () => {
@@ -1665,13 +1702,13 @@ describe('catalog auth UX', () => {
         });
 
         expect(buttonByText('Редактировать заказ')).toBeFalsy();
-        expect(document.body.textContent).toContain('Приём заказов закрыт');
-        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
-        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
+        expect(buttonByAriaLabel(`Увеличить количество: ${menuItem.title}`)?.disabled).toBe(true);
+        expect(buttonByAriaLabel(`Добавить в заказ: ${secondMenuItem.title}`)?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
-        expect(mobileOrderText).toContain('Приём заказов закрыт');
+        expect(mobileOrderText).not.toContain('Приём заказов закрыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });
 
@@ -1686,13 +1723,13 @@ describe('catalog auth UX', () => {
             },
         });
 
-        expect(document.body.textContent).toContain('Приём заказов открыт');
-        expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
-        expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
+        expect(document.body.textContent).not.toContain('Приём заказов открыт');
+        expect(buttonByAriaLabel(`Увеличить количество: ${menuItem.title}`)?.disabled).toBe(true);
+        expect(buttonByAriaLabel(`Добавить в заказ: ${secondMenuItem.title}`)?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
-        expect(mobileOrderText).toContain('Приём заказов открыт');
+        expect(mobileOrderText).not.toContain('Приём заказов открыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });
 
@@ -1799,8 +1836,9 @@ describe('catalog auth UX', () => {
         const imageArea = document.querySelector('[data-testid="menu-item-image-area"]');
         const meta = document.querySelector('[data-testid="menu-item-meta"]');
         const title = card?.querySelector('h3');
-        const addButton = document.querySelector('[data-testid="menu-item-add-button"]');
-        const addIcon = addButton?.querySelector('svg');
+        const priceStepper = document.querySelector('[data-testid="menu-item-price-stepper"]');
+        const plusButton = buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`);
+        const addIcon = plusButton?.querySelector('svg');
         const favoriteButton = card?.querySelector('button[aria-pressed]');
 
         expect(card).toBeTruthy();
@@ -1810,8 +1848,8 @@ describe('catalog auth UX', () => {
         expect(title?.className).toContain('max-[430px]:min-h-[2.2rem]');
         expect(title?.getAttribute('title')).toBe(menuItem.title);
         expect(title?.getAttribute('aria-label')).toBe(`Название блюда: ${menuItem.title}`);
-        expect(addButton?.className).toContain('max-[430px]:size-10');
-        expect(addButton?.className).toContain('max-[430px]:text-[0px]');
+        expect(priceStepper?.className).toContain('max-[430px]:h-9');
+        expect(priceStepper?.className).toContain('max-[430px]:w-full');
         expect(addIcon?.className).not.toContain('translate-x-px');
         expect(favoriteButton?.className).toContain('max-[430px]:size-8');
     });
@@ -1824,15 +1862,17 @@ describe('catalog auth UX', () => {
         });
 
         const compactQuantityButton = document.querySelector('[data-testid="menu-item-compact-quantity-button"]');
-        const desktopStepper = document.querySelector('[data-testid="menu-item-stepper"]');
-        const stepperQuantity = desktopStepper?.querySelector('span');
+        const desktopStepper = document.querySelector('[data-testid="menu-item-price-stepper"]');
+        const stepperPrice = desktopStepper?.querySelector('[data-testid="menu-item-stepper-price"]');
+        const overlay = document.querySelector('[data-testid="menu-item-quantity-overlay"]');
 
         expect(compactQuantityButton).toBeNull();
         expect(desktopStepper).toBeTruthy();
         expect(desktopStepper?.className).toContain('max-[430px]:h-9');
-        expect(desktopStepper?.className).toContain('max-[430px]:w-[5.9rem]');
-        expect(desktopStepper?.className).toContain('max-[430px]:grid-cols-[2rem_minmax(1.5rem,1fr)_2rem]');
-        expect(stepperQuantity?.className).toContain('max-[430px]:min-w-0');
+        expect(desktopStepper?.className).toContain('max-[430px]:w-full');
+        expect(desktopStepper?.className).toContain('bg-blue-700');
+        expect(stepperPrice?.className).toContain('max-[430px]:min-w-0');
+        expect(overlay?.textContent).toContain('1');
     });
 
     it('uses image_display_url for order panel thumbnails', async () => {
