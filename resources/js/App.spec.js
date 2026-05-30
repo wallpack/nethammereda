@@ -717,6 +717,7 @@ describe('catalog auth UX', () => {
         await click(buttonByText('Войти'));
 
         expect(document.body.textContent).toContain('Вход в аккаунт');
+        expect(document.body.textContent).not.toContain('Войдите, чтобы собрать заказ и проверить холодильник.');
         expect(document.querySelector('#auth-modal-email')).toBeTruthy();
         expect(document.querySelector('#auth-modal-password')).toBeTruthy();
         expect(buttonByText('Войти')).toBeTruthy();
@@ -869,15 +870,18 @@ describe('catalog auth UX', () => {
     });
 
     it('shows a clean guest cart empty state without auth/status service copy', async () => {
-        await mountApp();
+        const { fetchMock } = await mountApp();
 
         const panel = document.querySelector('[data-testid="desktop-order-panel"]');
         const panelButtons = Array.from(panel?.querySelectorAll('button') ?? []);
         const footer = panel?.querySelector('[data-testid="order-panel-footer"]');
+        const checkoutButton = footer?.querySelector('[data-testid="order-panel-guest-checkout-button"]');
 
         expect(panel).toBeTruthy();
-        expect(panelButtons).toHaveLength(0);
-        expect(footer?.querySelector('button')).toBeNull();
+        expect(panelButtons).toHaveLength(1);
+        expect(checkoutButton).toBeTruthy();
+        expect(checkoutButton?.className).toContain('bg-blue-700');
+        expect(checkoutButton?.className).toContain('h-[3.625rem]');
         expect(panel?.textContent).toContain('Корзина');
         expect(panel?.textContent).toContain('Корзина пуста');
         expect(panel?.textContent).toContain('Добавьте блюда из каталога.');
@@ -888,6 +892,11 @@ describe('catalog auth UX', () => {
         expect(panel?.textContent).not.toContain('0 позиций');
         expect(panel?.textContent).not.toContain('закрыта');
         expect(panel?.textContent).not.toContain('Приём заказов закрыт');
+
+        await click(checkoutButton);
+
+        expect(postedTo(fetchMock, '/my-order/items')).toBe(false);
+        expect(document.body.textContent).toContain('Вход в аккаунт');
     });
 
     it('opens login modal from guest product plus control instead of adding to cart', async () => {

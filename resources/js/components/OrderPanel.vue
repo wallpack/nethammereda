@@ -105,7 +105,7 @@ watch(() => props.menuItemsById, () => {
         <div v-if="showHeading" class="shrink-0">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <h2 class="text-balance text-xl font-semibold text-slate-950">{{ panelTitle }}</h2>
+                    <h2 class="customer-heading text-balance text-xl leading-7">{{ panelTitle }}</h2>
                     <Skeleton v-if="loading" class="mt-2 h-4 w-20 rounded-md bg-slate-100" />
                 </div>
             </div>
@@ -139,8 +139,8 @@ watch(() => props.menuItemsById, () => {
             class="flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-8 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
-            <p class="mt-3 text-balance text-base font-semibold text-slate-900">Корзина пуста</p>
-            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Добавьте блюда из каталога.</p>
+            <p class="customer-title mt-3 text-balance text-base leading-5">Корзина пуста</p>
+            <p class="customer-muted mt-1 text-pretty text-sm leading-6">Добавьте блюда из каталога.</p>
         </div>
 
         <div
@@ -219,14 +219,14 @@ watch(() => props.menuItemsById, () => {
                         data-testid="order-panel-item-title"
                         :class="[
                             'line-clamp-2 break-words',
-                            compactCart ? 'pr-7 text-[14px] font-semibold leading-4 tracking-normal text-[#595959]' : 'pr-8 text-sm font-semibold leading-5 text-slate-900',
+                            compactCart ? 'pr-7 text-[14px] font-semibold leading-4 tracking-normal text-[#595959]' : 'pr-8 text-sm font-semibold leading-5 text-[#595959]',
                         ]"
                     >{{ orderItemTitle(item) }}</p>
                     <p
                         data-testid="order-panel-item-weight"
                         :class="[
                             'tabular-nums',
-                            compactCart ? 'mt-px text-[13px] font-semibold leading-[15px] text-[#a6a6a6]' : 'mt-1 text-xs font-medium text-slate-500',
+                            compactCart ? 'mt-px text-[13px] font-semibold leading-[15px] text-[#a6a6a6]' : 'mt-1 text-xs font-semibold text-[#a6a6a6]',
                         ]"
                     >
                         {{ orderItemWeight(item) || 'Порция' }}
@@ -294,7 +294,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-price"
                             :class="[
                                 'shrink-0 whitespace-nowrap tabular-nums',
-                                compactCart ? 'col-start-3 justify-self-end text-[16px] font-semibold leading-[18px] text-[#404040]' : 'ml-auto text-base font-semibold text-slate-950',
+                                compactCart ? 'col-start-3 justify-self-end text-[16px] font-semibold leading-[18px] text-[#404040]' : 'ml-auto text-base font-semibold text-[#404040]',
                             ]"
                         >{{ orderItemTotal(item) }}</p>
                     </div>
@@ -311,14 +311,8 @@ watch(() => props.menuItemsById, () => {
         >
             <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
             <template v-else>
-                <div :class="compactCart ? 'text-center' : 'rounded-2xl bg-slate-50 px-4 py-3'">
-                    <div v-if="!isAuthenticated" :class="compactCart ? 'grid justify-items-center' : 'flex items-center justify-center'">
-                        <p
-                            data-testid="order-panel-guest-checkout-prompt"
-                            :class="compactCart ? 'text-center text-[24px] font-bold leading-[30px] text-[#50545a]' : 'text-center text-base font-semibold text-slate-900'"
-                        >Оформить заказ</p>
-                    </div>
-                    <div v-else :class="['gap-1', compactCart ? 'grid justify-items-center' : 'flex items-center justify-between']">
+                <div v-if="isAuthenticated" :class="compactCart ? 'text-center' : 'rounded-2xl bg-slate-50 px-4 py-3'">
+                    <div :class="['gap-1', compactCart ? 'grid justify-items-center' : 'flex items-center justify-between']">
                         <p
                             data-testid="order-panel-total-label"
                             :class="compactCart ? 'text-center text-[12px] font-semibold leading-4 text-[#a0a0a0]' : 'text-sm font-medium text-slate-600'"
@@ -327,7 +321,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-total-price"
                             :class="[
                                 'whitespace-nowrap font-bold tabular-nums',
-                                compactCart ? 'block text-center text-[32px] leading-[36px] text-[#50545a]' : 'text-xl text-slate-950',
+                                compactCart ? 'block text-center text-[32px] leading-[36px] text-[#404040]' : 'text-xl text-[#404040]',
                             ]"
                         >
                             {{ formatCartPrice(order?.total_price ?? 0) }}
@@ -336,7 +330,22 @@ watch(() => props.menuItemsById, () => {
                 </div>
 
                 <Button
-                    v-if="canEditOrder && orderItems.length"
+                    v-if="!isAuthenticated"
+                    type="button"
+                    data-testid="order-panel-guest-checkout-button"
+                    :class="[
+                        'w-full bg-blue-700 font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] focus-visible:ring-blue-600/25 disabled:bg-slate-200 disabled:text-slate-500',
+                        compactCart
+                            ? 'mt-0 h-[3.625rem] min-h-[3.625rem] rounded-full text-[15.5px] font-bold'
+                            : 'mt-0 h-[3.25rem] min-h-12 rounded-full text-sm',
+                    ]"
+                    @click="emit('open-auth')"
+                >
+                    Оформить заказ
+                </Button>
+
+                <Button
+                    v-else-if="canEditOrder && orderItems.length"
                     type="button"
                     :class="[
                         'w-full bg-blue-700 font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500',

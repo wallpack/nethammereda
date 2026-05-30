@@ -20,7 +20,7 @@ describe('CategorySidebar', () => {
 
         expectClasses(categoryButton, ['h-10', 'rounded-xl', 'bg-blue-50', 'text-blue-800']);
         expectClasses(categoryButton.find('[data-slot="badge"]'), ['bg-blue-100', 'text-blue-800']);
-        expectClasses(allButton, ['h-10', 'rounded-xl', 'text-slate-700', 'hover:bg-slate-50']);
+        expectClasses(allButton, ['h-10', 'rounded-xl', 'text-[#595959]', 'hover:bg-slate-50']);
         expect(allButton.classes()).not.toContain('rounded-full');
 
         await wrapper.setProps({ selectedCategory: null });
@@ -28,7 +28,7 @@ describe('CategorySidebar', () => {
 
         expectClasses(allButton, ['h-10', 'rounded-xl', 'bg-blue-50', 'text-blue-800']);
         expectClasses(allButton.find('[data-slot="badge"]'), ['bg-blue-100', 'text-blue-800']);
-        expectClasses(categoryButton, ['h-10', 'rounded-xl', 'text-slate-700', 'hover:bg-slate-50']);
+        expectClasses(categoryButton, ['h-10', 'rounded-xl', 'text-[#595959]', 'hover:bg-slate-50']);
     });
 
     it('keeps categories wrapping-safe on mobile and prepared as a desktop rail', () => {

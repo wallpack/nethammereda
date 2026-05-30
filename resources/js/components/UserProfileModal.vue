@@ -204,42 +204,45 @@ const saveFullName = () => {
     <DialogRoot :open="open" @update:open="closeWhenChanged">
         <DialogPortal>
             <DialogOverlay class="fixed inset-0 z-40 bg-slate-950/45" />
-            <DialogContent class="fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(calc(100%_-_2rem),30rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl outline-none sm:p-7">
+            <DialogContent
+                data-testid="profile-modal-content"
+                class="customer-app fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-1.5rem)] w-[min(calc(100%_-_1rem),38rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[1.75rem] border border-slate-200/70 bg-white p-5 text-slate-900 shadow-2xl outline-none sm:max-h-[calc(100dvh-2rem)] sm:w-[min(calc(100%_-_2rem),38rem)] sm:p-6"
+            >
                 <DialogClose as-child>
                     <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        class="absolute right-3 top-3 size-11 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                        class="absolute right-3 top-3 size-10 rounded-full text-slate-400 hover:bg-slate-100 hover:text-[#404040]"
                         aria-label="Закрыть профиль"
                     >
-                        <X aria-hidden="true" class="size-5" />
+                        <X aria-hidden="true" class="size-4.5" />
                     </Button>
                 </DialogClose>
 
-                <div class="flex items-start gap-4 pr-12">
-                    <div class="grid size-14 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700">
+                <div data-testid="profile-modal-header" class="flex items-start gap-3.5 pr-12">
+                    <div data-testid="profile-avatar" class="grid size-14 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700">
                         <UserRound aria-hidden="true" class="size-7" />
                     </div>
-                    <div class="min-w-0 flex-1">
+                    <div class="min-w-0 flex-1 pt-0.5">
                         <DialogTitle
                             data-testid="profile-name"
-                            class="line-clamp-2 break-words text-balance text-xl font-semibold leading-7 text-slate-950"
+                            class="customer-heading line-clamp-2 break-words text-balance text-xl leading-7"
                             :title="displayName"
                         >
                             {{ displayName }}
                         </DialogTitle>
-                        <DialogDescription v-if="identifier" class="mt-1 break-all text-pretty text-sm leading-5 text-slate-500">
+                        <DialogDescription v-if="identifier" class="customer-muted mt-1 break-all text-pretty text-sm leading-5">
                             {{ identifier }}
                         </DialogDescription>
                     </div>
                 </div>
 
-                <div class="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1" data-testid="profile-tabs">
+                <div class="mt-5 grid grid-cols-2 gap-1 rounded-full bg-[#f2f4f7] p-1" data-testid="profile-tabs">
                     <button
                         type="button"
-                        class="h-10 rounded-lg px-3 text-sm font-semibold transition-colors"
-                        :class="activeTab === 'profile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                        class="h-10 rounded-full px-3 text-sm font-semibold transition-[background-color,color,box-shadow] duration-150"
+                        :class="activeTab === 'profile' ? 'bg-white text-[#404040] shadow-sm' : 'customer-muted hover:text-[#404040]'"
                         data-testid="profile-tab-main"
                         @click="activeTab = 'profile'"
                     >
@@ -247,8 +250,8 @@ const saveFullName = () => {
                     </button>
                     <button
                         type="button"
-                        class="h-10 rounded-lg px-3 text-sm font-semibold transition-colors"
-                        :class="activeTab === 'orders' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+                        class="h-10 rounded-full px-3 text-sm font-semibold transition-[background-color,color,box-shadow] duration-150"
+                        :class="activeTab === 'orders' ? 'bg-white text-[#404040] shadow-sm' : 'customer-muted hover:text-[#404040]'"
                         data-testid="profile-tab-ordered"
                         @click="activeTab = 'orders'"
                     >
@@ -256,19 +259,19 @@ const saveFullName = () => {
                     </button>
                 </div>
 
-                <div v-if="activeTab === 'profile'" class="mt-4 grid gap-2">
-                    <form class="mb-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4" @submit.prevent="saveFullName">
+                <div v-if="activeTab === 'profile'" class="mt-4 grid gap-3">
+                    <form data-testid="profile-form-card" class="customer-soft-card grid gap-3 p-4" @submit.prevent="saveFullName">
                         <label class="grid gap-2">
-                            <span class="text-sm font-medium text-slate-700">ФИО</span>
+                            <span class="customer-label">ФИО</span>
                             <Input
                                 v-model="fullName"
                                 data-testid="profile-full-name-input"
                                 maxlength="255"
                                 placeholder="Например: Чертова Е.Н."
-                                class="h-11 rounded-xl border-slate-200 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
+                                class="customer-input h-12 px-4 text-base focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                             />
                         </label>
-                        <p class="text-xs leading-5 text-slate-500">
+                        <p class="customer-muted text-xs leading-5">
                             Укажите ФИО в формате: Фамилия и инициалы. Например: Иванов И.И.
                         </p>
                         <Alert
@@ -282,7 +285,7 @@ const saveFullName = () => {
                         <Button
                             type="submit"
                             data-testid="profile-save-full-name"
-                            class="h-10 rounded-xl bg-blue-700 text-sm font-semibold text-white hover:bg-blue-800"
+                            class="customer-cta h-11 w-full text-sm sm:w-auto sm:px-5"
                             :disabled="profileSaving"
                         >
                             <Loader2 v-if="profileSaving" aria-hidden="true" class="size-4 animate-spin" />
@@ -293,25 +296,30 @@ const saveFullName = () => {
                     <Button
                         type="button"
                         variant="outline"
-                        class="h-12 justify-between rounded-xl border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        class="customer-row-card h-auto min-h-14 justify-between px-4 py-3 text-sm shadow-none hover:bg-slate-50"
                         data-testid="profile-favorites-action"
                         @click="emit('show-favorites')"
                     >
-                        <span class="inline-flex items-center gap-3">
-                            <Heart aria-hidden="true" class="size-5 text-rose-600" />
-                            Избранное
+                        <span class="inline-flex min-w-0 items-center gap-3">
+                            <span class="grid size-9 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600">
+                                <Heart aria-hidden="true" class="size-4.5" />
+                            </span>
+                            <span class="grid min-w-0 text-left">
+                                <span class="customer-title text-sm leading-5">Избранное</span>
+                                <span class="customer-muted text-xs leading-4">Сохранённые блюда</span>
+                            </span>
                         </span>
-                        <span class="tabular-nums text-slate-500">{{ favoritesCount || '' }}</span>
+                        <span class="customer-price tabular-nums">{{ favoritesCount || '' }}</span>
                     </Button>
 
-                    <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
-                        <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Быстрые действия</p>
-                        <p class="mt-1 text-xs text-slate-500">Переходите между каталогом и личными разделами.</p>
-                        <div class="mt-2 grid gap-2 sm:grid-cols-4">
+                    <div data-testid="profile-quick-actions" class="customer-soft-card p-4">
+                        <p class="customer-title text-sm leading-5">Быстрые действия</p>
+                        <p class="customer-muted mt-1 text-xs leading-5">Переходите между каталогом и личными разделами.</p>
+                        <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                             <Button
                                 type="button"
                                 variant="outline"
-                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                class="h-10 justify-start rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-[#595959] shadow-none hover:bg-slate-50"
                                 data-testid="profile-catalog-action"
                                 @click="emit('show-catalog')"
                             >
@@ -321,7 +329,7 @@ const saveFullName = () => {
                             <Button
                                 type="button"
                                 variant="outline"
-                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                class="h-10 justify-start rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-[#595959] shadow-none hover:bg-slate-50"
                                 data-testid="profile-order-action"
                                 @click="emit('show-order')"
                             >
@@ -331,7 +339,7 @@ const saveFullName = () => {
                             <Button
                                 type="button"
                                 variant="outline"
-                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                class="h-10 justify-start rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-[#595959] shadow-none hover:bg-slate-50"
                                 data-testid="profile-fridge-action"
                                 @click="emit('show-fridge')"
                             >
@@ -341,7 +349,7 @@ const saveFullName = () => {
                             <Button
                                 type="button"
                                 variant="outline"
-                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                class="h-10 justify-start rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-[#595959] shadow-none hover:bg-slate-50"
                                 data-testid="profile-history-action"
                                 @click="emit('show-history')"
                             >
@@ -351,10 +359,10 @@ const saveFullName = () => {
                         </div>
                     </div>
 
-                    <div class="rounded-2xl border border-sky-100/80 bg-sky-50/30 p-3.5">
+                    <div data-testid="profile-telegram-card" class="customer-soft-card bg-[#f8fbff] p-4">
                         <div class="flex items-start gap-3">
-                            <div class="relative mt-0.5">
-                                <span class="grid size-9 shrink-0 place-items-center rounded-full bg-sky-100 text-sky-600">
+                            <div class="relative mt-0.5 shrink-0">
+                                <span class="grid size-10 place-items-center rounded-2xl bg-sky-100 text-sky-600">
                                     <svg aria-hidden="true" viewBox="0 0 24 24" class="size-4 fill-current">
                                         <path d="M21.2 4.6 18.2 18.8c-.2 1-1 1.2-1.8.8l-4.6-3.4-2.2 2.1c-.2.2-.4.4-.8.4l.3-4.7 8.7-7.9c.4-.3-.1-.5-.5-.2l-10.8 6.8-4.6-1.4c-1-.3-1-1 .2-1.4L19.5 3c.8-.3 2 .2 1.7 1.6Z" />
                                     </svg>
@@ -367,39 +375,41 @@ const saveFullName = () => {
                                 </span>
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="text-sm font-semibold text-slate-900">Telegram-бот</p>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="customer-title text-sm leading-5">Telegram-бот</p>
+                                    <span
+                                        v-if="telegramLinked"
+                                        class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
+                                        data-testid="profile-telegram-linked"
+                                    >
+                                        <CheckCircle2 aria-hidden="true" class="size-3.5" />
+                                        Подключён
+                                    </span>
+                                </div>
                                 <p
                                     v-if="telegramLinked"
-                                    class="mt-1 text-xs text-slate-700"
+                                    class="customer-body mt-1 text-xs leading-5"
                                     data-testid="profile-telegram-linked-text"
                                 >
                                     Подключён. Уведомления о заказах активны.
                                 </p>
                                 <p
                                     v-else
-                                    class="mt-1 text-xs text-slate-600"
+                                    class="customer-muted mt-1 text-xs leading-5"
                                     data-testid="profile-telegram-unlinked"
                                 >
                                     Привяжите Telegram, чтобы получать уведомления о заказах.
                                 </p>
                                 <p
-                                    v-if="telegramLinked"
-                                    class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700"
-                                    data-testid="profile-telegram-linked"
-                                >
-                                    <CheckCircle2 aria-hidden="true" class="size-3.5" />
-                                    Подключён
-                                </p>
-                                <p
                                     v-if="telegramLinked && telegramIdentity"
-                                    class="mt-1.5 text-xs text-slate-500"
+                                    class="customer-muted mt-1 text-xs leading-5"
                                     data-testid="profile-telegram-identity"
                                 >
                                     {{ telegramIdentity }}
                                 </p>
                                 <p
                                     v-else
-                                    class="mt-1.5 text-xs text-slate-500"
+                                    class="customer-muted mt-1 text-xs leading-5"
                                     data-testid="profile-telegram-helper"
                                 >
                                     Привязка занимает несколько секунд.
@@ -409,21 +419,21 @@ const saveFullName = () => {
 
                         <p
                             v-if="!telegramLinked && !telegramLinkAvailable"
-                            class="mt-2 text-sm font-medium text-slate-700"
+                            class="customer-title mt-3 text-sm leading-5"
                             data-testid="profile-telegram-unavailable"
                         >
                             Привязка временно недоступна.
                         </p>
                         <p
                             v-if="!telegramLinked && !telegramLinkAvailable"
-                            class="mt-1 text-xs text-slate-500"
+                            class="customer-muted mt-1 text-xs leading-5"
                             data-testid="profile-telegram-unavailable-hint"
                         >
                             Обратитесь к администратору.
                         </p>
                         <p
                             v-if="!telegramLinked && telegramLinkAvailable && telegramError"
-                            class="mt-2 text-xs text-rose-600"
+                            class="mt-3 text-xs font-semibold text-rose-600"
                             data-testid="profile-telegram-error"
                         >
                             {{ telegramError }}
@@ -433,7 +443,7 @@ const saveFullName = () => {
                             v-if="telegramLinked"
                             type="button"
                             variant="outline"
-                            class="mt-3 h-9 w-full justify-start rounded-xl border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-white/90 sm:w-auto"
+                            class="mt-3 h-10 w-full justify-center rounded-full border-slate-200 bg-white px-4 text-xs font-semibold text-[#595959] shadow-none hover:bg-white/90 sm:w-auto"
                             data-testid="profile-telegram-open-bot"
                             :disabled="!telegramLinkAvailable"
                             @click="emit('telegram-open-bot')"
@@ -446,7 +456,7 @@ const saveFullName = () => {
                         <Button
                             v-else-if="telegramLinkAvailable"
                             type="button"
-                            class="mt-3 h-9 w-full justify-start rounded-xl bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700 sm:w-auto"
+                            class="mt-3 h-10 w-full justify-center rounded-full bg-sky-600 px-4 text-xs font-semibold text-white hover:bg-sky-700 sm:w-auto"
                             data-testid="profile-telegram-link"
                             :disabled="telegramLoading"
                             @click="emit('telegram-link')"
@@ -463,11 +473,11 @@ const saveFullName = () => {
                 </div>
 
                 <div v-else class="mt-4" data-testid="profile-orders-tab-panel">
-                    <h3 class="text-base font-semibold text-slate-900">Уже заказывали</h3>
+                    <h3 class="customer-title text-base leading-6">Уже заказывали</h3>
 
                     <div v-if="orderHistoryLoading" class="mt-3 space-y-2">
-                        <div class="h-16 animate-pulse rounded-xl bg-slate-100" />
-                        <div class="h-16 animate-pulse rounded-xl bg-slate-100" />
+                        <div class="h-16 animate-pulse rounded-2xl bg-slate-100" />
+                        <div class="h-16 animate-pulse rounded-2xl bg-slate-100" />
                     </div>
 
                     <Alert
@@ -480,25 +490,25 @@ const saveFullName = () => {
 
                     <div
                         v-else-if="!orderHistory.length"
-                        class="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600"
+                        class="customer-soft-card mt-3 px-4 py-4 text-sm"
                         data-testid="profile-order-history-empty"
                     >
-                        <p class="font-medium text-slate-900">Вы ещё не оформляли заказы.</p>
-                        <p class="mt-1 text-xs text-slate-500">После первого заказа он появится здесь.</p>
+                        <p class="customer-title text-sm">Вы ещё не оформляли заказы.</p>
+                        <p class="customer-muted mt-1 text-xs leading-5">После первого заказа он появится здесь.</p>
                     </div>
 
                     <div v-else class="mt-3 max-h-[20rem] space-y-2 overflow-y-auto pr-1">
                         <article
                             v-for="historyOrder in orderHistory"
                             :key="historyOrder.id"
-                            class="rounded-xl border border-slate-200 bg-white p-3"
+                            class="customer-row-card p-3"
                         >
-                            <p class="text-sm font-semibold text-slate-900">{{ historyOrderDateLabel(historyOrder.submitted_at) }}</p>
-                            <p class="mt-0.5 text-xs text-slate-600">
+                            <p class="customer-title text-sm leading-5">{{ historyOrderDateLabel(historyOrder.submitted_at) }}</p>
+                            <p class="customer-muted mt-0.5 text-xs leading-5">
                                 {{ historyOrder.items_count }} {{ historyPositionsLabel(Number(historyOrder.items_count || 0)) }}
-                                · {{ formatPrice(historyOrder.total_price ?? 0) }}
+                                · <span class="customer-price">{{ formatPrice(historyOrder.total_price ?? 0) }}</span>
                             </p>
-                            <ul data-testid="profile-history-order-items" class="mt-2 space-y-1 text-xs text-slate-600">
+                            <ul data-testid="profile-history-order-items" class="customer-body mt-2 space-y-1 text-xs leading-5">
                                 <li
                                     v-for="item in historyOrderItems(historyOrder)"
                                     :key="`${historyOrder.id}-${item.id}`"
@@ -512,7 +522,7 @@ const saveFullName = () => {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                class="mt-1 h-7 rounded-full px-2.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                class="mt-1 h-7 rounded-full px-2.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-[#404040]"
                                 data-testid="profile-history-expand-button"
                                 @click="toggleHistoryOrderExpanded(historyOrder)"
                             >
@@ -521,7 +531,7 @@ const saveFullName = () => {
                             <Button
                                 type="button"
                                 size="sm"
-                                class="mt-2 h-8 rounded-full bg-blue-700 px-3 text-xs font-semibold text-white hover:bg-blue-800 disabled:bg-slate-200 disabled:text-slate-500"
+                                class="customer-cta mt-2 h-9 px-4 text-xs disabled:bg-slate-200 disabled:text-slate-500"
                                 data-testid="profile-repeat-order-button"
                                 :disabled="!canRepeatHistory || !historyOrder.can_repeat || repeatActionLoading"
                                 @click="emit('repeat-order', historyOrder)"
@@ -532,7 +542,7 @@ const saveFullName = () => {
                         </article>
                     </div>
 
-                    <p v-if="!canRepeatHistory" class="mt-3 text-xs text-slate-500" data-testid="profile-repeat-closed-hint">
+                    <p v-if="!canRepeatHistory" class="customer-muted mt-3 text-xs leading-5" data-testid="profile-repeat-closed-hint">
                         Повторить заказ можно, когда открыт приём заказов.
                     </p>
                 </div>
@@ -540,10 +550,11 @@ const saveFullName = () => {
                 <Button
                     type="button"
                     variant="ghost"
-                    class="mt-5 h-12 w-full justify-start rounded-xl px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                    data-testid="profile-logout-button"
+                    class="mt-4 h-11 w-full justify-start rounded-full px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 hover:text-rose-800"
                     @click="emit('logout')"
                 >
-                    <LogOut aria-hidden="true" class="size-5" />
+                    <LogOut aria-hidden="true" class="size-4.5" />
                     Выйти
                 </Button>
             </DialogContent>

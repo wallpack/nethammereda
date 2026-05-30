@@ -1041,7 +1041,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="min-h-dvh overflow-x-clip bg-[#f2f2f2] text-slate-900">
+    <div class="customer-app min-h-dvh overflow-x-clip bg-[#f2f2f2] text-slate-900">
         <AppHeader
             :loading="loading"
             :is-authenticated="isAuthenticated"

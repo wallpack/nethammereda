@@ -62,6 +62,42 @@ const mountModal = (props = {}) => mount(UserProfileModal, {
 });
 
 describe('UserProfileModal order history tab', () => {
+    it('uses the refreshed customer profile visual system', () => {
+        const wrapper = mountModal({
+            telegramLinked: true,
+            telegramLinkAvailable: true,
+            user: { ...user, telegram_id: '9551' },
+            favoritesCount: 3,
+        });
+
+        const content = wrapper.get('[data-testid="profile-modal-content"]');
+        const header = wrapper.get('[data-testid="profile-modal-header"]');
+        const avatar = wrapper.get('[data-testid="profile-avatar"]');
+        const tabs = wrapper.get('[data-testid="profile-tabs"]');
+        const form = wrapper.get('[data-testid="profile-form-card"]');
+        const favorites = wrapper.get('[data-testid="profile-favorites-action"]');
+        const quickActions = wrapper.get('[data-testid="profile-quick-actions"]');
+        const telegram = wrapper.get('[data-testid="profile-telegram-card"]');
+        const logout = wrapper.get('[data-testid="profile-logout-button"]');
+
+        expect(content.classes()).toContain('customer-app');
+        expect(content.classes()).toContain('rounded-[1.75rem]');
+        expect(content.classes()).toContain('shadow-2xl');
+        expect(header.classes()).toContain('gap-3.5');
+        expect(avatar.classes()).toContain('bg-blue-50');
+        expect(wrapper.get('[data-testid="profile-name"]').classes()).toContain('customer-heading');
+        expect(tabs.classes()).toContain('bg-[#f2f4f7]');
+        expect(tabs.classes()).toContain('rounded-full');
+        expect(form.classes()).toContain('customer-soft-card');
+        expect(favorites.classes()).toContain('customer-row-card');
+        expect(quickActions.text()).toContain('Быстрые действия');
+        expect(quickActions.classes()).toContain('customer-soft-card');
+        expect(quickActions.text()).not.toContain('БЫСТРЫЕ ДЕЙСТВИЯ');
+        expect(telegram.classes()).toContain('customer-soft-card');
+        expect(wrapper.get('[data-testid="profile-telegram-linked"]').text()).toContain('Подключён');
+        expect(logout.classes()).toContain('text-rose-700');
+    });
+
     it('renders tab "Уже заказывали" in profile modal', () => {
         const wrapper = mountModal();
 

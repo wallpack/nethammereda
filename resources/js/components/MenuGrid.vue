@@ -223,7 +223,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                 <div class="menu-shell__content-inner">
                     <div class="mb-3 flex flex-col gap-2.5 sm:mb-4">
                     <div class="flex min-w-0 items-end justify-between gap-3">
-                        <h2 id="menu-heading" tabindex="-1" class="text-balance text-[1.45rem] font-semibold leading-tight text-slate-950 outline-none sm:text-[1.7rem]">
+                        <h2 id="menu-heading" tabindex="-1" class="customer-heading text-balance text-[1.45rem] leading-tight outline-none sm:text-[1.7rem]">
                             {{ catalogTitle }}
                         </h2>
                     </div>
@@ -265,8 +265,8 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                 <Card v-else-if="filteredItems.length === 0" class="gap-0 rounded-[1.5rem] border-slate-200/80 bg-white py-0 shadow-none">
                     <CardContent class="flex flex-col items-center px-5 py-12 text-center">
                         <Search aria-hidden="true" class="size-7 text-slate-300" />
-                        <p class="mt-4 text-balance text-lg font-semibold text-slate-900">{{ emptyTitle }}</p>
-                        <p class="mt-2 max-w-sm text-pretty text-sm leading-6 text-slate-500">
+                        <p class="customer-title mt-4 text-balance text-lg leading-6">{{ emptyTitle }}</p>
+                        <p class="customer-muted mt-2 max-w-sm text-pretty text-sm leading-6">
                             {{ emptyDescription }}
                         </p>
                         <Button
@@ -293,7 +293,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                             class="flex items-end gap-3"
                             :data-testid="showCategorySections ? undefined : 'menu-selected-category-summary'"
                         >
-                            <h3 data-testid="menu-category-heading" class="text-balance text-base font-semibold text-slate-900 sm:text-lg">
+                            <h3 data-testid="menu-category-heading" class="customer-title text-balance text-base leading-5 sm:text-lg">
                                 {{ group.name }}
                             </h3>
                         </header>

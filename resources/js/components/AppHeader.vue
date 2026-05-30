@@ -73,7 +73,7 @@ const searchModel = computed({
                     v-model="searchModel"
                     type="search"
                     placeholder="Искать в меню"
-                    class="h-12 rounded-full border-transparent bg-[#f2f2f2] pl-11 pr-6 text-[0.95rem] font-medium text-slate-950 shadow-none placeholder:text-slate-400 focus-visible:border-blue-300 focus-visible:bg-[#f2f2f2] focus-visible:ring-blue-600/15"
+                    class="h-12 rounded-full border-transparent bg-[#f2f2f2] pl-11 pr-6 text-[0.95rem] font-medium text-[#404040] shadow-none placeholder:text-slate-400 focus-visible:border-blue-300 focus-visible:bg-[#f2f2f2] focus-visible:ring-blue-600/15"
                 />
             </label>
 
@@ -90,7 +90,7 @@ const searchModel = computed({
                     v-else-if="isAuthenticated"
                     type="button"
                     variant="outline"
-                    class="hidden h-14 flex-1 min-w-0 shrink justify-center rounded-full border-transparent bg-[#f2f2f2] px-5 text-slate-800 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:inline-flex"
+                    class="hidden h-14 flex-1 min-w-0 shrink justify-center rounded-full border-transparent bg-[#f2f2f2] px-5 text-[#595959] shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:inline-flex"
                     :aria-label="`Открыть профиль: ${displayUserName}`"
                     :title="displayUserName"
                     @click="emit('open-profile')"
@@ -103,7 +103,7 @@ const searchModel = computed({
                     v-if="isAuthenticated && !loading"
                     type="button"
                     variant="outline"
-                    class="size-12 shrink-0 rounded-full border-transparent bg-[#f2f2f2] px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:hidden"
+                    class="size-12 shrink-0 rounded-full border-transparent bg-[#f2f2f2] px-0 text-[#595959] shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:hidden"
                     :aria-label="`Открыть профиль: ${displayUserName}`"
                     :title="displayUserName"
                     @click="emit('open-profile')"
@@ -114,7 +114,7 @@ const searchModel = computed({
                 <Button
                     v-if="!isAuthenticated && !loading"
                     type="button"
-                    class="h-14 flex-1 min-w-0 shrink rounded-full bg-[#f2f2f2] px-6 text-sm font-semibold text-slate-900 shadow-none transition-[background-color,color,transform] duration-150 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] max-sm:h-12 max-sm:px-4"
+                    class="h-14 flex-1 min-w-0 shrink rounded-full bg-[#f2f2f2] px-6 text-sm font-semibold text-[#404040] shadow-none transition-[background-color,color,transform] duration-150 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] max-sm:h-12 max-sm:px-4"
                     @click="emit('open-auth')"
                 >
                     <UserRound aria-hidden="true" class="size-4 text-slate-500" />

@@ -73,9 +73,10 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.text()).not.toContain('Приём заказов закрыт');
     });
 
-    it('shows checkout prompt instead of zero total for unauthenticated guests', () => {
+    it('shows a real checkout CTA button instead of zero total for unauthenticated guests', async () => {
         const wrapper = mountPanel({
             panelTitle: 'Корзина',
+            compactCart: true,
             isAuthenticated: false,
             order: null,
             orderItems: [],
@@ -83,14 +84,22 @@ describe('OrderPanel cart-only UX', () => {
         });
 
         const footer = wrapper.get('[data-testid="order-panel-footer"]');
+        const button = footer.get('[data-testid="order-panel-guest-checkout-button"]');
 
-        expect(footer.text()).toContain('Оформить заказ');
-        expect(footer.find('[data-testid="order-panel-guest-checkout-prompt"]').exists()).toBe(true);
+        expect(button.text()).toContain('Оформить заказ');
+        expect(button.classes()).toContain('bg-blue-700');
+        expect(button.classes()).toContain('h-[3.625rem]');
+        expect(button.classes()).toContain('rounded-full');
+        expect(button.classes()).toContain('font-bold');
+        expect(footer.find('[data-testid="order-panel-guest-checkout-prompt"]').exists()).toBe(false);
         expect(footer.find('[data-testid="order-panel-total-label"]').exists()).toBe(false);
         expect(footer.find('[data-testid="order-panel-total-price"]').exists()).toBe(false);
         expect(footer.text()).not.toContain('Итого');
         expect(footer.text()).not.toContain('0 ₽');
-        expect(footer.find('button').exists()).toBe(false);
+
+        await button.trigger('click');
+
+        expect(wrapper.emitted('open-auth')).toHaveLength(1);
     });
 
     it('renders internal scroll and sticky footer structure for current cart', () => {
@@ -246,7 +255,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(totalPrice.classes()).toContain('text-center');
         expect(totalPrice.classes()).toContain('text-[32px]');
         expect(totalPrice.classes()).toContain('leading-[36px]');
-        expect(totalPrice.classes()).toContain('text-[#50545a]');
+        expect(totalPrice.classes()).toContain('text-[#404040]');
         expect(checkoutButton.classes()).toContain('h-[3.625rem]');
         expect(checkoutButton.classes()).toContain('rounded-full');
         expect(checkoutButton.classes()).toContain('bg-blue-700');
