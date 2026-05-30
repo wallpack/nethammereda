@@ -102,6 +102,119 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.emitted('open-auth')).toHaveLength(1);
     });
 
+    it('renders cart rows in the same order received instead of alphabetical order', () => {
+        const wrapper = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '600.00',
+                items: [],
+            },
+            orderItems: [
+                {
+                    id: 77,
+                    menu_item_id: 11,
+                    title_snapshot: 'Яблочное блюдо',
+                    price_snapshot: '100.00',
+                    quantity: 1,
+                },
+                {
+                    id: 78,
+                    menu_item_id: 12,
+                    title_snapshot: 'Ананасовое блюдо',
+                    price_snapshot: '200.00',
+                    quantity: 1,
+                },
+                {
+                    id: 79,
+                    menu_item_id: 13,
+                    title_snapshot: 'Борщ',
+                    price_snapshot: '300.00',
+                    quantity: 1,
+                },
+            ],
+            menuItemsById: new Map([
+                [11, { id: 11, title: 'Яблочное блюдо', weight: '300 г', image_url: null, image_display_url: null }],
+                [12, { id: 12, title: 'Ананасовое блюдо', weight: '300 г', image_url: null, image_display_url: null }],
+                [13, { id: 13, title: 'Борщ', weight: '300 г', image_url: null, image_display_url: null }],
+            ]),
+            totalPositions: 3,
+            canEditOrder: true,
+        });
+
+        const titles = wrapper
+            .findAll('[data-testid="order-panel-item-title"]')
+            .map((title) => title.text());
+
+        expect(titles).toEqual(['Яблочное блюдо', 'Ананасовое блюдо', 'Борщ']);
+        expect(titles).not.toEqual(['Ананасовое блюдо', 'Борщ', 'Яблочное блюдо']);
+    });
+
+    it('keeps cart row order when the second item quantity changes', async () => {
+        const orderItems = [
+            {
+                id: 77,
+                menu_item_id: 11,
+                title_snapshot: 'Яблочное блюдо',
+                price_snapshot: '100.00',
+                quantity: 1,
+            },
+            {
+                id: 78,
+                menu_item_id: 12,
+                title_snapshot: 'Ананасовое блюдо',
+                price_snapshot: '200.00',
+                quantity: 1,
+            },
+            {
+                id: 79,
+                menu_item_id: 13,
+                title_snapshot: 'Борщ',
+                price_snapshot: '300.00',
+                quantity: 1,
+            },
+        ];
+        const wrapper = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '600.00',
+                items: [],
+            },
+            orderItems,
+            menuItemsById: new Map([
+                [11, { id: 11, title: 'Яблочное блюдо', weight: '300 г', image_url: null, image_display_url: null }],
+                [12, { id: 12, title: 'Ананасовое блюдо', weight: '300 г', image_url: null, image_display_url: null }],
+                [13, { id: 13, title: 'Борщ', weight: '300 г', image_url: null, image_display_url: null }],
+            ]),
+            totalPositions: 3,
+            canEditOrder: true,
+        });
+
+        await wrapper.setProps({
+            orderItems: [
+                orderItems[0],
+                { ...orderItems[1], quantity: 2 },
+                orderItems[2],
+            ],
+            totalPositions: 4,
+        });
+
+        const titles = wrapper
+            .findAll('[data-testid="order-panel-item-title"]')
+            .map((title) => title.text());
+        const quantities = wrapper
+            .findAll('[data-testid="order-panel-item-stepper"]')
+            .map((stepper) => stepper.text());
+
+        expect(titles).toEqual(['Яблочное блюдо', 'Ананасовое блюдо', 'Борщ']);
+        expect(quantities[1]).toBe('2');
+    });
+
     it('renders internal scroll and sticky footer structure for current cart', () => {
         const wrapper = mountPanel({
             order: {

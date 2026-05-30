@@ -44,7 +44,13 @@ trait FormatsApiPayloads
 
     protected function orderPayload(Order $order): array
     {
-        $order->loadMissing(['cycle', 'items.menuItem']);
+        $order->load([
+            'cycle',
+            'items' => fn ($query) => $query
+                ->with('menuItem')
+                ->orderBy('order_items.created_at')
+                ->orderBy('order_items.id'),
+        ]);
         $itemsCount = $order->items->count();
         $isOpenForOrdering = $order->cycle?->isOpenForOrdering() === true;
         $payload = $order->toArray();

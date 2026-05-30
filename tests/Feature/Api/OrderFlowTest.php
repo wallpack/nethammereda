@@ -800,6 +800,57 @@ class OrderFlowTest extends TestCase
     }
 
     #[Test]
+    public function current_order_items_keep_user_insertion_order_after_add_fetch_and_quantity_update(): void
+    {
+        $user = User::factory()->create();
+        $alphabeticallyEarlierItem = $this->createMenuItem(title: 'Ананасовое блюдо', price: 200);
+        $firstAddedItem = $this->createMenuItem(title: 'Яблочное блюдо', price: 100);
+        $cycle = $this->createCycle(OrderCycleStatus::Open);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/my-order/items', [
+            'menu_item_id' => $firstAddedItem->id,
+            'quantity' => 1,
+        ])->assertOk();
+
+        $secondAddResponse = $this->postJson('/api/my-order/items', [
+            'menu_item_id' => $alphabeticallyEarlierItem->id,
+            'quantity' => 1,
+        ])->assertOk();
+
+        $this->assertSame(
+            ['Яблочное блюдо', 'Ананасовое блюдо'],
+            collect($secondAddResponse->json('data.items'))->pluck('title_snapshot')->all(),
+        );
+
+        $fetchResponse = $this->getJson('/api/my-order')
+            ->assertOk()
+            ->assertJsonPath('data.cycle.id', $cycle->id);
+
+        $this->assertSame(
+            ['Яблочное блюдо', 'Ананасовое блюдо'],
+            collect($fetchResponse->json('data.order.items'))->pluck('title_snapshot')->all(),
+        );
+
+        $secondOrderItemId = collect($fetchResponse->json('data.order.items'))
+            ->firstWhere('menu_item_id', $alphabeticallyEarlierItem->id)['id'];
+
+        $quantityResponse = $this->patchJson("/api/my-order/items/{$secondOrderItemId}", [
+            'quantity' => 3,
+        ])->assertOk();
+
+        $this->assertSame(
+            ['Яблочное блюдо', 'Ананасовое блюдо'],
+            collect($quantityResponse->json('data.items'))->pluck('title_snapshot')->all(),
+        );
+        $this->assertSame(
+            [1, 3],
+            collect($quantityResponse->json('data.items'))->pluck('quantity')->all(),
+        );
+    }
+
+    #[Test]
     public function user_can_change_quantity_of_own_draft_item(): void
     {
         [$user, , $orderItem] = $this->createDraftOrderItem(quantity: 1, price: 150);
