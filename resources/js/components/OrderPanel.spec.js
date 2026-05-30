@@ -189,18 +189,18 @@ describe('OrderPanel cart-only UX', () => {
         expect(actions.classes()).toContain('items-center');
         expect(stepper.text()).toContain('2');
         expect(stepperButtons).toHaveLength(2);
-        expect(stepperClasses).toContain('h-6');
-        expect(stepperClasses).toContain('w-[4.875rem]');
-        expect(stepperClasses).toContain('grid-cols-[1.5rem_1.875rem_1.5rem]');
+        expect(stepperClasses).toContain('h-7');
+        expect(stepperClasses).toContain('w-[5.375rem]');
+        expect(stepperClasses).toContain('grid-cols-[1.625rem_2.125rem_1.625rem]');
         expect(stepperClasses).toContain('bg-blue-700');
         expect(stepperClasses).not.toContain('border');
         expect(stepperClasses).not.toContain('bg-white');
         expect(stepperClasses).not.toContain('bg-slate-100');
-        expect(stepperButtons[0].classes()).toContain('size-[1.375rem]');
+        expect(stepperButtons[0].classes()).toContain('size-6');
         expect(stepperButtons[0].classes()).toContain('justify-self-start');
         expect(stepperButtons[0].classes()).toContain('text-white/85');
         expect(stepperButtons[0].find('svg').classes()).toContain('size-4');
-        expect(stepperButtons[1].classes()).toContain('size-[1.375rem]');
+        expect(stepperButtons[1].classes()).toContain('size-6');
         expect(stepperButtons[1].classes()).toContain('justify-self-end');
         expect(stepperButtons[1].classes()).toContain('text-white');
         expect(stepperButtons[1].find('svg').classes()).toContain('size-4');
@@ -261,6 +261,7 @@ describe('OrderPanel cart-only UX', () => {
         const quantityPill = wrapper.get('[data-testid="order-panel-item-stepper"]');
 
         expect(quantityPill.text()).toBe('1 шт.');
+        expect(quantityPill.classes()).toContain('h-7');
         expect(quantityPill.classes()).toContain('bg-blue-700');
         expect(quantityPill.classes()).toContain('text-white');
         expect(quantityPill.findAll('button')).toHaveLength(0);

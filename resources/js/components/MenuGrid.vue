@@ -150,7 +150,7 @@ const selectedCategorySummary = computed(() => {
     };
 });
 
-const catalogTitle = computed(() => selectedCategorySummary.value?.name || 'Каталог');
+const catalogTitle = computed(() => 'Каталог');
 
 const renderGroups = computed(() => {
     if (showCategorySections.value) {

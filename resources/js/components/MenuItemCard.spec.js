@@ -37,11 +37,19 @@ describe('MenuItemCard UI', () => {
 
         expect(stepper.classes()).toContain('bg-blue-50');
         expect(stepper.classes()).toContain('border-transparent');
-        expect(stepper.classes()).toContain('inline-grid');
-        expect(stepper.classes()).toContain('min-w-[112px]');
-        expect(stepper.classes()).toContain('max-w-[136px]');
+        expect(stepper.classes()).toContain('grid');
+        expect(stepper.classes()).toContain('h-9');
+        expect(stepper.classes()).toContain('w-[124px]');
+        expect(stepper.classes()).toContain('grid-cols-[2.25rem_minmax(0,1fr)_2.25rem]');
         expect(stepper.classes()).not.toContain('w-full');
+        expect(stepper.classes()).toContain('text-[#404040]');
         expect(price.classes()).toContain('text-[#404040]');
+        expect(price.classes()).toContain('text-[13px]');
+        expect(price.classes()).not.toContain('bg-white/95');
+        expect(price.classes()).not.toContain('rounded-full');
+        expect(price.classes()).not.toContain('px-1.5');
+        expect(buttons[0].find('svg').classes()).toContain('size-5');
+        expect(buttons[1].find('svg').classes()).toContain('size-5');
         expect(wrapper.find('[data-testid="menu-item-card"]').exists()).toBe(true);
         expect(wrapper.text()).toContain(baseItem.title);
         expect(wrapper.text()).toContain('300 г');
@@ -132,7 +140,7 @@ describe('MenuItemCard UI', () => {
         expect(wrapper.text()).toContain('250');
         expect(wrapper.text()).not.toContain('Приём закрыт');
         expect(stepper.classes()).toContain('bg-blue-50/60');
-        expect(stepper.classes()).toContain('text-blue-300');
+        expect(stepper.classes()).toContain('text-[#404040]/60');
         expect(buttons).toHaveLength(2);
         expect(buttons.every((button) => button.attributes('disabled') !== undefined)).toBe(true);
     });
@@ -151,8 +159,20 @@ describe('MenuItemCard UI', () => {
         const stepper = wrapper.find('[data-testid="menu-item-price-stepper"]');
         const overlay = wrapper.find('[data-testid="menu-item-quantity-overlay"]');
 
+        const price = wrapper.find('[data-testid="menu-item-stepper-price"]');
+        const buttons = stepper.findAll('button');
+
         expect(stepper.classes()).toContain('bg-blue-700');
+        expect(stepper.classes()).toContain('h-9');
+        expect(stepper.classes()).toContain('w-[124px]');
         expect(stepper.text()).toContain('250');
+        expect(price.classes()).toContain('text-[#404040]');
+        expect(price.classes()).not.toContain('bg-white/95');
+        expect(price.classes()).not.toContain('rounded-full');
+        expect(buttons[0].classes()).toContain('text-white');
+        expect(buttons[1].classes()).toContain('text-white');
+        expect(buttons[0].find('svg').classes()).toContain('size-5');
+        expect(buttons[1].find('svg').classes()).toContain('size-5');
         expect(overlay.exists()).toBe(true);
         expect(overlay.text()).toContain('2');
     });

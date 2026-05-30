@@ -698,7 +698,9 @@ describe('catalog auth UX', () => {
         const searchInput = document.querySelector('#global-menu-search');
         await fillInput(searchInput, 'котлета');
         await click(buttonByText(secondCategory.name));
-        expect(document.querySelector('#menu-heading')?.textContent).toContain(secondCategory.name);
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+        expect(document.querySelector('[data-testid="menu-selected-category-summary"]')?.textContent).toContain(secondCategory.name);
+        expect(document.querySelectorAll('[data-testid="menu-selected-category-summary"] [data-testid="menu-category-heading"]')).toHaveLength(1);
 
         await click(document.querySelector('button[aria-label="Вернуться в каталог"]'));
 

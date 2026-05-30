@@ -245,7 +245,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-stepper"
                             :class="[
                                 compactCart
-                                    ? 'grid h-6 w-[4.875rem] grid-cols-[1.5rem_1.875rem_1.5rem] items-center rounded-full bg-blue-700 p-0'
+                                    ? 'grid h-7 w-[5.375rem] grid-cols-[1.625rem_2.125rem_1.625rem] items-center rounded-full bg-blue-700 p-0'
                                     : 'inline-flex h-9 items-center rounded-full border border-blue-700 bg-blue-700 p-0.5 text-white',
                             ]"
                         >
@@ -256,7 +256,7 @@ watch(() => props.menuItemsById, () => {
                                 :class="[
                                     'rounded-full',
                                     compactCart
-                                        ? 'size-[1.375rem] justify-self-start text-white/85 hover:bg-blue-600 hover:text-white'
+                                        ? 'size-6 justify-self-start text-white/85 hover:bg-blue-600 hover:text-white'
                                         : 'size-8 text-white/85 hover:bg-blue-600 hover:text-white',
                                 ]"
                                 :disabled="actionLoading"
@@ -272,7 +272,7 @@ watch(() => props.menuItemsById, () => {
                                 size="icon-sm"
                                 :class="[
                                     'rounded-full',
-                                    compactCart ? 'size-[1.375rem] justify-self-end text-white hover:bg-blue-600 hover:text-white' : 'size-8 text-white hover:bg-blue-600 hover:text-white',
+                                    compactCart ? 'size-6 justify-self-end text-white hover:bg-blue-600 hover:text-white' : 'size-8 text-white hover:bg-blue-600 hover:text-white',
                                 ]"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${orderItemTitle(item)}`"
@@ -286,7 +286,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-stepper"
                             :class="[
                                 'rounded-full font-medium tabular-nums text-slate-600',
-                                compactCart ? 'h-6 bg-blue-700 px-3 text-[13px] leading-6 text-white' : 'bg-blue-700 px-3 py-1.5 text-sm text-white',
+                                compactCart ? 'h-7 bg-blue-700 px-3 text-[13px] leading-7 text-white' : 'bg-blue-700 px-3 py-1.5 text-sm text-white',
                             ]"
                         >{{ item.quantity }} шт.</span>
 

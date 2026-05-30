@@ -55,10 +55,10 @@ const priceStepperTone = computed(() => {
     }
 
     if (controlsDisabled.value) {
-        return 'border-blue-100 bg-blue-50/60 text-blue-300';
+        return 'border-blue-100 bg-blue-50/60 text-[#404040]/60';
     }
 
-    return 'border-transparent bg-blue-50 text-blue-900';
+    return 'border-transparent bg-blue-50 text-[#404040]';
 });
 const priceTextTone = computed(() => 'text-[#404040]');
 const minusButtonDisabled = computed(() => !props.orderItem || controlsDisabled.value);
@@ -135,7 +135,7 @@ const plusButtonLabel = computed(() => (props.orderItem
                 <div class="mt-auto pt-2.5 max-[430px]:pt-2">
                     <div
                         data-testid="menu-item-price-stepper"
-                        class="inline-grid h-9 min-w-[112px] max-w-[136px] grid-cols-[2rem_max-content_2rem] items-center rounded-full border p-0.5 transition-[background-color,border-color,color] duration-150 max-[430px]:h-9 max-[430px]:min-w-[104px] max-[430px]:grid-cols-[1.875rem_max-content_1.875rem]"
+                        class="grid h-9 w-[124px] grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center rounded-full border p-0.5 transition-[background-color,border-color,color] duration-150 max-[430px]:h-9 max-[430px]:w-[118px] max-[430px]:grid-cols-[2.125rem_minmax(0,1fr)_2.125rem]"
                         :class="priceStepperTone"
                     >
                         <Button
@@ -143,19 +143,19 @@ const plusButtonLabel = computed(() => (props.orderItem
                             variant="ghost"
                             size="icon-sm"
                             class="size-8 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
-                            :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-blue-500 hover:bg-white hover:text-blue-700'"
+                            :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-[#404040]/50' : 'text-[#404040] hover:bg-white hover:text-[#404040]'"
                             :disabled="minusButtonDisabled"
                             :title="minusButtonDisabled ? disabledReason : undefined"
                             :aria-label="`Уменьшить количество: ${displayTitle}`"
                             @click="orderItem && emit('change-quantity', orderItem, orderItem.quantity - 1)"
                         >
-                            <Minus aria-hidden="true" class="size-4 max-[430px]:size-3.5" />
+                            <Minus aria-hidden="true" class="size-5 max-[430px]:size-[1.125rem]" />
                         </Button>
 
                         <span
                             data-testid="menu-item-stepper-price"
-                            class="min-w-0 truncate whitespace-nowrap text-center text-sm font-bold tabular-nums max-[430px]:min-w-0 max-[430px]:text-[0.78rem]"
-                            :class="[priceTextTone, hasSelectedQuantity ? 'rounded-full bg-white/95 px-1.5 leading-7' : '']"
+                            class="min-w-0 truncate whitespace-nowrap text-center text-[13px] font-bold tabular-nums max-[430px]:min-w-0 max-[430px]:text-[0.78rem]"
+                            :class="priceTextTone"
                         >
                             {{ formatPrice(item.price) }}
                         </span>
@@ -165,13 +165,13 @@ const plusButtonLabel = computed(() => (props.orderItem
                             variant="ghost"
                             size="icon-sm"
                             class="size-8 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
-                            :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-blue-700 hover:bg-white hover:text-blue-900'"
+                            :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-[#404040]/50' : 'text-[#404040] hover:bg-white hover:text-[#404040]'"
                             :disabled="plusButtonDisabled"
                             :title="plusButtonDisabled ? disabledReason : undefined"
                             :aria-label="plusButtonLabel"
                             @click="orderItem ? emit('change-quantity', orderItem, orderItem.quantity + 1) : emit('add-item', item.id)"
                         >
-                            <Plus aria-hidden="true" class="size-4 max-[430px]:size-3.5" />
+                            <Plus aria-hidden="true" class="size-5 max-[430px]:size-[1.125rem]" />
                         </Button>
                     </div>
                 </div>
