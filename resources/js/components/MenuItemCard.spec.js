@@ -166,7 +166,8 @@ describe('MenuItemCard UI', () => {
         expect(stepper.classes()).toContain('h-9');
         expect(stepper.classes()).toContain('w-[124px]');
         expect(stepper.text()).toContain('250');
-        expect(price.classes()).toContain('text-[#404040]');
+        expect(price.classes()).toContain('text-white');
+        expect(price.classes()).not.toContain('text-[#404040]');
         expect(price.classes()).not.toContain('bg-white/95');
         expect(price.classes()).not.toContain('rounded-full');
         expect(buttons[0].classes()).toContain('text-white');
@@ -194,7 +195,8 @@ describe('MenuItemCard UI', () => {
         const buttons = stepper.findAll('button');
 
         expect(stepper.classes()).toContain('bg-blue-700');
-        expect(price.classes()).toContain('text-[#404040]');
+        expect(price.classes()).toContain('text-white');
+        expect(price.classes()).not.toContain('text-[#404040]');
         expect(buttons.every((button) => button.attributes('disabled') !== undefined)).toBe(true);
     });
 

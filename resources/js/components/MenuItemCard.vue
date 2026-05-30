@@ -60,7 +60,7 @@ const priceStepperTone = computed(() => {
 
     return 'border-transparent bg-blue-50 text-[#404040]';
 });
-const priceTextTone = computed(() => 'text-[#404040]');
+const priceTextTone = computed(() => (hasSelectedQuantity.value ? 'text-white' : 'text-[#404040]'));
 const minusButtonDisabled = computed(() => !props.orderItem || controlsDisabled.value);
 const plusButtonDisabled = computed(() => controlsDisabled.value);
 const displayTitle = computed(() => menuItemDisplayTitle(props.item));
