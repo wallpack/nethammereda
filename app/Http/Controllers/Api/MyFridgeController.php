@@ -19,12 +19,14 @@ class MyFridgeController extends Controller
         $this->authorize('viewAny', FridgeItem::class);
 
         $items = FridgeItem::query()
+            ->with('menuItem:id,image_url,image_path')
             ->where('user_id', $user->id)
             ->where('status', FridgeItemStatus::InFridge)
             ->where('quantity_remaining', '>', 0)
             ->orderByDesc('arrived_at')
             ->orderByDesc('id')
-            ->get();
+            ->get()
+            ->each(fn (FridgeItem $item): FridgeItem => $this->appendMenuItemImageFields($item));
 
         $eatenTodayCount = FridgeItem::query()
             ->where('user_id', $user->id)
@@ -44,6 +46,17 @@ class MyFridgeController extends Controller
                 'eaten_today_count' => $eatenTodayCount,
             ],
         ]);
+    }
+
+    private function appendMenuItemImageFields(FridgeItem $item): FridgeItem
+    {
+        $menuItem = $item->menuItem;
+
+        $item->setAttribute('image_display_url', $menuItem?->image_display_url);
+        $item->setAttribute('image_url', $menuItem?->image_url);
+        $item->unsetRelation('menuItem');
+
+        return $item;
     }
 
     public function history(Request $request): JsonResponse

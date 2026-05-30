@@ -290,6 +290,9 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.classes()).not.toContain('cart-panel-compact');
         expect(list.classes()).toContain('mx-auto');
         expect(list.classes()).toContain('max-w-[46rem]');
+        expect(list.classes()).toContain('space-y-2');
+        expect(list.classes()).not.toContain('divide-y');
+        expect(list.classes()).not.toContain('divide-slate-100');
         expect(item.classes().join(' ')).toContain('grid-cols-[4.75rem_minmax(0,1fr)]');
         expect(item.classes().join(' ')).not.toContain('ring-1');
         expect(imageWrap.classes().join(' ')).toContain('bg-slate-50');

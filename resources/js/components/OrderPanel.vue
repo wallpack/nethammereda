@@ -149,7 +149,7 @@ watch(() => props.menuItemsById, () => {
             v-else
             :class="[
                 'scrollbar-none min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1',
-                compactCart ? 'mt-2.5 space-y-2.5 pb-[9rem]' : 'mx-auto mt-4 w-full max-w-[46rem] divide-y divide-slate-100 pb-4',
+                compactCart ? 'mt-2.5 space-y-2.5 pb-[9rem]' : 'mx-auto mt-4 w-full max-w-[46rem] space-y-2 pb-4',
             ]"
         >
             <article

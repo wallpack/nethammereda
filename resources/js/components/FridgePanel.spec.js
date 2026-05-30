@@ -8,6 +8,8 @@ const fridgeItem = {
     quantity_remaining: 2,
     status: 'in_fridge',
     expires_at: '2026-05-30T11:30:00.000000Z',
+    image_display_url: null,
+    image_url: null,
 };
 
 const dialogStubs = {
@@ -84,6 +86,34 @@ describe('FridgePanel UI', () => {
         expect(quantity.classes()).toContain('customer-badge');
         expect(actions.classes()).toContain('grid');
         expect(actions.classes().join(' ')).toContain('sm:grid-cols-[minmax(7.5rem,1fr)_auto_auto]');
+    });
+
+    it('renders a real dish thumbnail when the fridge payload includes an image URL', () => {
+        const wrapper = mountPanel({
+            fridgeItems: [{
+                ...fridgeItem,
+                image_display_url: '/storage/menu-items/manual/31/cutlet.png',
+            }],
+        });
+
+        const imageWrap = wrapper.get('[data-testid="fridge-card-image-wrap"]');
+        const image = wrapper.get('[data-testid="fridge-card-image"]');
+
+        expect(imageWrap.classes()).toContain('size-16');
+        expect(image.attributes('src')).toBe('/storage/menu-items/manual/31/cutlet.png');
+        expect(image.attributes('alt')).toBe('Котлета с пюре');
+        expect(image.classes()).toContain('object-contain');
+    });
+
+    it('shows a neutral thumbnail placeholder when no dish image is available', () => {
+        const wrapper = mountPanel();
+
+        const imageWrap = wrapper.get('[data-testid="fridge-card-image-wrap"]');
+        const placeholder = wrapper.get('[data-testid="fridge-card-image-placeholder"]');
+
+        expect(imageWrap.classes()).toContain('size-16');
+        expect(placeholder.exists()).toBe(true);
+        expect(wrapper.find('[data-testid="fridge-card-image"]').exists()).toBe(false);
     });
 
     it('shows empty state when fridge is empty', () => {

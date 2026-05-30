@@ -293,6 +293,42 @@ class FridgeItemFlowTest extends TestCase
     }
 
     #[Test]
+    public function my_fridge_response_includes_linked_menu_item_image_urls(): void
+    {
+        $user = $this->createUser();
+        $category = MenuCategory::query()->create([
+            'name' => 'Горячее',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+        $menuItem = MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Котлета с пюре',
+            'price' => 250,
+            'image_path' => 'menu-items/manual/31/cutlet.png',
+            'image_url' => 'https://example.test/cutlet.png',
+            'is_active' => true,
+        ]);
+        FridgeItem::query()->create([
+            'user_id' => $user->id,
+            'menu_item_id' => $menuItem->id,
+            'title_snapshot' => 'Котлета с пюре',
+            'quantity_total' => 2,
+            'quantity_remaining' => 2,
+            'status' => FridgeItemStatus::InFridge,
+            'arrived_at' => now(),
+            'expires_at' => now()->addDay(),
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/my-fridge')
+            ->assertOk()
+            ->assertJsonPath('data.0.image_display_url', url('/storage/menu-items/manual/31/cutlet.png'))
+            ->assertJsonPath('data.0.image_url', 'https://example.test/cutlet.png');
+    }
+
+    #[Test]
     public function fridge_index_and_history_show_only_authenticated_users_data(): void
     {
         $user = $this->createUser();

@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { expiryLabel, fridgeStatusLabel } from '@/lib/formatters';
-import { Refrigerator } from 'lucide-vue-next';
+import { Refrigerator, UtensilsCrossed } from 'lucide-vue-next';
 
 const props = defineProps({
     fridgeItems: {
@@ -55,6 +55,13 @@ const props = defineProps({
 const emit = defineEmits(['eat-one', 'eat-all', 'discard']);
 
 const quantityLabel = (quantity) => `${quantity} шт.`;
+const fridgeItemImage = (item) => item.image_display_url
+    || item.image_url
+    || item.menu_item?.image_display_url
+    || item.menu_item?.image_url
+    || item.menuItem?.image_display_url
+    || item.menuItem?.image_url
+    || null;
 
 const summaryCards = computed(() => {
     const totalPortionsFallback = props.fridgeItems.reduce(
@@ -160,21 +167,43 @@ const summaryCards = computed(() => {
                     data-testid="fridge-item-card"
                     class="customer-row-card min-w-0 p-3.5 shadow-sm sm:p-4"
                 >
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <p data-testid="fridge-card-title" class="customer-title line-clamp-2 break-words text-pretty text-[15px] leading-5">{{ item.title_snapshot }}</p>
+                    <div class="flex min-w-0 items-start gap-3">
+                        <div data-testid="fridge-card-image-wrap" class="grid size-16 shrink-0 place-items-center overflow-hidden rounded-[1rem] bg-slate-50">
+                            <img
+                                v-if="fridgeItemImage(item)"
+                                data-testid="fridge-card-image"
+                                :src="fridgeItemImage(item)"
+                                :alt="item.title_snapshot"
+                                class="size-full rounded-[1rem] object-contain p-1"
+                                loading="lazy"
+                                decoding="async"
+                            />
+                            <span
+                                v-else
+                                data-testid="fridge-card-image-placeholder"
+                                class="grid size-full place-items-center rounded-[1rem] bg-slate-100 text-slate-400"
+                            >
+                                <UtensilsCrossed aria-hidden="true" class="size-5" />
+                            </span>
                         </div>
-                        <Badge variant="outline" data-testid="fridge-quantity-badge" class="customer-badge h-auto min-h-6 shrink-0 px-2.5 py-1 text-xs leading-4">
-                            {{ quantityLabel(item.quantity_remaining) }}
-                        </Badge>
-                    </div>
-                    <div class="mt-2 flex flex-wrap items-center gap-2">
-                        <span data-testid="fridge-card-status" class="customer-meta rounded-full bg-slate-50 px-2.5 py-1 text-xs leading-4">
-                            {{ fridgeStatusLabel(item.status) }}
-                        </span>
-                        <span data-testid="fridge-card-expiry" class="customer-meta rounded-full bg-slate-50 px-2.5 py-1 text-xs leading-4 tabular-nums">
-                            {{ expiryLabel(item.expires_at) }}
-                        </span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p data-testid="fridge-card-title" class="customer-title line-clamp-2 break-words text-pretty text-[15px] leading-5">{{ item.title_snapshot }}</p>
+                                </div>
+                                <Badge variant="outline" data-testid="fridge-quantity-badge" class="customer-badge h-auto min-h-6 shrink-0 px-2.5 py-1 text-xs leading-4">
+                                    {{ quantityLabel(item.quantity_remaining) }}
+                                </Badge>
+                            </div>
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                <span data-testid="fridge-card-status" class="customer-meta rounded-full bg-slate-50 px-2.5 py-1 text-xs leading-4">
+                                    {{ fridgeStatusLabel(item.status) }}
+                                </span>
+                                <span data-testid="fridge-card-expiry" class="customer-meta rounded-full bg-slate-50 px-2.5 py-1 text-xs leading-4 tabular-nums">
+                                    {{ expiryLabel(item.expires_at) }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     <div data-testid="fridge-card-actions" class="mt-4 grid gap-2 sm:grid-cols-[minmax(7.5rem,1fr)_auto_auto]">
