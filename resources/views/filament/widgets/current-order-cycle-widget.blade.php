@@ -42,10 +42,30 @@
             </div>
         @endif
 
-        <div class="nh-admin-dashboard-card__footer">
-            <x-filament::button tag="a" :href="$cycleUrl" icon="heroicon-m-arrow-top-right-on-square">
-                {{ $cycle ? 'Открыть цикл' : 'Создать цикл' }}
+        <div class="nh-admin-dashboard-card__footer nh-admin-action-strip" aria-label="Основные действия по текущему циклу">
+            <x-filament::button tag="a" :href="$primaryActionUrl" :color="$primaryActionColor" :icon="$primaryActionIcon">
+                {{ $primaryActionLabel }}
             </x-filament::button>
+
+            @if ($cycle)
+                <x-filament::button tag="a" :href="$cycleUrl" color="gray" outlined icon="heroicon-m-arrow-top-right-on-square">
+                    Открыть цикл
+                </x-filament::button>
+
+                <x-filament::button tag="a" :href="$ordersUrl" color="gray" outlined icon="heroicon-m-shopping-bag">
+                    Открыть заказы
+                </x-filament::button>
+            @endif
+
+            <x-filament::button tag="a" :href="$cyclesUrl" color="gray" outlined icon="heroicon-m-calendar-days">
+                История циклов
+            </x-filament::button>
+
+            @if ($cycle)
+                <x-filament::button tag="a" :href="$supplierExportsUrl" color="gray" outlined icon="heroicon-m-document-arrow-down">
+                    История отправок
+                </x-filament::button>
+            @endif
         </div>
     </section>
 </x-filament-widgets::widget>

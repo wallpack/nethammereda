@@ -2121,6 +2121,16 @@
     align-items: center;
 }
 
+.nh-admin-action-strip {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.nh-admin-action-strip .fi-btn {
+    min-height: 38px;
+}
+
 .nh-admin-eyebrow {
     margin: 0 0 6px;
     color: oklch(0.72 0.07 250);
@@ -2273,6 +2283,41 @@
     line-height: 1.3;
 }
 
+.nh-admin-activity-list__kind {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    border: 1px solid oklch(0.48 0.05 252);
+    border-radius: 999px;
+    padding: 2px 8px;
+    background: oklch(0.28 0.035 252 / 0.72);
+    color: oklch(0.86 0.035 252);
+}
+
+.nh-admin-activity-list__kind--success {
+    border-color: oklch(0.62 0.12 148 / 0.45);
+    background: oklch(0.33 0.06 148 / 0.34);
+    color: oklch(0.86 0.11 148);
+}
+
+.nh-admin-activity-list__kind--warning {
+    border-color: oklch(0.72 0.13 86 / 0.45);
+    background: oklch(0.33 0.055 86 / 0.34);
+    color: oklch(0.9 0.1 86);
+}
+
+.nh-admin-activity-list__kind--danger {
+    border-color: oklch(0.66 0.18 28 / 0.45);
+    background: oklch(0.31 0.075 28 / 0.34);
+    color: oklch(0.88 0.12 28);
+}
+
+.nh-admin-activity-list__kind--info {
+    border-color: oklch(0.68 0.14 250 / 0.45);
+    background: oklch(0.33 0.07 250 / 0.34);
+    color: oklch(0.86 0.11 250);
+}
+
 .nh-admin-activity-list__title {
     margin: 4px 0 0;
     color: oklch(0.96 0.01 252);
@@ -2318,6 +2363,11 @@
     .nh-admin-empty-state {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .nh-admin-action-strip .fi-btn {
+        width: 100%;
+        justify-content: center;
     }
 
     .nh-admin-cycle-grid {

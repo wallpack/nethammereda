@@ -10,6 +10,7 @@ use App\Models\OrderCycle;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -30,7 +31,9 @@ class OrderCyclesTable
                 TextColumn::make('title')
                     ->label('Неделя')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('semibold')
+                    ->wrap(),
                 TextColumn::make('status')
                     ->label('Статус')
                     ->formatStateUsing(fn (OrderCycleStatus $state): string => $state->label())
@@ -43,11 +46,11 @@ class OrderCyclesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('closes_at')
-                    ->label('Дедлайн')
+                    ->label('Дедлайн заказа')
                     ->dateTime('d.m.Y, H:i', $businessTimezone)
                     ->sortable(),
                 TextColumn::make('sent_to_supplier_at')
-                    ->label('Дата отправки')
+                    ->label('Отправка поставщику')
                     ->dateTime('d.m.Y, H:i', $businessTimezone)
                     ->placeholder('Не отправлен')
                     ->sortable(),
@@ -57,7 +60,7 @@ class OrderCyclesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('delivered_at')
-                    ->label('Дата доставки')
+                    ->label('Доставка')
                     ->dateTime('d.m.Y, H:i', $businessTimezone)
                     ->placeholder('Не отмечена')
                     ->sortable(),
@@ -69,7 +72,8 @@ class OrderCyclesTable
                 TextColumn::make('orders_count')
                     ->counts('orders')
                     ->label('Заказов')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->alignEnd()
+                    ->sortable(),
                 TextColumn::make('supplier_total')
                     ->label('Сумма для поставщика')
                     ->state(fn (OrderCycle $record): string => number_format(
@@ -86,12 +90,8 @@ class OrderCyclesTable
                     ->options(OrderCycleStatus::labels()),
             ])
             ->recordActions([
-                EditAction::make()
-                    ->label('Изменить'),
-                ReopenOrderCycleAction::make(),
-
                 Action::make('sendToSupplier')
-                    ->label('Отправить поставщику')
+                    ->label('Отправить')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('success')
                     ->requiresConfirmation()
@@ -123,40 +123,51 @@ class OrderCyclesTable
                             ->send();
                     }),
                 MarkOrderCycleDeliveredAction::make(),
-                Action::make('exportCsv')
-                    ->label('Экспорт CSV')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->action(function (OrderCycle $record) {
-                        $csv = app(SupplierOrderExportService::class)->csvForCycle($record);
+                EditAction::make()
+                    ->label('Открыть')
+                    ->icon('heroicon-o-arrow-top-right-on-square'),
+                ActionGroup::make([
+                    ReopenOrderCycleAction::make(),
+                    Action::make('exportCsv')
+                        ->label('Скачать CSV')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('gray')
+                        ->action(function (OrderCycle $record) {
+                            $csv = app(SupplierOrderExportService::class)->csvForCycle($record);
 
-                        $filename = "supplier-order-cycle-{$record->id}.csv";
+                            $filename = "supplier-order-cycle-{$record->id}.csv";
 
-                        return response()->streamDownload(
-                            function () use ($csv): void {
-                                echo $csv;
-                            },
-                            $filename,
-                            ['Content-Type' => 'text/csv; charset=UTF-8'],
-                        );
-                    }),
-                Action::make('exportXlsx')
-                    ->label('Экспорт XLSX')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->action(function (OrderCycle $record) {
-                        $xlsx = app(SupplierOrderExportService::class)->xlsxForCycle($record);
+                            return response()->streamDownload(
+                                function () use ($csv): void {
+                                    echo $csv;
+                                },
+                                $filename,
+                                ['Content-Type' => 'text/csv; charset=UTF-8'],
+                            );
+                        }),
+                    Action::make('exportXlsx')
+                        ->label('Скачать XLSX')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('gray')
+                        ->action(function (OrderCycle $record) {
+                            $xlsx = app(SupplierOrderExportService::class)->xlsxForCycle($record);
 
-                        $filename = "supplier-order-cycle-{$record->id}.xlsx";
+                            $filename = "supplier-order-cycle-{$record->id}.xlsx";
 
-                        return response()->streamDownload(
-                            function () use ($xlsx): void {
-                                echo $xlsx;
-                            },
-                            $filename,
-                            ['Content-Type' => SupplierOrderExportService::xlsxMimeType()],
-                        );
-                    }),
-                DeleteAction::make()
-                    ->label('Удалить'),
+                            return response()->streamDownload(
+                                function () use ($xlsx): void {
+                                    echo $xlsx;
+                                },
+                                $filename,
+                                ['Content-Type' => SupplierOrderExportService::xlsxMimeType()],
+                            );
+                        }),
+                    DeleteAction::make()
+                        ->label('Удалить'),
+                ])
+                    ->label('Еще')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

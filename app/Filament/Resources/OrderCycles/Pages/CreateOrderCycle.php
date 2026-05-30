@@ -6,6 +6,7 @@ use App\Filament\Resources\Concerns\HasCleanResourceBreadcrumbs;
 use App\Filament\Resources\OrderCycles\OrderCycleResource;
 use App\Services\OrderCycleAutoCloser;
 use Carbon\Carbon;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -18,6 +19,24 @@ class CreateOrderCycle extends CreateRecord
     protected static ?string $title = 'Создание недельного цикла';
 
     protected static ?string $breadcrumb = 'Создание';
+
+    protected function getCreateFormAction(): Action
+    {
+        return parent::getCreateFormAction()
+            ->label('Создать и открыть');
+    }
+
+    protected function getCreateAnotherFormAction(): Action
+    {
+        return parent::getCreateAnotherFormAction()
+            ->label('Создать еще');
+    }
+
+    protected function getCancelFormAction(): Action
+    {
+        return parent::getCancelFormAction()
+            ->label('Отменить');
+    }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
