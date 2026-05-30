@@ -62,7 +62,7 @@ const mountModal = (props = {}) => mount(UserProfileModal, {
 });
 
 describe('UserProfileModal order history tab', () => {
-    it('uses the refreshed customer profile visual system', () => {
+    it('uses a coherent account layout with one primary profile card', () => {
         const wrapper = mountModal({
             telegramLinked: true,
             telegramLinkAvailable: true,
@@ -76,25 +76,34 @@ describe('UserProfileModal order history tab', () => {
         const tabs = wrapper.get('[data-testid="profile-tabs"]');
         const form = wrapper.get('[data-testid="profile-form-card"]');
         const favorites = wrapper.get('[data-testid="profile-favorites-action"]');
-        const quickActions = wrapper.get('[data-testid="profile-quick-actions"]');
+        const accountSection = wrapper.get('[data-testid="profile-quick-actions"]');
         const telegram = wrapper.get('[data-testid="profile-telegram-card"]');
+        const logoutSection = wrapper.get('[data-testid="profile-logout-section"]');
         const logout = wrapper.get('[data-testid="profile-logout-button"]');
 
         expect(content.classes()).toContain('customer-app');
-        expect(content.classes()).toContain('rounded-[1.75rem]');
-        expect(content.classes()).toContain('shadow-2xl');
-        expect(header.classes()).toContain('gap-3.5');
-        expect(avatar.classes()).toContain('bg-blue-50');
+        expect(content.classes()).toContain('sm:w-[min(calc(100%_-_2rem),36rem)]');
+        expect(content.classes()).toContain('top-2');
+        expect(content.classes()).toContain('bottom-2');
+        expect(header.classes()).toContain('items-center');
+        expect(header.classes()).toContain('gap-3');
+        expect(avatar.classes()).toContain('size-12');
         expect(wrapper.get('[data-testid="profile-name"]').classes()).toContain('customer-heading');
         expect(tabs.classes()).toContain('bg-[#f2f4f7]');
         expect(tabs.classes()).toContain('rounded-full');
-        expect(form.classes()).toContain('customer-soft-card');
-        expect(favorites.classes()).toContain('customer-row-card');
-        expect(quickActions.text()).toContain('Быстрые действия');
-        expect(quickActions.classes()).toContain('customer-soft-card');
-        expect(quickActions.text()).not.toContain('БЫСТРЫЕ ДЕЙСТВИЯ');
-        expect(telegram.classes()).toContain('customer-soft-card');
+        expect(form.classes()).toContain('bg-white');
+        expect(form.classes()).toContain('shadow-sm');
+        expect(form.text()).toContain('ФИО');
+        expect(accountSection.text()).toContain('Разделы аккаунта');
+        expect(accountSection.text()).not.toContain('Быстрые действия');
+        expect(accountSection.find('[data-testid="profile-favorites-action"]').exists()).toBe(true);
+        expect(favorites.text()).toContain('3 сохранённых');
+        expect(favorites.classes()).not.toContain('rounded-full');
+        expect(accountSection.find('[data-testid="profile-catalog-action"]').exists()).toBe(true);
+        expect(telegram.classes()).toContain('bg-sky-50/50');
+        expect(telegram.classes()).toContain('py-3');
         expect(wrapper.get('[data-testid="profile-telegram-linked"]').text()).toContain('Подключён');
+        expect(logoutSection.classes()).toContain('border-t');
         expect(logout.classes()).toContain('text-rose-700');
     });
 
