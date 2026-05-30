@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatPrice, orderStatusLabel } from '@/lib/formatters';
+import { formatPrice } from '@/lib/formatters';
 import { Loader2, Minus, Plus, ShoppingBag, UtensilsCrossed, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -69,8 +69,45 @@ const props = defineProps({
 const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order', 'open-auth']);
 const failedOrderImages = ref(new Set());
 
-const isSubmittedOrder = computed(() => props.order?.status === 'submitted');
+const isClosedForOrdering = computed(() => props.statusLine?.includes('Приём заказов закрыт'));
 const showGuestAuthPrompt = computed(() => !props.isAuthenticated);
+const cartStatusLabel = computed(() => {
+    if (props.order?.status === 'submitted') {
+        return 'Отправлен';
+    }
+
+    if (props.order?.status === 'cancelled') {
+        return 'Отменён';
+    }
+
+    return isClosedForOrdering.value || !props.canEditOrder ? 'Закрыта' : 'Активна';
+});
+const cartStatusTone = computed(() => {
+    if (props.order?.status === 'submitted') {
+        return 'border-amber-200 bg-amber-50 text-amber-800';
+    }
+
+    if (isClosedForOrdering.value || !props.canEditOrder) {
+        return 'border-slate-200 bg-slate-50 text-slate-600';
+    }
+
+    return 'border-blue-100 bg-blue-50 text-blue-700';
+});
+const footerStatusText = computed(() => {
+    if (isClosedForOrdering.value) {
+        return 'Приём заказов закрыт';
+    }
+
+    if (props.order?.status === 'submitted') {
+        return 'Заказ отправлен';
+    }
+
+    if (props.order?.status === 'cancelled') {
+        return 'Заказ отменён';
+    }
+
+    return props.canEditOrder ? 'Добавьте блюда и оформите заказ' : 'Приём заказов закрыт';
+});
 const orderItemImage = (orderItem) => {
     if (failedOrderImages.value.has(orderItem.menu_item_id)) {
         return null;
@@ -109,7 +146,7 @@ watch(() => props.menuItemsById, () => {
         <div v-if="showHeading" class="shrink-0">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <h2 class="text-balance text-lg font-semibold tracking-[-0.02em] text-slate-950">{{ panelTitle }}</h2>
+                    <h2 class="text-balance text-lg font-semibold text-slate-950">{{ panelTitle }}</h2>
                     <Skeleton v-if="loading" class="mt-1 h-4 w-20 rounded-md bg-slate-100" />
                     <p v-else-if="!showGuestAuthPrompt" class="mt-0.5 text-xs font-medium tabular-nums text-slate-500">
                         <span>{{ totalPositions }}</span> {{ positionsLabel }}
@@ -120,9 +157,9 @@ watch(() => props.menuItemsById, () => {
                     v-else-if="!showGuestAuthPrompt"
                     variant="outline"
                     class="shrink-0 rounded-full px-3 text-xs font-semibold"
-                    :class="isSubmittedOrder ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-blue-100 bg-blue-50 text-blue-700'"
+                    :class="cartStatusTone"
                 >
-                    {{ orderStatusLabel(order?.status ?? 'draft') }}
+                    {{ cartStatusLabel }}
                 </Badge>
             </div>
             <p v-if="statusLine" class="mt-2 rounded-xl bg-blue-50/70 px-3 py-2 text-pretty text-xs font-medium text-blue-800">
@@ -216,7 +253,7 @@ watch(() => props.menuItemsById, () => {
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-8 rounded-full text-slate-900 hover:bg-amber-50 hover:text-slate-900"
+                                class="size-8 rounded-full text-slate-900 hover:bg-blue-50 hover:text-blue-900"
                                 :disabled="actionLoading"
                                 :aria-label="`Уменьшить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity - 1)"
@@ -228,7 +265,7 @@ watch(() => props.menuItemsById, () => {
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-8 rounded-full text-slate-900 hover:bg-amber-50 hover:text-slate-900"
+                                class="size-8 rounded-full text-slate-900 hover:bg-blue-50 hover:text-blue-900"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity + 1)"
@@ -294,7 +331,7 @@ watch(() => props.menuItemsById, () => {
                 </Button>
 
                 <p v-else class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-pretty text-sm leading-5 text-slate-600">
-                    {{ statusLine?.includes('Приём заказов закрыт') ? 'Приём заказов закрыт' : orderStatusLabel(order?.status ?? 'draft') }}
+                    {{ footerStatusText }}
                 </p>
             </template>
         </div>

@@ -203,9 +203,6 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
     <section class="menu-shell min-w-0" aria-labelledby="menu-heading">
         <aside class="menu-shell__rail" data-testid="menu-category-rail">
             <div class="menu-shell__rail-inner">
-                <p class="hidden px-1 text-xs font-semibold uppercase text-slate-500 xl:block">
-                    Категории
-                </p>
                 <CategorySidebar
                     :loading="loading"
                     :categories="categories"
@@ -220,9 +217,9 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
             <div class="menu-shell__content-inner">
                 <slot name="status" />
 
-                <div class="mb-4 flex flex-col gap-3 sm:mb-5">
+                <div class="mb-3 flex flex-col gap-2.5 sm:mb-4">
                     <div class="flex min-w-0 items-end justify-between gap-3">
-                        <h2 id="menu-heading" tabindex="-1" class="text-balance text-2xl font-semibold text-slate-950 outline-none sm:text-[1.85rem]">
+                        <h2 id="menu-heading" tabindex="-1" class="text-balance text-[1.45rem] font-semibold leading-tight text-slate-950 outline-none sm:text-[1.7rem]">
                             {{ catalogTitle }}
                         </h2>
                     </div>
@@ -234,7 +231,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                             id="menu-search"
                             v-model="searchModel"
                             type="search"
-                            placeholder="Название или состав"
+                            placeholder="Поиск по меню"
                             class="h-12 rounded-2xl border-transparent bg-[#f2f2f2] pl-11 pr-4 text-base text-slate-900 shadow-none placeholder:text-slate-500 focus-visible:border-blue-600 focus-visible:ring-blue-600/15"
                         />
                     </label>
@@ -244,13 +241,13 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     <Card
                         v-for="skeleton in menuSkeletonRows"
                         :key="`menu-skeleton-${skeleton}`"
-                        class="menu-card gap-0 overflow-hidden rounded-[1.35rem] border-slate-200/80 bg-white py-0 shadow-none max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent"
+                        class="menu-card gap-0 overflow-hidden rounded-[1.15rem] border-transparent bg-white py-0 shadow-none ring-0 max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent"
                     >
-                        <CardContent class="space-y-3 p-0">
-                            <div class="p-2 pb-0 max-[430px]:p-0">
-                                <Skeleton class="h-[12rem] w-full rounded-[1.05rem] bg-[#f2f2f2] sm:h-[12.5rem] xl:h-[11.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl" />
+                        <CardContent class="space-y-2.5 p-0">
+                            <div class="p-1.5 pb-0 max-[430px]:p-0">
+                                <Skeleton class="h-[10rem] w-full rounded-[0.95rem] bg-[#f2f2f2] sm:h-[10.5rem] xl:h-[9.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl" />
                             </div>
-                            <div class="space-y-2.5 px-4 pb-4 pt-1.5 max-[430px]:space-y-2 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
+                            <div class="space-y-2 px-3.5 pb-3.5 pt-1 max-[430px]:space-y-2 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
                                 <Skeleton class="h-5 w-4/5 rounded-md bg-[#f2f2f2]" />
                                 <Skeleton class="h-4 w-full rounded-md bg-[#f2f2f2] max-[430px]:hidden" />
                                 <div class="flex items-center justify-between pt-2.5 max-[430px]:pt-2">
@@ -282,18 +279,18 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     </CardContent>
                 </Card>
 
-                <div v-else class="space-y-5 sm:space-y-6">
+                <div v-else class="space-y-4 sm:space-y-5">
                     <section
                         v-for="group in renderGroups"
                         :key="group.key"
                         data-testid="menu-category-section"
-                        class="space-y-3"
+                        class="space-y-2.5"
                     >
                         <header
                             class="flex items-end gap-3"
                             :data-testid="showCategorySections ? undefined : 'menu-selected-category-summary'"
                         >
-                            <h3 data-testid="menu-category-heading" class="text-balance text-lg font-semibold text-slate-900 sm:text-xl">
+                            <h3 data-testid="menu-category-heading" class="text-balance text-base font-semibold text-slate-900 sm:text-lg">
                                 {{ group.name }}
                             </h3>
                         </header>

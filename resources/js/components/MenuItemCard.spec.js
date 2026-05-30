@@ -39,7 +39,7 @@ describe('MenuItemCard UI', () => {
         expect(wrapper.text()).toContain('Добавить');
     });
 
-    it('renders image when image_display_url is available', () => {
+    it('renders image on a clean white image area without dashboard tint', () => {
         const wrapper = mountCard({
             item: {
                 ...baseItem,
@@ -47,22 +47,30 @@ describe('MenuItemCard UI', () => {
             },
         });
 
+        const card = wrapper.find('[data-testid="menu-item-card"]');
         const imageArea = wrapper.find('[data-testid="menu-item-image-area"]');
         const image = wrapper.find(`img[alt="${baseItem.title}"]`);
 
+        expect(card.classes()).toContain('min-w-0');
+        expect(card.classes()).toContain('border-transparent');
+        expect(card.classes()).toContain('shadow-none');
         expect(imageArea.classes()).toContain('bg-white');
+        expect(imageArea.classes()).not.toContain('bg-slate-50');
         expect(image.exists()).toBe(true);
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
     });
 
-    it('keeps card visible in closed state and shows disabled CTA badge', () => {
+    it('keeps card visible in closed state and shows a compact muted CTA badge', () => {
         const wrapper = mountCard({
             canEditOrder: false,
         });
+        const closedBadge = wrapper.find('[data-slot="badge"]');
 
         expect(wrapper.find('[data-testid="menu-item-card"]').exists()).toBe(true);
         expect(wrapper.text()).toContain(baseItem.title);
         expect(wrapper.text()).toContain('Приём закрыт');
+        expect(closedBadge.classes()).toContain('h-9');
+        expect(closedBadge.classes()).toContain('bg-slate-50');
         expect(wrapper.find('[data-testid="menu-item-add-button"]').exists()).toBe(false);
     });
 

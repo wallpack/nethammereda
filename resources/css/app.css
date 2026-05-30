@@ -104,7 +104,7 @@
 
 .page-shell,
 .header-inner {
-    width: min(calc(100% - 1.5rem), 1680px);
+    width: min(calc(100% - 1.5rem), 1560px);
     min-width: 0;
     margin-inline: auto;
 }
@@ -140,30 +140,35 @@
 
 .menu-shell__content {
     overflow: hidden;
-    border: 1px solid rgb(226 232 240 / 0.82);
-    border-radius: 1.5rem;
+    border: 1px solid rgb(226 232 240 / 0.58);
+    border-radius: 1.35rem;
     background: #ffffff;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+    box-shadow: none;
 }
 
 .menu-shell__content-inner {
     min-width: 0;
-    padding: 0.875rem;
+    padding: 0.75rem;
 }
 
 .menu-shell__content .week-status {
-    margin-bottom: 0.875rem;
+    margin-bottom: 0.75rem;
 }
 
 .dishes-grid {
     display: grid;
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.8rem;
+    gap: 0.75rem;
+}
+
+.dishes-grid > * {
+    min-width: 0;
 }
 
 .menu-card {
-    min-height: 21.5rem;
+    min-width: 0;
+    min-height: 19rem;
 }
 
 @media (max-width: 430px) {
@@ -237,12 +242,12 @@
 @media (min-width: 640px) {
     .page-shell,
     .header-inner {
-        width: min(calc(100% - 2.25rem), 1680px);
+        width: min(calc(100% - 2.25rem), 1560px);
     }
 
     .dishes-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.95rem;
+        gap: 0.85rem;
     }
 }
 
@@ -256,7 +261,7 @@
 @media (min-width: 1024px) {
     .page-shell,
     .header-inner {
-        width: min(calc(100% - 3rem), 1680px);
+        width: min(calc(100% - 3rem), 1560px);
     }
 }
 
@@ -276,7 +281,7 @@
 
     .catalog-layout--auth-cart,
     .catalog-layout--guest-cart {
-        grid-template-columns: minmax(0, 1fr) 360px;
+        grid-template-columns: minmax(0, 1fr) 340px;
         align-items: stretch;
         gap: 1rem;
     }
@@ -287,14 +292,14 @@
     }
 
     .catalog-order-panel {
-        width: 360px;
+        width: 340px;
         align-self: stretch;
     }
 
     .menu-shell {
         height: 100%;
         min-height: 0;
-        grid-template-columns: minmax(200px, 216px) minmax(0, 1fr);
+        grid-template-columns: minmax(210px, 220px) minmax(0, 1fr);
         align-items: stretch;
         gap: 1rem;
     }
@@ -319,29 +324,30 @@
 
     .menu-shell__content-inner {
         min-height: 100%;
-        padding: 1rem;
+        padding: 0.875rem;
     }
 
     .menu-shell__content .week-status {
         position: sticky;
         top: 0;
         z-index: 10;
-        margin-bottom: 1rem;
+        margin-bottom: 0.875rem;
     }
 
     .catalog-layout--auth-cart .dishes-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.9rem;
+        gap: 0.8rem;
     }
 
     .catalog-layout--guest-cart .dishes-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.95rem;
+        gap: 0.85rem;
     }
 }
 
 @media (min-width: 1400px) {
-    .catalog-layout--auth-cart .dishes-grid {
+    .catalog-layout--auth-cart .dishes-grid,
+    .catalog-layout--guest-cart .dishes-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
@@ -349,39 +355,39 @@
 @media (min-width: 1536px) {
     .catalog-layout--auth-cart,
     .catalog-layout--guest-cart {
-        grid-template-columns: minmax(0, 1fr) 376px;
+        grid-template-columns: minmax(0, 1fr) 352px;
         gap: 1rem;
     }
 
     .catalog-order-panel {
-        width: 376px;
+        width: 352px;
     }
 
     .menu-shell {
-        grid-template-columns: minmax(208px, 224px) minmax(0, 1fr);
+        grid-template-columns: minmax(214px, 224px) minmax(0, 1fr);
         gap: 1rem;
     }
 
     .catalog-layout--auth-cart .dishes-grid,
     .catalog-layout--guest-cart .dishes-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.95rem;
+        gap: 0.85rem;
     }
 }
 
 @media (min-width: 1680px) {
     .catalog-layout--auth-cart,
     .catalog-layout--guest-cart {
-        grid-template-columns: minmax(0, 1fr) 392px;
-        gap: 1.1rem;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 1rem;
     }
 
     .catalog-order-panel {
-        width: 392px;
+        width: 360px;
     }
 
     .menu-shell {
-        grid-template-columns: minmax(212px, 228px) minmax(0, 1fr);
-        gap: 1.1rem;
+        grid-template-columns: minmax(216px, 228px) minmax(0, 1fr);
+        gap: 1rem;
     }
 }

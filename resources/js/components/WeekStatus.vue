@@ -51,21 +51,21 @@ const statusDotClass = computed(() => props.isOpenForOrdering ? 'bg-blue-700' : 
     <section
         v-if="loading"
         data-testid="week-status-loading"
-        class="week-status rounded-[1.25rem] border border-slate-200/80 bg-white px-4 py-3 shadow-sm"
+        class="week-status flex h-9 items-center rounded-xl border border-slate-200/60 bg-white px-3 py-0 shadow-none"
         aria-busy="true"
         aria-label="Загрузка статуса приёма заказов"
     >
-        <Skeleton class="h-5 w-72 max-w-full rounded-full bg-[#f2f2f2]" />
+        <Skeleton class="h-4 w-64 max-w-full rounded-full bg-[#f2f2f2]" />
     </section>
 
     <section
         v-else
-        class="week-status rounded-[1.25rem] border border-slate-200/80 bg-white px-4 py-3 shadow-sm"
+        class="week-status flex h-9 items-center rounded-xl border border-slate-200/60 bg-white px-3 py-0 shadow-none"
         aria-label="Статус приёма заказов"
     >
-        <div class="flex min-h-5 min-w-0 items-center gap-2.5">
-            <span class="size-2.5 shrink-0 rounded-full" :class="statusDotClass" aria-hidden="true" />
-            <p class="min-w-0 truncate text-sm font-semibold text-slate-900 sm:text-[15px]">
+        <div class="flex min-h-0 min-w-0 items-center gap-2">
+            <span class="size-2 shrink-0 rounded-full" :class="statusDotClass" aria-hidden="true" />
+            <p class="min-w-0 truncate text-xs font-semibold text-slate-900 sm:text-sm">
                 {{ primaryStatusText }}
             </p>
         </div>

@@ -1141,7 +1141,7 @@ onBeforeUnmount(() => {
                     v-if="isCatalogView"
                     data-testid="desktop-order-panel"
                     aria-label="Панель корзины"
-                    class="catalog-order-panel hidden min-h-0 gap-0 overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-white py-0 text-slate-900 shadow-sm xl:block xl:sticky xl:top-[5.25rem] xl:h-full xl:max-h-full"
+                    class="catalog-order-panel hidden min-h-0 gap-0 overflow-hidden rounded-[1.35rem] border border-slate-200/70 bg-white py-0 text-slate-900 shadow-none xl:block xl:sticky xl:top-[5.25rem] xl:h-full xl:max-h-full"
                 >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
                         <OrderPanel

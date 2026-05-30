@@ -84,8 +84,26 @@ describe('OrderPanel cart-only UX', () => {
         const footer = wrapper.find('[data-testid="order-panel-footer"]');
 
         expect(list.exists()).toBe(true);
+        expect(list.classes()).toContain('min-h-0');
         expect(list.classes()).toContain('overflow-y-auto');
         expect(footer.exists()).toBe(true);
+        expect(footer.classes()).toContain('safe-cart-footer');
         expect(footer.classes()).toContain('sticky');
+    });
+
+    it('uses compact cart status copy and never exposes draft wording', () => {
+        const wrapper = mountPanel({
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '0.00',
+                items: [],
+            },
+            statusLine: 'Приём заказов закрыт',
+            canEditOrder: false,
+        });
+
+        expect(wrapper.text()).toContain('Приём заказов закрыт');
+        expect(wrapper.text().toLowerCase()).not.toContain('черновик');
     });
 });

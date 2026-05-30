@@ -7,7 +7,7 @@ const expectClasses = (element, classes) => {
 };
 
 describe('CategorySidebar', () => {
-    it('uses visible selected states and muted idle states in category navigation', async () => {
+    it('uses dense plain rows with visible selected states and muted idle states', async () => {
         const wrapper = mount(CategorySidebar, {
             props: {
                 categories: [{ id: 1, name: 'Soups' }],
@@ -18,16 +18,17 @@ describe('CategorySidebar', () => {
 
         let [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(categoryButton, ['bg-blue-50', 'text-blue-800', 'ring-1', 'ring-blue-200/60']);
+        expectClasses(categoryButton, ['h-9', 'rounded-lg', 'bg-blue-50', 'text-blue-800']);
         expectClasses(categoryButton.find('[data-slot="badge"]'), ['bg-blue-100', 'text-blue-800']);
-        expectClasses(allButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-800']);
+        expectClasses(allButton, ['h-9', 'rounded-lg', 'text-slate-700', 'hover:bg-slate-50']);
+        expect(allButton.classes()).not.toContain('rounded-full');
 
         await wrapper.setProps({ selectedCategory: null });
         [allButton, categoryButton] = wrapper.findAll('button');
 
-        expectClasses(allButton, ['bg-blue-50', 'text-blue-800', 'ring-1', 'ring-blue-200/60']);
+        expectClasses(allButton, ['h-9', 'rounded-lg', 'bg-blue-50', 'text-blue-800']);
         expectClasses(allButton.find('[data-slot="badge"]'), ['bg-blue-100', 'text-blue-800']);
-        expectClasses(categoryButton, ['text-slate-700', 'hover:bg-blue-50', 'hover:text-blue-800']);
+        expectClasses(categoryButton, ['h-9', 'rounded-lg', 'text-slate-700', 'hover:bg-slate-50']);
     });
 
     it('keeps categories wrapping-safe on mobile and prepared as a desktop rail', () => {
@@ -51,11 +52,11 @@ describe('CategorySidebar', () => {
         const row = wrapper.get('[data-testid="category-chip-row"]');
 
         expectClasses(nav, ['max-w-full', 'min-w-0']);
-        expectClasses(row, ['flex-wrap', 'max-w-full', 'min-w-0', 'xl:flex-col', 'xl:rounded-[1.35rem]']);
+        expectClasses(row, ['flex-wrap', 'max-w-full', 'min-w-0', 'xl:flex-col', 'xl:rounded-2xl']);
         expect(row.classes()).not.toEqual(expect.arrayContaining(['w-max', 'min-w-full', 'flex-nowrap']));
     });
 
-    it('renders one appended favorite chip in the shared flow', () => {
+    it('keeps favorites out of the category rail even if append content is provided', () => {
         const wrapper = mount(CategorySidebar, {
             props: {
                 categories: [{ id: 1, name: 'Soups' }],
@@ -67,8 +68,7 @@ describe('CategorySidebar', () => {
             },
         });
 
-        const favoriteChips = wrapper.findAll('[data-testid="menu-favorites-chip"]');
-
-        expect(favoriteChips).toHaveLength(1);
+        expect(wrapper.find('[data-testid="menu-favorites-chip"]').exists()).toBe(false);
+        expect(wrapper.text()).not.toContain('Избранное');
     });
 });

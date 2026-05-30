@@ -46,7 +46,7 @@ const searchModel = computed({
 </script>
 
 <template>
-    <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-white">
+    <header class="sticky top-0 z-30 border-b border-slate-200/60 bg-white">
         <div class="header-inner flex min-h-[4.5rem] items-center gap-3 py-2.5 md:gap-4">
             <div class="flex min-w-[9.5rem] shrink-0 items-center sm:min-w-[12rem] xl:min-w-[13.5rem]">
                 <div class="min-w-0">
@@ -57,7 +57,7 @@ const searchModel = computed({
                 </div>
             </div>
 
-            <label class="relative mx-auto hidden min-w-0 flex-1 md:block md:max-w-[46rem]">
+            <label class="relative mx-auto hidden min-w-0 flex-1 md:block md:max-w-[56rem]">
                 <span class="sr-only">Поиск по меню</span>
                 <Search aria-hidden="true" class="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                 <Input

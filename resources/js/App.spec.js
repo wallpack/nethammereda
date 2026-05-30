@@ -605,6 +605,36 @@ describe('catalog auth UX', () => {
         expect(weekStatusText).not.toContain('Меню появится после создания цикла администратором.');
     });
 
+    it('renders compact status strip with short copy only', async () => {
+        await mountApp({
+            authenticated: true,
+            currentCycle: {
+                ...cycle,
+                status: 'closed',
+                is_open_for_ordering: false,
+                is_orderable: false,
+                can_order: false,
+                deadline_passed: true,
+                availability_label: 'Заказ закрыт',
+                availability_description: 'Администратор закрыл сбор заказов.',
+            },
+            order: {
+                ...emptyOrder,
+                status: 'draft',
+            },
+        });
+
+        const weekStatus = document.querySelector('.week-status');
+        const weekStatusText = weekStatus?.textContent ?? '';
+
+        expect(weekStatus?.className).toContain('h-9');
+        expect(weekStatusText).toContain('Приём заказов закрыт');
+        expect(weekStatusText).not.toContain('Администратор закрыл сбор заказов');
+        expect(weekStatusText.toLowerCase()).not.toContain('черновик');
+        expect(document.body.textContent).not.toContain('Администратор закрыл сбор заказов');
+        expect(document.body.textContent?.toLowerCase()).not.toContain('черновик');
+    });
+
     it('renders guest header with a single login action and no old guest copy', async () => {
         await mountApp();
 
@@ -613,16 +643,23 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).not.toContain('Вход в панели заказа');
     });
 
-    it('renders catalog heading without legacy promo copy', async () => {
+    it('renders catalog heading without legacy promo or menu-count copy', async () => {
+        const fullMenu = Array.from({ length: 113 }, (_, index) => ({
+            ...menuItem,
+            id: 1000 + index,
+            title: `Блюдо ${index + 1}`,
+        }));
+
         await mountApp({
-            menuItems: [menuItem, secondMenuItem],
-            menuCategories: [category, secondCategory],
+            menuItems: fullMenu,
+            menuCategories: [category],
         });
 
         expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
         expect(document.body.textContent).not.toContain('Меню недели');
         expect(document.body.textContent).not.toContain('Что нового');
         expect(document.body.textContent).not.toContain('доступно для заказа');
+        expect(document.body.textContent).not.toContain('113 блюд в меню');
     });
 
     it('renders brand with uppercase N', async () => {
@@ -828,22 +865,30 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Войдите, чтобы добавить блюдо в избранное.');
     });
 
-    it('renders authenticated header with large search, neutral profile and no old desktop nav', async () => {
+    it('renders authenticated header with centered shell, large search, neutral profile and no old desktop nav', async () => {
         await mountApp({ authenticated: true });
 
         const header = document.querySelector('header');
+        const headerInner = header?.querySelector('.header-inner');
         const searchInput = document.querySelector('#global-menu-search');
+        const searchLabel = searchInput?.closest('label');
         const profileButton = buttonByText(user.name);
 
         expect(document.body.textContent).toContain(user.name);
         expect(buttonByText('Войти')).toBeFalsy();
+        expect(headerInner).toBeTruthy();
+        expect(headerInner?.className).toContain('header-inner');
         expect(header?.querySelector('[aria-label="Открыть раздел: Каталог"]')).toBeNull();
         expect(header?.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeNull();
         expect(header?.querySelector('[aria-label="Открыть раздел: История"]')).toBeNull();
         expect(header?.textContent).not.toContain('Холодильник · 13');
+        expect(searchLabel?.className).toContain('md:max-w-[56rem]');
         expect(searchInput).toBeTruthy();
         expect(searchInput?.getAttribute('placeholder')).toBe('Поиск по меню');
+        expect(searchInput?.className).toContain('h-12');
+        expect(searchInput?.className).toContain('rounded-full');
         expect(searchInput?.className).toContain('bg-[#f2f2f2]');
+        expect(profileButton?.className).toContain('h-12');
         expect(profileButton?.className).toContain('bg-[#f2f2f2]');
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
         expect(document.body.textContent).toContain('Корзина');
@@ -872,15 +917,23 @@ describe('catalog auth UX', () => {
         expect(document.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeTruthy();
     });
 
-    it('renders desktop shell with category rail, catalog and order panel', async () => {
+    it('renders centered desktop shell with category rail, catalog shelf and high cart panel', async () => {
         await mountApp({
             authenticated: true,
             order: orderWithItem,
         });
 
+        const mainShell = document.querySelector('main.page-shell.app-main-shell');
+        const catalogScroll = document.querySelector('[data-testid="catalog-scroll-panel"]');
+        const cartPanel = document.querySelector('[data-testid="desktop-order-panel"]');
+
+        expect(mainShell).toBeTruthy();
         expect(document.querySelector('[data-testid="menu-category-rail"]')).toBeTruthy();
         expect(document.getElementById('menu-heading')?.textContent).toContain('Все блюда');
-        expect(document.querySelector('[data-testid="desktop-order-panel"]')).toBeTruthy();
+        expect(catalogScroll?.className).toContain('menu-shell__content');
+        expect(cartPanel).toBeTruthy();
+        expect(cartPanel?.className).toContain('xl:sticky');
+        expect(cartPanel?.className).toContain('xl:top-[5.25rem]');
     });
 
     it('opens profile modal with account actions', async () => {
@@ -1720,10 +1773,11 @@ describe('catalog auth UX', () => {
         const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(imageArea).toBeTruthy();
-        expect(imageArea?.className).toContain('h-[12rem]');
+        expect(imageArea?.className).toContain('h-[10rem]');
         expect(imageArea?.className).toContain('bg-white');
+        expect(imageArea?.className).not.toContain('bg-slate-50');
         expect(image?.className).toContain('object-contain');
-        expect(image?.className).toContain('scale-[1.08]');
+        expect(image?.className).toContain('scale-[1.12]');
     });
 
     it('prepares a compact mobile card variant for dense catalog rows', async () => {
