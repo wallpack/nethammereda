@@ -63,6 +63,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    compactCart: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['change-quantity', 'reopen-order', 'submit-order', 'open-auth']);
@@ -89,7 +93,13 @@ watch(() => props.menuItemsById, () => {
 </script>
 
 <template>
-    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 xl:px-5 xl:pt-5" :aria-busy="loading || actionLoading">
+    <div
+        :class="[
+            'flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 xl:px-5 xl:pt-5',
+            compactCart ? 'cart-panel-compact' : '',
+        ]"
+        :aria-busy="loading || actionLoading"
+    >
         <div v-if="showHeading" class="shrink-0">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
@@ -131,25 +141,57 @@ watch(() => props.menuItemsById, () => {
             <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Добавьте блюда из каталога.</p>
         </div>
 
-        <div data-testid="order-panel-items-scroll" v-else class="scrollbar-none mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-4 pr-1">
+        <div
+            data-testid="order-panel-items-scroll"
+            v-else
+            :class="[
+                'scrollbar-none min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1',
+                compactCart ? 'mt-3 divide-y divide-slate-100 pb-3' : 'mt-4 space-y-3 pb-4',
+            ]"
+        >
             <article
                 v-for="item in orderItems"
                 :key="item.id"
-                class="relative grid grid-cols-[4rem_minmax(0,1fr)] gap-3.5 rounded-2xl bg-white p-3 ring-1 ring-inset ring-slate-100 xl:grid-cols-[4.5rem_minmax(0,1fr)]"
+                :class="[
+                    'relative grid bg-white',
+                    compactCart
+                        ? 'grid-cols-[5.1875rem_minmax(0,1fr)] gap-3 py-2.5 pr-1 first:pt-0 last:pb-3'
+                        : 'grid-cols-[4rem_minmax(0,1fr)] gap-3.5 rounded-2xl p-3 ring-1 ring-inset ring-slate-100 xl:grid-cols-[4.5rem_minmax(0,1fr)]',
+                ]"
                 data-testid="order-panel-item"
             >
-                <div data-testid="order-panel-item-image-wrap" class="grid size-16 place-items-center rounded-2xl bg-white xl:size-[4.5rem]">
+                <div
+                    data-testid="order-panel-item-image-wrap"
+                    :class="[
+                        'grid place-items-center',
+                        compactCart
+                            ? 'size-[5.1875rem] overflow-hidden rounded-[1.125rem] bg-slate-50'
+                            : 'size-16 rounded-2xl bg-white xl:size-[4.5rem]',
+                    ]"
+                >
                     <img
                         v-if="orderItemImage(item)"
                         data-testid="order-panel-item-image"
                         :src="orderItemImage(item)"
                         :alt="item.title_snapshot"
-                        class="size-full rounded-2xl object-contain p-1"
+                        :class="[
+                            'size-full object-contain',
+                            compactCart ? 'rounded-[1.125rem] p-1.5' : 'rounded-2xl p-1',
+                        ]"
                         loading="lazy"
                         decoding="async"
                         @error="markOrderItemImageFailed(item)"
                     />
-                    <span v-else data-testid="order-panel-item-image" class="grid size-full place-items-center rounded-2xl bg-white text-slate-400 ring-1 ring-inset ring-slate-100">
+                    <span
+                        v-else
+                        data-testid="order-panel-item-image"
+                        :class="[
+                            'grid size-full place-items-center text-slate-400',
+                            compactCart
+                                ? 'rounded-[1.125rem] bg-slate-100'
+                                : 'rounded-2xl bg-white ring-1 ring-inset ring-slate-100',
+                        ]"
+                    >
                         <UtensilsCrossed aria-hidden="true" class="size-5" />
                     </span>
                 </div>
@@ -160,7 +202,10 @@ watch(() => props.menuItemsById, () => {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        class="absolute right-2.5 top-2.5 size-8 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-700"
+                        :class="[
+                            'absolute rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-700',
+                            compactCart ? 'right-0 top-1 size-7' : 'right-2.5 top-2.5 size-8',
+                        ]"
                         :disabled="actionLoading"
                         :aria-label="`Удалить блюдо: ${item.title_snapshot}`"
                         @click="emit('change-quantity', item, 0)"
@@ -168,30 +213,57 @@ watch(() => props.menuItemsById, () => {
                         <X aria-hidden="true" class="size-4" />
                     </Button>
 
-                    <p data-testid="order-panel-item-title" class="line-clamp-2 break-words pr-8 text-sm font-semibold leading-5 text-slate-900">{{ item.title_snapshot }}</p>
-                    <p data-testid="order-panel-item-weight" class="mt-1 text-xs font-medium tabular-nums text-slate-500">
+                    <p
+                        data-testid="order-panel-item-title"
+                        :class="[
+                            'line-clamp-2 break-words text-sm font-semibold',
+                            compactCart ? 'pr-7 leading-snug text-slate-950' : 'pr-8 leading-5 text-slate-900',
+                        ]"
+                    >{{ item.title_snapshot }}</p>
+                    <p
+                        data-testid="order-panel-item-weight"
+                        :class="[
+                            'mt-1 text-xs font-medium tabular-nums text-slate-500',
+                            compactCart ? 'leading-4' : '',
+                        ]"
+                    >
                         {{ orderItemWeight(item) || 'Порция' }}
                     </p>
 
-                    <div class="mt-3 flex items-center justify-between gap-3">
-                        <div v-if="canEditOrder" data-testid="order-panel-item-stepper" class="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white p-0.5">
+                    <div :class="['flex items-center justify-between gap-3', compactCart ? 'mt-2.5' : 'mt-3']">
+                        <div
+                            v-if="canEditOrder"
+                            data-testid="order-panel-item-stepper"
+                            :class="[
+                                'inline-flex items-center rounded-full p-0.5',
+                                compactCart ? 'h-8 bg-slate-100' : 'h-9 border border-slate-200 bg-white',
+                            ]"
+                        >
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-8 rounded-full text-slate-900 hover:bg-blue-50 hover:text-blue-900"
+                                :class="[
+                                    'rounded-full',
+                                    compactCart
+                                        ? 'size-7 text-slate-800 hover:bg-white hover:text-blue-800'
+                                        : 'size-8 text-slate-900 hover:bg-blue-50 hover:text-blue-900',
+                                ]"
                                 :disabled="actionLoading"
                                 :aria-label="`Уменьшить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity - 1)"
                             >
                                 <Minus aria-hidden="true" class="size-4" />
                             </Button>
-                            <span class="min-w-7 text-center text-sm font-semibold tabular-nums text-slate-950">{{ item.quantity }}</span>
+                            <span :class="['text-center text-sm font-semibold tabular-nums text-slate-950', compactCart ? 'min-w-6' : 'min-w-7']">{{ item.quantity }}</span>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-8 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-900"
+                                :class="[
+                                    'rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-900',
+                                    compactCart ? 'size-7 hover:bg-white' : 'size-8',
+                                ]"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity + 1)"
@@ -199,9 +271,22 @@ watch(() => props.menuItemsById, () => {
                                 <Plus aria-hidden="true" class="size-4" />
                             </Button>
                         </div>
-                        <span v-else data-testid="order-panel-item-stepper" class="rounded-full bg-slate-50 px-3 py-1.5 text-sm font-medium tabular-nums text-slate-600">{{ item.quantity }} шт.</span>
+                        <span
+                            v-else
+                            data-testid="order-panel-item-stepper"
+                            :class="[
+                                'rounded-full font-medium tabular-nums text-slate-600',
+                                compactCart ? 'bg-slate-100 px-2.5 py-1 text-xs' : 'bg-slate-50 px-3 py-1.5 text-sm',
+                            ]"
+                        >{{ item.quantity }} шт.</span>
 
-                        <p data-testid="order-panel-item-price" class="ml-auto shrink-0 whitespace-nowrap text-base font-semibold tabular-nums text-slate-950">{{ orderItemTotal(item) }}</p>
+                        <p
+                            data-testid="order-panel-item-price"
+                            :class="[
+                                'ml-auto shrink-0 whitespace-nowrap font-semibold tabular-nums text-slate-950',
+                                compactCart ? 'text-sm' : 'text-base',
+                            ]"
+                        >{{ orderItemTotal(item) }}</p>
                     </div>
                 </div>
             </article>
@@ -209,14 +294,26 @@ watch(() => props.menuItemsById, () => {
 
         <div
             data-testid="order-panel-footer"
-            class="safe-cart-footer sticky bottom-0 z-10 -mx-4 mt-auto shrink-0 border-t border-slate-200 bg-white px-4 pb-4 pt-3 xl:-mx-5 xl:px-5"
+            :class="[
+                'safe-cart-footer sticky bottom-0 z-10 -mx-4 mt-auto shrink-0 border-t border-slate-200 bg-white px-4 xl:-mx-5 xl:px-5',
+                compactCart ? 'pb-4 pt-4' : 'pb-4 pt-3',
+            ]"
         >
             <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
             <template v-else>
-                <div class="rounded-2xl bg-slate-50 px-4 py-3">
-                    <div class="flex items-center justify-between gap-4">
-                        <p class="text-sm font-medium text-slate-600">Итого</p>
-                        <strong class="whitespace-nowrap text-xl font-semibold tabular-nums text-slate-950">
+                <div :class="compactCart ? 'px-1' : 'rounded-2xl bg-slate-50 px-4 py-3'">
+                    <div :class="['flex justify-between gap-4', compactCart ? 'items-end' : 'items-center']">
+                        <p
+                            data-testid="order-panel-total-label"
+                            :class="compactCart ? 'text-xs font-medium text-slate-500' : 'text-sm font-medium text-slate-600'"
+                        >Итого</p>
+                        <strong
+                            data-testid="order-panel-total-price"
+                            :class="[
+                                'whitespace-nowrap font-bold tabular-nums text-slate-950',
+                                compactCart ? 'text-2xl' : 'text-xl',
+                            ]"
+                        >
                             {{ formatPrice(order?.total_price ?? 0) }}
                         </strong>
                     </div>
@@ -225,7 +322,12 @@ watch(() => props.menuItemsById, () => {
                 <Button
                     v-if="canEditOrder && orderItems.length"
                     type="button"
-                    class="mt-3 h-[3.25rem] min-h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
+                    :class="[
+                        'w-full bg-blue-700 font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500',
+                        compactCart
+                            ? 'mt-4 h-14 min-h-14 rounded-[1.25rem] text-base'
+                            : 'mt-3 h-[3.25rem] min-h-12 rounded-full text-sm',
+                    ]"
                     :disabled="actionLoading"
                     @click="emit('submit-order')"
                 >
@@ -237,7 +339,10 @@ watch(() => props.menuItemsById, () => {
                     v-else-if="canReopenOrder"
                     type="button"
                     variant="outline"
-                    class="mt-3 h-12 w-full rounded-full border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
+                    :class="[
+                        'w-full border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800 shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]',
+                        compactCart ? 'mt-4 h-12 rounded-[1.25rem]' : 'mt-3 h-12 rounded-full',
+                    ]"
                     :disabled="actionLoading"
                     @click="emit('reopen-order')"
                 >

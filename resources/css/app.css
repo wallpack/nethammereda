@@ -102,6 +102,10 @@
     }
 }
 
+.cart-panel-compact {
+    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+}
+
 .page-shell,
 .header-inner {
     width: min(calc(100% - 1.5rem), 1780px);

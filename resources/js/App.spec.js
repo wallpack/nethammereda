@@ -1905,6 +1905,7 @@ describe('catalog auth UX', () => {
         expect(panel?.className).toContain('xl:sticky');
         expect(panel?.className).toContain('xl:top-[5.75rem]');
         expect(panel?.className).toContain('xl:h-full');
+        expect(panel?.querySelector('.cart-panel-compact')).toBeTruthy();
     });
 
     it('keeps the order total and submit action in a sticky footer', async () => {

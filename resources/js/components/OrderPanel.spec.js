@@ -21,6 +21,7 @@ const baseProps = {
     actionLoading: false,
     error: '',
     orderSkeletonRows: [1, 2],
+    compactCart: false,
 };
 
 const mountPanel = (props = {}) => mount(OrderPanel, {
@@ -108,8 +109,10 @@ describe('OrderPanel cart-only UX', () => {
         expect(footer.classes()).toContain('sticky');
     });
 
-    it('renders food-delivery cart item layout with image, title, weight, stepper and right price', () => {
+    it('renders compact desktop cart item layout with unified list styling', () => {
         const wrapper = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
             order: {
                 id: 15,
                 status: 'draft',
@@ -132,6 +135,7 @@ describe('OrderPanel cart-only UX', () => {
             canEditOrder: true,
         });
 
+        const list = wrapper.get('[data-testid="order-panel-items-scroll"]');
         const item = wrapper.get('[data-testid="order-panel-item"]');
         const imageWrap = wrapper.get('[data-testid="order-panel-item-image-wrap"]');
         const image = wrapper.get('[data-testid="order-panel-item-image"]');
@@ -139,18 +143,44 @@ describe('OrderPanel cart-only UX', () => {
         const weight = wrapper.get('[data-testid="order-panel-item-weight"]');
         const stepper = wrapper.get('[data-testid="order-panel-item-stepper"]');
         const price = wrapper.get('[data-testid="order-panel-item-price"]');
+        const footer = wrapper.get('[data-testid="order-panel-footer"]');
+        const totalLabel = footer.get('[data-testid="order-panel-total-label"]');
+        const totalPrice = footer.get('[data-testid="order-panel-total-price"]');
+        const checkoutButton = footer.get('button');
 
-        expect(item.classes()).toContain('grid-cols-[4rem_minmax(0,1fr)]');
-        expect(imageWrap.classes()).toContain('bg-white');
-        expect(imageWrap.classes().join(' ')).not.toContain('blue');
+        const itemClasses = item.classes().join(' ');
+        const imageWrapClasses = imageWrap.classes().join(' ');
+        const stepperClasses = stepper.classes().join(' ');
+
+        expect(wrapper.classes()).toContain('cart-panel-compact');
+        expect(list.classes()).toContain('divide-y');
+        expect(itemClasses).toContain('grid-cols-[5.1875rem_minmax(0,1fr)]');
+        expect(itemClasses).not.toContain('ring-1');
+        expect(itemClasses).not.toContain('border');
+        expect(itemClasses).not.toContain('rounded-2xl');
+        expect(imageWrapClasses).toContain('size-[5.1875rem]');
+        expect(imageWrapClasses).toContain('bg-slate-50');
+        expect(imageWrapClasses).not.toContain('bg-white');
+        expect(imageWrapClasses).not.toContain('blue');
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
         expect(image.classes().join(' ')).not.toContain('blue');
         expect(title.text()).toContain('Суп с курицей');
+        expect(title.classes()).toContain('leading-snug');
         expect(weight.text()).toContain('300 г');
+        expect(weight.classes()).toContain('text-xs');
         expect(stepper.text()).toContain('2');
         expect(stepper.findAll('button')).toHaveLength(2);
+        expect(stepperClasses).toContain('h-8');
+        expect(stepperClasses).toContain('bg-slate-100');
+        expect(stepperClasses).not.toContain('border');
+        expect(stepperClasses).not.toContain('bg-white');
         expect(price.text()).toContain('500');
         expect(price.classes()).toContain('ml-auto');
+        expect(totalLabel.classes()).toContain('text-xs');
+        expect(totalPrice.classes()).toContain('text-2xl');
+        expect(checkoutButton.classes()).toContain('h-14');
+        expect(checkoutButton.classes()).toContain('rounded-[1.25rem]');
+        expect(checkoutButton.classes()).toContain('bg-blue-700');
     });
 
     it('does not render order history or repeat copy in cart panel', () => {

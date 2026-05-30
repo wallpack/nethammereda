@@ -1148,6 +1148,7 @@ onBeforeUnmount(() => {
                             :menu-items-by-id="menuItemsById"
                             :total-positions="totalPositions"
                             :panel-title="'Корзина'"
+                            compact-cart
                             :status-line="compactOrderStatusText"
                             :is-authenticated="isAuthenticated"
                             :can-edit-order="isAuthenticated ? canEditOrder : false"
