@@ -32,10 +32,16 @@ describe('MenuItemCard UI', () => {
         const wrapper = mountCard();
 
         const stepper = wrapper.find('[data-testid="menu-item-price-stepper"]');
+        const price = wrapper.find('[data-testid="menu-item-stepper-price"]');
         const buttons = stepper.findAll('button');
 
         expect(stepper.classes()).toContain('bg-blue-50');
         expect(stepper.classes()).toContain('border-transparent');
+        expect(stepper.classes()).toContain('inline-grid');
+        expect(stepper.classes()).toContain('min-w-[112px]');
+        expect(stepper.classes()).toContain('max-w-[136px]');
+        expect(stepper.classes()).not.toContain('w-full');
+        expect(price.classes()).toContain('text-[#404040]');
         expect(wrapper.find('[data-testid="menu-item-card"]').exists()).toBe(true);
         expect(wrapper.text()).toContain(baseItem.title);
         expect(wrapper.text()).toContain('300 г');
@@ -75,6 +81,7 @@ describe('MenuItemCard UI', () => {
     it('uses cart-matched title and meta typography in strict image-title-meta-control order', () => {
         const wrapper = mountCard();
         const imageArea = wrapper.find('[data-testid="menu-item-image-area"]');
+        const copyColumn = wrapper.find('[data-testid="menu-item-copy-column"]');
         const title = wrapper.find('h3');
         const meta = wrapper.find('[data-testid="menu-item-meta"]');
         const stepper = wrapper.find('[data-testid="menu-item-price-stepper"]');
@@ -82,6 +89,8 @@ describe('MenuItemCard UI', () => {
         expect(imageArea.element.compareDocumentPosition(title.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(title.element.compareDocumentPosition(meta.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(meta.element.compareDocumentPosition(stepper.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(copyColumn.classes()).toContain('w-[176px]');
+        expect(copyColumn.classes()).toContain('max-w-full');
         expect(title.classes()).toContain('text-[14px]');
         expect(title.classes()).toContain('leading-4');
         expect(title.classes()).toContain('font-semibold');
@@ -165,7 +174,7 @@ describe('MenuItemCard UI', () => {
         const buttons = stepper.findAll('button');
 
         expect(stepper.classes()).toContain('bg-blue-700');
-        expect(price.classes()).toContain('text-white');
+        expect(price.classes()).toContain('text-[#404040]');
         expect(buttons.every((button) => button.attributes('disabled') !== undefined)).toBe(true);
     });
 

@@ -60,17 +60,7 @@ const priceStepperTone = computed(() => {
 
     return 'border-transparent bg-blue-50 text-blue-900';
 });
-const priceTextTone = computed(() => {
-    if (hasSelectedQuantity.value) {
-        return 'text-white';
-    }
-
-    if (controlsDisabled.value) {
-        return 'text-blue-300';
-    }
-
-    return 'text-blue-900';
-});
+const priceTextTone = computed(() => 'text-[#404040]');
 const minusButtonDisabled = computed(() => !props.orderItem || controlsDisabled.value);
 const plusButtonDisabled = computed(() => controlsDisabled.value);
 const displayTitle = computed(() => menuItemDisplayTitle(props.item));
@@ -86,10 +76,10 @@ const plusButtonLabel = computed(() => (props.orderItem
         class="menu-card min-w-0 gap-0 overflow-hidden rounded-[1.15rem] border border-transparent bg-white py-0 text-slate-900 shadow-none ring-0 transition-[border-color,background-color] duration-150 hover:border-blue-100 max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
     >
         <CardContent class="flex h-full min-w-0 flex-col p-0">
-            <div class="relative p-1.5 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
+            <div class="relative mx-auto w-[176px] max-w-full pt-1.5 max-[430px]:w-full max-[430px]:pt-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative mx-auto size-[176px] max-w-full overflow-hidden rounded-[1rem] bg-white max-[430px]:h-[7.35rem] max-[430px]:w-full max-[430px]:rounded-2xl"
+                    class="relative size-[176px] max-w-full overflow-hidden rounded-[1rem] bg-white max-[430px]:h-[7.35rem] max-[430px]:w-full max-[430px]:rounded-2xl"
                 >
                     <img
                         v-if="showImage"
@@ -129,7 +119,7 @@ const plusButtonLabel = computed(() => (props.orderItem
                 </button>
             </div>
 
-            <div class="flex flex-1 flex-col px-3.5 pb-3.5 pt-2.5 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
+            <div data-testid="menu-item-copy-column" class="mx-auto flex w-[176px] max-w-full flex-1 flex-col pb-3.5 pt-2.5 max-[430px]:w-full max-[430px]:pb-3 max-[430px]:pt-0.5">
                 <h3
                     :title="displayTitle"
                     :aria-label="`Название блюда: ${displayTitle}`"
@@ -145,14 +135,14 @@ const plusButtonLabel = computed(() => (props.orderItem
                 <div class="mt-auto pt-2.5 max-[430px]:pt-2">
                     <div
                         data-testid="menu-item-price-stepper"
-                        class="grid h-10 w-full min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center rounded-full border p-0.5 transition-[background-color,border-color,color] duration-150 max-[430px]:h-9 max-[430px]:w-full max-[430px]:grid-cols-[2rem_minmax(0,1fr)_2rem]"
+                        class="inline-grid h-9 min-w-[112px] max-w-[136px] grid-cols-[2rem_max-content_2rem] items-center rounded-full border p-0.5 transition-[background-color,border-color,color] duration-150 max-[430px]:h-9 max-[430px]:min-w-[104px] max-[430px]:grid-cols-[1.875rem_max-content_1.875rem]"
                         :class="priceStepperTone"
                     >
                         <Button
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            class="size-9 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
+                            class="size-8 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
                             :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-blue-500 hover:bg-white hover:text-blue-700'"
                             :disabled="minusButtonDisabled"
                             :title="minusButtonDisabled ? disabledReason : undefined"
@@ -164,8 +154,8 @@ const plusButtonLabel = computed(() => (props.orderItem
 
                         <span
                             data-testid="menu-item-stepper-price"
-                            class="min-w-0 truncate text-center text-sm font-bold tabular-nums max-[430px]:text-[0.78rem] max-[430px]:min-w-0"
-                            :class="priceTextTone"
+                            class="min-w-0 truncate whitespace-nowrap text-center text-sm font-bold tabular-nums max-[430px]:min-w-0 max-[430px]:text-[0.78rem]"
+                            :class="[priceTextTone, hasSelectedQuantity ? 'rounded-full bg-white/95 px-1.5 leading-7' : '']"
                         >
                             {{ formatPrice(item.price) }}
                         </span>
@@ -174,7 +164,7 @@ const plusButtonLabel = computed(() => (props.orderItem
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            class="size-9 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
+                            class="size-8 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
                             :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-blue-700 hover:bg-white hover:text-blue-900'"
                             :disabled="plusButtonDisabled"
                             :title="plusButtonDisabled ? disabledReason : undefined"

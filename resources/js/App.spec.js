@@ -671,7 +671,7 @@ describe('catalog auth UX', () => {
             menuCategories: [category],
         });
 
-        expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
         expect(document.body.textContent).not.toContain('Меню недели');
         expect(document.body.textContent).not.toContain('Что нового');
         expect(document.body.textContent).not.toContain('доступно для заказа');
@@ -703,7 +703,7 @@ describe('catalog auth UX', () => {
         await click(document.querySelector('button[aria-label="Вернуться в каталог"]'));
 
         expect(searchInput.value).toBe('');
-        expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
         expect(document.body.textContent).toContain(menuItem.title);
         expect(document.body.textContent).toContain(secondMenuItem.title);
     });
@@ -749,7 +749,7 @@ describe('catalog auth UX', () => {
         });
 
         expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
-        expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
         expect(document.querySelector('script[src*="telegram-widget.js"], script[src*="telegram-web-app.js"]')).toBeNull();
         expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
         expect(requestCount(fetchMock, '/auth/telegram-login')).toBe(0);
@@ -966,7 +966,7 @@ describe('catalog auth UX', () => {
 
         expect(mainShell).toBeTruthy();
         expect(document.querySelector('[data-testid="menu-category-rail"]')).toBeTruthy();
-        expect(document.getElementById('menu-heading')?.textContent).toContain('Все блюда');
+        expect(document.getElementById('menu-heading')?.textContent).toContain('Каталог');
         expect(catalogScroll?.className).toContain('menu-shell__catalog-scroll');
         expect(catalogScroll?.className).toContain('scrollbar-none');
         expect(document.querySelector('[data-testid="catalog-shelf-panel"]')).toBeTruthy();
@@ -1858,7 +1858,7 @@ describe('catalog auth UX', () => {
         expect(title?.getAttribute('title')).toBe(menuItem.title);
         expect(title?.getAttribute('aria-label')).toBe(`Название блюда: ${menuItem.title}`);
         expect(priceStepper?.className).toContain('max-[430px]:h-9');
-        expect(priceStepper?.className).toContain('max-[430px]:w-full');
+        expect(priceStepper?.className).not.toContain('w-full');
         expect(addIcon?.className).not.toContain('translate-x-px');
         expect(favoriteButton?.className).toContain('max-[430px]:size-8');
     });
@@ -1878,7 +1878,7 @@ describe('catalog auth UX', () => {
         expect(compactQuantityButton).toBeNull();
         expect(desktopStepper).toBeTruthy();
         expect(desktopStepper?.className).toContain('max-[430px]:h-9');
-        expect(desktopStepper?.className).toContain('max-[430px]:w-full');
+        expect(desktopStepper?.className).not.toContain('w-full');
         expect(desktopStepper?.className).toContain('bg-blue-700');
         expect(stepperPrice?.className).toContain('max-[430px]:min-w-0');
         expect(overlay?.textContent).toContain('1');

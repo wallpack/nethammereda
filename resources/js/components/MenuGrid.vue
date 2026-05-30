@@ -150,7 +150,7 @@ const selectedCategorySummary = computed(() => {
     };
 });
 
-const catalogTitle = computed(() => selectedCategorySummary.value?.name || 'Все блюда');
+const catalogTitle = computed(() => selectedCategorySummary.value?.name || 'Каталог');
 
 const renderGroups = computed(() => {
     if (showCategorySections.value) {
@@ -251,12 +251,11 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                             <div class="p-1.5 pb-0 max-[430px]:p-0">
                                 <Skeleton class="mx-auto size-[176px] max-w-full rounded-[1rem] bg-[#f2f2f2] max-[430px]:h-[7.35rem] max-[430px]:w-full max-[430px]:rounded-2xl" />
                             </div>
-                            <div class="space-y-2 px-3.5 pb-3.5 pt-1 max-[430px]:space-y-2 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
+                            <div class="mx-auto w-[176px] max-w-full space-y-2 pb-3.5 pt-1 max-[430px]:w-full max-[430px]:space-y-2 max-[430px]:pb-3 max-[430px]:pt-0.5">
                                 <Skeleton class="h-5 w-4/5 rounded-md bg-[#f2f2f2]" />
                                 <Skeleton class="h-4 w-full rounded-md bg-[#f2f2f2] max-[430px]:hidden" />
-                                <div class="flex items-center justify-between pt-2.5 max-[430px]:pt-2">
-                                    <Skeleton class="h-7 w-24 rounded-md bg-[#f2f2f2]" />
-                                    <Skeleton class="h-10 w-[6.5rem] rounded-full bg-[#f2f2f2] max-[430px]:size-10" />
+                                <div class="pt-2.5 max-[430px]:pt-2">
+                                    <Skeleton class="h-9 w-[112px] rounded-full bg-[#f2f2f2]" />
                                 </div>
                             </div>
                         </CardContent>
