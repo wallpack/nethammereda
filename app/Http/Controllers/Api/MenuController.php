@@ -38,22 +38,27 @@ class MenuController extends Controller
             $query->where('title', 'like', "%{$q}%");
         }
 
+        $items = $query->get([
+            'id',
+            'category_id',
+            'title',
+            'supplier_name',
+            'description',
+            'composition',
+            'weight',
+            'calories',
+            'proteins',
+            'fats',
+            'carbs',
+            'price',
+            'image_url',
+            'image_path',
+        ])->each(function (MenuItem $item): void {
+            $item->append('display_weight')->makeHidden('supplier_name');
+        });
+
         return response()->json([
-            'data' => $query->get([
-                'id',
-                'category_id',
-                'title',
-                'description',
-                'composition',
-                'weight',
-                'calories',
-                'proteins',
-                'fats',
-                'carbs',
-                'price',
-                'image_url',
-                'image_path',
-            ]),
+            'data' => $items,
         ]);
     }
 }

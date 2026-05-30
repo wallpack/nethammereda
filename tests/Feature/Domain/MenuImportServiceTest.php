@@ -445,6 +445,32 @@ class MenuImportServiceTest extends TestCase
         $this->getJson('/api/menu/items')
             ->assertOk()
             ->assertJsonPath('data.0.title', 'Вафли Гранд со сгущёнкой')
+            ->assertJsonPath('data.0.display_weight', '20 шт')
+            ->assertJsonMissingPath('data.0.supplier_name');
+    }
+
+    #[Test]
+    public function catalog_api_restores_display_weight_from_imported_supplier_name_without_exposing_it(): void
+    {
+        $category = MenuCategory::query()->create([
+            'name' => 'Вторые блюда',
+            'sort_order' => 10,
+            'is_active' => true,
+        ]);
+
+        MenuItem::query()->create([
+            'category_id' => $category->id,
+            'title' => 'Капуста тушеная с сосиской',
+            'supplier_name' => 'Капуста тушеная с сосиской 240гр новинка',
+            'price' => 90,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/menu/items')
+            ->assertOk()
+            ->assertJsonPath('data.0.title', 'Капуста тушеная с сосиской')
+            ->assertJsonPath('data.0.weight', null)
+            ->assertJsonPath('data.0.display_weight', '240 г')
             ->assertJsonMissingPath('data.0.supplier_name');
     }
 

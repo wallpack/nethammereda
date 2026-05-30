@@ -63,6 +63,17 @@ class MenuItem extends Model
         return $this->safeExternalImageUrl($this->image_url);
     }
 
+    public function getDisplayWeightAttribute(): ?string
+    {
+        $weight = $this->normalizeDisplayWeight($this->weight);
+
+        if ($weight !== null) {
+            return $weight;
+        }
+
+        return $this->extractDisplayWeightFromText($this->supplier_name);
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(MenuCategory::class, 'category_id');
@@ -76,6 +87,43 @@ class MenuItem extends Model
     public function fridgeItems(): HasMany
     {
         return $this->hasMany(FridgeItem::class, 'menu_item_id');
+    }
+
+    private function normalizeDisplayWeight(?string $weight): ?string
+    {
+        if (! is_string($weight) || trim($weight) === '') {
+            return null;
+        }
+
+        return $this->normalizeDisplayUnitText($weight) ?? trim($weight);
+    }
+
+    private function extractDisplayWeightFromText(?string $text): ?string
+    {
+        if (! is_string($text) || trim($text) === '') {
+            return null;
+        }
+
+        if (! preg_match('/(?<![[:alpha:]])(\d+(?:[,.]\d+)?)\s*(г|гр|кг|мл|л|шт)\.?/iu', $text, $matches)) {
+            return null;
+        }
+
+        return $this->normalizeDisplayUnitText($matches[1].$matches[2]);
+    }
+
+    private function normalizeDisplayUnitText(string $value): ?string
+    {
+        if (! preg_match('/^\s*(\d+(?:[,.]\d+)?)\s*(г|гр|кг|мл|л|шт)\.?\s*$/iu', $value, $matches)) {
+            return null;
+        }
+
+        $unit = mb_strtolower($matches[2]);
+        $unit = match ($unit) {
+            'гр' => 'г',
+            default => $unit,
+        };
+
+        return str_replace('.', ',', $matches[1]).' '.$unit;
     }
 
     private function isSafeLocalImagePath(?string $path): bool

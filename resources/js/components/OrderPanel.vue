@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCartPrice } from '@/lib/formatters';
+import { menuItemDisplayMeta, menuItemDisplayTitle } from '@/lib/menuDisplay';
 import { Loader2, Minus, Plus, ShoppingBag, UtensilsCrossed, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -84,7 +85,8 @@ const orderItemImage = (orderItem) => {
 const markOrderItemImageFailed = (orderItem) => {
     failedOrderImages.value = new Set([...failedOrderImages.value, orderItem.menu_item_id]);
 };
-const orderItemWeight = (orderItem) => props.menuItemsById.get(orderItem.menu_item_id)?.weight ?? null;
+const orderItemTitle = (orderItem) => menuItemDisplayTitle({ title: orderItem.title_snapshot });
+const orderItemWeight = (orderItem) => menuItemDisplayMeta(props.menuItemsById.get(orderItem.menu_item_id)) ?? null;
 const orderItemTotal = (orderItem) => formatCartPrice(Number(orderItem.price_snapshot) * Number(orderItem.quantity));
 
 watch(() => props.menuItemsById, () => {
@@ -173,7 +175,7 @@ watch(() => props.menuItemsById, () => {
                         v-if="orderItemImage(item)"
                         data-testid="order-panel-item-image"
                         :src="orderItemImage(item)"
-                        :alt="item.title_snapshot"
+                        :alt="orderItemTitle(item)"
                         :class="[
                             'size-full object-contain',
                             compactCart ? 'rounded-[1rem] p-1' : 'rounded-2xl p-1',
@@ -207,7 +209,7 @@ watch(() => props.menuItemsById, () => {
                             compactCart ? 'right-0 top-0 size-7' : 'right-2.5 top-2.5 size-8',
                         ]"
                         :disabled="actionLoading"
-                        :aria-label="`Удалить блюдо: ${item.title_snapshot}`"
+                        :aria-label="`Удалить блюдо: ${orderItemTitle(item)}`"
                         @click="emit('change-quantity', item, 0)"
                     >
                         <X aria-hidden="true" :class="compactCart ? 'size-3.5' : 'size-4'" />
@@ -219,7 +221,7 @@ watch(() => props.menuItemsById, () => {
                             'line-clamp-2 break-words',
                             compactCart ? 'pr-7 text-[14px] font-semibold leading-4 tracking-normal text-[#595959]' : 'pr-8 text-sm font-semibold leading-5 text-slate-900',
                         ]"
-                    >{{ item.title_snapshot }}</p>
+                    >{{ orderItemTitle(item) }}</p>
                     <p
                         data-testid="order-panel-item-weight"
                         :class="[
@@ -243,8 +245,8 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-stepper"
                             :class="[
                                 compactCart
-                                    ? 'grid h-6 w-[4.875rem] grid-cols-[1.5rem_1.875rem_1.5rem] items-center rounded-full bg-slate-100 p-0'
-                                    : 'inline-flex h-9 items-center rounded-full border border-slate-200 bg-white p-0.5',
+                                    ? 'grid h-6 w-[4.875rem] grid-cols-[1.5rem_1.875rem_1.5rem] items-center rounded-full bg-blue-700 p-0'
+                                    : 'inline-flex h-9 items-center rounded-full border border-blue-700 bg-blue-700 p-0.5 text-white',
                             ]"
                         >
                             <Button
@@ -254,26 +256,26 @@ watch(() => props.menuItemsById, () => {
                                 :class="[
                                     'rounded-full',
                                     compactCart
-                                        ? 'size-[1.375rem] justify-self-start text-[#6f7580] hover:bg-slate-200/70 hover:text-slate-800'
-                                        : 'size-8 text-slate-900 hover:bg-blue-50 hover:text-blue-900',
+                                        ? 'size-[1.375rem] justify-self-start text-white/85 hover:bg-blue-600 hover:text-white'
+                                        : 'size-8 text-white/85 hover:bg-blue-600 hover:text-white',
                                 ]"
                                 :disabled="actionLoading"
-                                :aria-label="`Уменьшить количество: ${item.title_snapshot}`"
+                                :aria-label="`Уменьшить количество: ${orderItemTitle(item)}`"
                                 @click="emit('change-quantity', item, item.quantity - 1)"
                             >
                                 <Minus aria-hidden="true" class="size-4" />
                             </Button>
-                            <span :class="['text-center tabular-nums', compactCart ? 'min-w-7 justify-self-center text-[14px] font-semibold leading-none text-[#4f5660]' : 'min-w-7 text-sm font-semibold text-slate-950']">{{ item.quantity }}</span>
+                            <span :class="['text-center tabular-nums', compactCart ? 'min-w-7 justify-self-center text-[14px] font-semibold leading-none text-white' : 'min-w-7 text-sm font-semibold text-white']">{{ item.quantity }}</span>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
                                 :class="[
-                                    'rounded-full text-blue-700 hover:text-blue-900',
-                                    compactCart ? 'size-[1.375rem] justify-self-end hover:bg-slate-200/70' : 'size-8 hover:bg-blue-50',
+                                    'rounded-full',
+                                    compactCart ? 'size-[1.375rem] justify-self-end text-white hover:bg-blue-600 hover:text-white' : 'size-8 text-white hover:bg-blue-600 hover:text-white',
                                 ]"
                                 :disabled="actionLoading"
-                                :aria-label="`Увеличить количество: ${item.title_snapshot}`"
+                                :aria-label="`Увеличить количество: ${orderItemTitle(item)}`"
                                 @click="emit('change-quantity', item, item.quantity + 1)"
                             >
                                 <Plus aria-hidden="true" class="size-4" />
@@ -284,7 +286,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-stepper"
                             :class="[
                                 'rounded-full font-medium tabular-nums text-slate-600',
-                                compactCart ? 'h-6 bg-slate-100 px-3 text-[13px] leading-6' : 'bg-slate-50 px-3 py-1.5 text-sm',
+                                compactCart ? 'h-6 bg-blue-700 px-3 text-[13px] leading-6 text-white' : 'bg-blue-700 px-3 py-1.5 text-sm text-white',
                             ]"
                         >{{ item.quantity }} шт.</span>
 

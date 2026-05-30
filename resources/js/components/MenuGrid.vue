@@ -249,7 +249,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     >
                         <CardContent class="space-y-2.5 p-0">
                             <div class="p-1.5 pb-0 max-[430px]:p-0">
-                                <Skeleton class="h-[11rem] w-full rounded-[1rem] bg-[#f2f2f2] sm:h-[11.25rem] xl:h-[10.75rem] 2xl:h-[11.25rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl" />
+                                <Skeleton class="mx-auto size-[176px] max-w-full rounded-[1rem] bg-[#f2f2f2] max-[430px]:h-[7.35rem] max-[430px]:w-full max-[430px]:rounded-2xl" />
                             </div>
                             <div class="space-y-2 px-3.5 pb-3.5 pt-1 max-[430px]:space-y-2 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
                                 <Skeleton class="h-5 w-4/5 rounded-md bg-[#f2f2f2]" />

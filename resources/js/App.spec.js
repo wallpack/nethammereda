@@ -1826,7 +1826,7 @@ describe('catalog auth UX', () => {
         const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(imageArea).toBeTruthy();
-        expect(imageArea?.className).toContain('h-[11rem]');
+        expect(imageArea?.className).toContain('size-[176px]');
         expect(imageArea?.className).toContain('bg-white');
         expect(imageArea?.className).not.toContain('bg-slate-50');
         expect(image?.className).toContain('object-contain');

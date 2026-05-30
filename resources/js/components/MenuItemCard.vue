@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { compactNumber, formatPrice } from '@/lib/formatters';
+import { formatPrice } from '@/lib/formatters';
+import { menuItemDisplayMeta, menuItemDisplayTitle } from '@/lib/menuDisplay';
 import { Heart, ImageIcon, Minus, Plus } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -49,7 +50,7 @@ const controlsDisabled = computed(() => !props.canEditOrder || props.actionLoadi
 const selectedQuantity = computed(() => Number(props.orderItem?.quantity ?? 0));
 const hasSelectedQuantity = computed(() => selectedQuantity.value > 0);
 const priceStepperTone = computed(() => {
-    if (hasSelectedQuantity.value && props.canEditOrder) {
+    if (hasSelectedQuantity.value) {
         return 'border-blue-700 bg-blue-700 text-white';
     }
 
@@ -57,10 +58,10 @@ const priceStepperTone = computed(() => {
         return 'border-blue-100 bg-blue-50/60 text-blue-300';
     }
 
-    return 'border-slate-200 bg-[#f2f2f2] text-slate-950';
+    return 'border-transparent bg-blue-50 text-blue-900';
 });
 const priceTextTone = computed(() => {
-    if (hasSelectedQuantity.value && props.canEditOrder) {
+    if (hasSelectedQuantity.value) {
         return 'text-white';
     }
 
@@ -68,14 +69,15 @@ const priceTextTone = computed(() => {
         return 'text-blue-300';
     }
 
-    return 'text-slate-950';
+    return 'text-blue-900';
 });
 const minusButtonDisabled = computed(() => !props.orderItem || controlsDisabled.value);
 const plusButtonDisabled = computed(() => controlsDisabled.value);
+const displayTitle = computed(() => menuItemDisplayTitle(props.item));
+const displayMeta = computed(() => menuItemDisplayMeta(props.item));
 const plusButtonLabel = computed(() => (props.orderItem
-    ? `Увеличить количество: ${props.item.title}`
-    : `Добавить в заказ: ${props.item.title}`));
-const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(props.item.calories)} ккал` : null);
+    ? `Увеличить количество: ${displayTitle.value}`
+    : `Добавить в заказ: ${displayTitle.value}`));
 </script>
 
 <template>
@@ -87,12 +89,12 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
             <div class="relative p-1.5 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative h-[11rem] overflow-hidden rounded-[1rem] bg-white sm:h-[11.25rem] lg:h-[11.5rem] xl:h-[10.75rem] 2xl:h-[11.25rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl"
+                    class="relative mx-auto size-[176px] max-w-full overflow-hidden rounded-[1rem] bg-white max-[430px]:h-[7.35rem] max-[430px]:w-full max-[430px]:rounded-2xl"
                 >
                     <img
                         v-if="showImage"
                         :src="imageSrc"
-                        :alt="item.title"
+                        :alt="displayTitle"
                         class="size-full scale-[1.12] object-contain p-1 sm:p-1.5 max-[430px]:scale-[1.05] max-[430px]:p-1"
                         loading="lazy"
                         decoding="async"
@@ -119,7 +121,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                     type="button"
                     class="absolute right-3 top-3 z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/80 bg-white/95 text-slate-500 shadow-sm backdrop-blur transition-[background-color,border-color,color,transform] duration-150 hover:text-rose-600 active:scale-[0.98] max-[430px]:right-2 max-[430px]:top-2 max-[430px]:size-8 max-[430px]:border-white/70 max-[430px]:bg-white/85"
                     :class="isFavorite ? 'border-rose-200/80 bg-rose-50/90 text-rose-600' : ''"
-                    :aria-label="isFavorite ? `Убрать из избранного: ${item.title}` : `Добавить в избранное: ${item.title}`"
+                    :aria-label="isFavorite ? `Убрать из избранного: ${displayTitle}` : `Добавить в избранное: ${displayTitle}`"
                     :aria-pressed="isFavorite"
                     @click="emit('toggle-favorite', item.id)"
                 >
@@ -129,16 +131,15 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
 
             <div class="flex flex-1 flex-col px-3.5 pb-3.5 pt-2.5 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
                 <h3
-                    :title="item.title"
-                    :aria-label="`Название блюда: ${item.title}`"
-                    class="line-clamp-2 min-h-[2.25rem] break-words text-balance text-[0.9rem] font-semibold leading-[1.24] text-slate-950 sm:text-[0.94rem] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
+                    :title="displayTitle"
+                    :aria-label="`Название блюда: ${displayTitle}`"
+                    class="line-clamp-2 min-h-8 break-words text-[14px] font-semibold leading-4 text-[#595959] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
                 >
-                    {{ item.title }}
+                    {{ displayTitle }}
                 </h3>
-                <p data-testid="menu-item-meta" class="mt-1.5 min-w-0 truncate text-[11px] font-medium tabular-nums text-slate-400 max-[430px]:hidden">
-                    <span>{{ item.category?.name || 'Меню' }}</span>
-                    <span v-if="item.weight"> · {{ item.weight }}</span>
-                    <span v-if="caloriesLabel"> · {{ caloriesLabel }}</span>
+                <p data-testid="menu-item-meta" class="mt-px min-h-[15px] min-w-0 truncate text-[13px] font-semibold leading-[15px] tabular-nums text-[#a6a6a6] max-[430px]:hidden">
+                    <span v-if="displayMeta">{{ displayMeta }}</span>
+                    <span v-else aria-hidden="true">&nbsp;</span>
                 </p>
 
                 <div class="mt-auto pt-2.5 max-[430px]:pt-2">
@@ -152,10 +153,10 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                             variant="ghost"
                             size="icon-sm"
                             class="size-9 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
-                            :class="hasSelectedQuantity && canEditOrder ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-slate-500 hover:bg-white hover:text-blue-700'"
+                            :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-blue-500 hover:bg-white hover:text-blue-700'"
                             :disabled="minusButtonDisabled"
                             :title="minusButtonDisabled ? disabledReason : undefined"
-                            :aria-label="`Уменьшить количество: ${item.title}`"
+                            :aria-label="`Уменьшить количество: ${displayTitle}`"
                             @click="orderItem && emit('change-quantity', orderItem, orderItem.quantity - 1)"
                         >
                             <Minus aria-hidden="true" class="size-4 max-[430px]:size-3.5" />
@@ -174,7 +175,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                             variant="ghost"
                             size="icon-sm"
                             class="size-9 rounded-full transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:opacity-60 max-[430px]:size-8"
-                            :class="hasSelectedQuantity && canEditOrder ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-blue-700 hover:bg-white hover:text-blue-900'"
+                            :class="hasSelectedQuantity ? 'text-white hover:bg-blue-600 hover:text-white' : controlsDisabled ? 'text-blue-300' : 'text-blue-700 hover:bg-white hover:text-blue-900'"
                             :disabled="plusButtonDisabled"
                             :title="plusButtonDisabled ? disabledReason : undefined"
                             :aria-label="plusButtonLabel"

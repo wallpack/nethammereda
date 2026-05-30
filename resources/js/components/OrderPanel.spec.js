@@ -192,17 +192,21 @@ describe('OrderPanel cart-only UX', () => {
         expect(stepperClasses).toContain('h-6');
         expect(stepperClasses).toContain('w-[4.875rem]');
         expect(stepperClasses).toContain('grid-cols-[1.5rem_1.875rem_1.5rem]');
-        expect(stepperClasses).toContain('bg-slate-100');
+        expect(stepperClasses).toContain('bg-blue-700');
         expect(stepperClasses).not.toContain('border');
         expect(stepperClasses).not.toContain('bg-white');
+        expect(stepperClasses).not.toContain('bg-slate-100');
         expect(stepperButtons[0].classes()).toContain('size-[1.375rem]');
         expect(stepperButtons[0].classes()).toContain('justify-self-start');
+        expect(stepperButtons[0].classes()).toContain('text-white/85');
         expect(stepperButtons[0].find('svg').classes()).toContain('size-4');
         expect(stepperButtons[1].classes()).toContain('size-[1.375rem]');
         expect(stepperButtons[1].classes()).toContain('justify-self-end');
+        expect(stepperButtons[1].classes()).toContain('text-white');
         expect(stepperButtons[1].find('svg').classes()).toContain('size-4');
         expect(stepperCount.classes()).toContain('justify-self-center');
         expect(stepperCount.classes()).toContain('text-[14px]');
+        expect(stepperCount.classes()).toContain('text-white');
         expect(stepperCount.classes()).toContain('font-semibold');
         expect(price.text()).toContain('500');
         expect(price.classes()).toContain('col-start-3');
@@ -226,6 +230,40 @@ describe('OrderPanel cart-only UX', () => {
         expect(checkoutButton.classes()).toContain('h-[3.625rem]');
         expect(checkoutButton.classes()).toContain('rounded-full');
         expect(checkoutButton.classes()).toContain('bg-blue-700');
+    });
+
+    it('uses active blue readonly quantity pill for selected cart items', () => {
+        const wrapper = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            order: {
+                id: 15,
+                status: 'submitted',
+                total_price: '250.00',
+                items: [],
+            },
+            orderItems: [
+                {
+                    id: 77,
+                    menu_item_id: 11,
+                    title_snapshot: 'Суп с курицей',
+                    price_snapshot: '250.00',
+                    quantity: 1,
+                },
+            ],
+            menuItemsById: new Map([
+                [11, { id: 11, title: 'Суп с курицей', weight: '300 г', image_url: null, image_display_url: null }],
+            ]),
+            totalPositions: 1,
+            canEditOrder: false,
+        });
+
+        const quantityPill = wrapper.get('[data-testid="order-panel-item-stepper"]');
+
+        expect(quantityPill.text()).toBe('1 шт.');
+        expect(quantityPill.classes()).toContain('bg-blue-700');
+        expect(quantityPill.classes()).toContain('text-white');
+        expect(quantityPill.findAll('button')).toHaveLength(0);
     });
 
     it('formats compact cart prices as continuous integers without thousands separators', () => {
