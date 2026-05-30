@@ -54,10 +54,20 @@ describe('MenuItemCard UI', () => {
         expect(card.classes()).toContain('min-w-0');
         expect(card.classes()).toContain('border-transparent');
         expect(card.classes()).toContain('shadow-none');
+        expect(imageArea.classes()).toContain('h-[11rem]');
         expect(imageArea.classes()).toContain('bg-white');
         expect(imageArea.classes()).not.toContain('bg-slate-50');
         expect(image.exists()).toBe(true);
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
+    });
+
+    it('uses compact desktop title typography after shell scale-up', () => {
+        const wrapper = mountCard();
+        const title = wrapper.find('h3');
+
+        expect(title.classes()).toContain('text-[0.9rem]');
+        expect(title.classes()).toContain('sm:text-[0.94rem]');
+        expect(title.classes()).toContain('line-clamp-2');
     });
 
     it('keeps card visible in closed state and shows a compact muted CTA badge', () => {

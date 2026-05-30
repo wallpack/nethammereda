@@ -86,9 +86,53 @@ describe('OrderPanel cart-only UX', () => {
         expect(list.exists()).toBe(true);
         expect(list.classes()).toContain('min-h-0');
         expect(list.classes()).toContain('overflow-y-auto');
+        expect(list.classes()).toContain('scrollbar-none');
         expect(footer.exists()).toBe(true);
         expect(footer.classes()).toContain('safe-cart-footer');
         expect(footer.classes()).toContain('sticky');
+    });
+
+    it('renders food-delivery cart item layout with image, title, weight, stepper and right price', () => {
+        const wrapper = mountPanel({
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '500.00',
+                items: [],
+            },
+            orderItems: [
+                {
+                    id: 77,
+                    menu_item_id: 11,
+                    title_snapshot: 'Суп с курицей',
+                    price_snapshot: '250.00',
+                    quantity: 2,
+                },
+            ],
+            menuItemsById: new Map([
+                [11, { id: 11, title: 'Суп с курицей', weight: '300 г', image_url: null, image_display_url: '/storage/menu-items/manual/11/soup.png' }],
+            ]),
+            totalPositions: 2,
+            canEditOrder: true,
+        });
+
+        const item = wrapper.get('[data-testid="order-panel-item"]');
+        const image = wrapper.get('[data-testid="order-panel-item-image"]');
+        const title = wrapper.get('[data-testid="order-panel-item-title"]');
+        const weight = wrapper.get('[data-testid="order-panel-item-weight"]');
+        const stepper = wrapper.get('[data-testid="order-panel-item-stepper"]');
+        const price = wrapper.get('[data-testid="order-panel-item-price"]');
+
+        expect(item.classes()).toContain('grid-cols-[4rem_minmax(0,1fr)]');
+        expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
+        expect(image.classes()).toContain('bg-white');
+        expect(image.classes().join(' ')).not.toContain('blue');
+        expect(title.text()).toContain('Суп с курицей');
+        expect(weight.text()).toContain('300 г');
+        expect(stepper.text()).toContain('2');
+        expect(stepper.findAll('button')).toHaveLength(2);
+        expect(price.text()).toContain('500');
+        expect(price.classes()).toContain('ml-auto');
     });
 
     it('uses compact cart status copy and never exposes draft wording', () => {

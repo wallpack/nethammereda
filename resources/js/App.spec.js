@@ -625,9 +625,13 @@ describe('catalog auth UX', () => {
         });
 
         const weekStatus = document.querySelector('.week-status');
+        const statusStrip = document.querySelector('[data-testid="menu-status-strip"]');
+        const catalogScroll = document.querySelector('[data-testid="catalog-scroll-panel"]');
         const weekStatusText = weekStatus?.textContent ?? '';
 
-        expect(weekStatus?.className).toContain('h-9');
+        expect(statusStrip).toBeTruthy();
+        expect(catalogScroll?.contains(weekStatus)).toBe(false);
+        expect(weekStatus?.className).toContain('h-10');
         expect(weekStatusText).toContain('Приём заказов закрыт');
         expect(weekStatusText).not.toContain('Администратор закрыл сбор заказов');
         expect(weekStatusText.toLowerCase()).not.toContain('черновик');
@@ -882,13 +886,13 @@ describe('catalog auth UX', () => {
         expect(header?.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeNull();
         expect(header?.querySelector('[aria-label="Открыть раздел: История"]')).toBeNull();
         expect(header?.textContent).not.toContain('Холодильник · 13');
-        expect(searchLabel?.className).toContain('md:max-w-[56rem]');
+        expect(searchLabel?.className).toContain('md:max-w-[66rem]');
         expect(searchInput).toBeTruthy();
         expect(searchInput?.getAttribute('placeholder')).toBe('Поиск по меню');
-        expect(searchInput?.className).toContain('h-12');
+        expect(searchInput?.className).toContain('h-14');
         expect(searchInput?.className).toContain('rounded-full');
         expect(searchInput?.className).toContain('bg-[#f2f2f2]');
-        expect(profileButton?.className).toContain('h-12');
+        expect(profileButton?.className).toContain('h-14');
         expect(profileButton?.className).toContain('bg-[#f2f2f2]');
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
         expect(document.body.textContent).toContain('Корзина');
@@ -930,10 +934,13 @@ describe('catalog auth UX', () => {
         expect(mainShell).toBeTruthy();
         expect(document.querySelector('[data-testid="menu-category-rail"]')).toBeTruthy();
         expect(document.getElementById('menu-heading')?.textContent).toContain('Все блюда');
-        expect(catalogScroll?.className).toContain('menu-shell__content');
+        expect(catalogScroll?.className).toContain('menu-shell__catalog-scroll');
+        expect(catalogScroll?.className).toContain('scrollbar-none');
+        expect(document.querySelector('[data-testid="catalog-shelf-panel"]')).toBeTruthy();
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeTruthy();
         expect(cartPanel).toBeTruthy();
         expect(cartPanel?.className).toContain('xl:sticky');
-        expect(cartPanel?.className).toContain('xl:top-[5.25rem]');
+        expect(cartPanel?.className).toContain('xl:top-[5.75rem]');
     });
 
     it('opens profile modal with account actions', async () => {
@@ -1773,7 +1780,7 @@ describe('catalog auth UX', () => {
         const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(imageArea).toBeTruthy();
-        expect(imageArea?.className).toContain('h-[10rem]');
+        expect(imageArea?.className).toContain('h-[11rem]');
         expect(imageArea?.className).toContain('bg-white');
         expect(imageArea?.className).not.toContain('bg-slate-50');
         expect(image?.className).toContain('object-contain');
@@ -1856,7 +1863,7 @@ describe('catalog auth UX', () => {
         expect(panel).toBeTruthy();
         expect(panel?.getAttribute('aria-label')).toBe('Панель корзины');
         expect(panel?.className).toContain('xl:sticky');
-        expect(panel?.className).toContain('xl:top-[5.25rem]');
+        expect(panel?.className).toContain('xl:top-[5.75rem]');
         expect(panel?.className).toContain('xl:h-full');
     });
 
@@ -1871,6 +1878,7 @@ describe('catalog auth UX', () => {
 
         expect(itemsScroll).toBeTruthy();
         expect(itemsScroll?.className).toContain('overflow-y-auto');
+        expect(itemsScroll?.className).toContain('scrollbar-none');
         expect(footer).toBeTruthy();
         expect(footer?.className).toContain('sticky');
         expect(footer?.textContent).toContain('Итого');

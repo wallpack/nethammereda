@@ -60,7 +60,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
             <div class="relative p-1.5 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative h-[10rem] overflow-hidden rounded-[0.95rem] bg-white sm:h-[10.5rem] lg:h-[10.75rem] xl:h-[9.75rem] 2xl:h-[10rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl"
+                    class="relative h-[11rem] overflow-hidden rounded-[1rem] bg-white sm:h-[11.25rem] lg:h-[11.5rem] xl:h-[10.75rem] 2xl:h-[11.25rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl"
                 >
                     <img
                         v-if="showImage"
@@ -95,7 +95,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                 <h3
                     :title="item.title"
                     :aria-label="`Название блюда: ${item.title}`"
-                    class="line-clamp-2 min-h-[2.45rem] break-words text-balance text-[0.94rem] font-semibold leading-[1.28] text-slate-950 sm:text-[0.98rem] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
+                    class="line-clamp-2 min-h-[2.25rem] break-words text-balance text-[0.9rem] font-semibold leading-[1.24] text-slate-950 sm:text-[0.94rem] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
                 >
                     {{ item.title }}
                 </h3>

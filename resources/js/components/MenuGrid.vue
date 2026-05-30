@@ -213,11 +213,19 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
             </div>
         </aside>
 
-        <div class="menu-shell__content" data-testid="catalog-scroll-panel">
-            <div class="menu-shell__content-inner">
+        <div class="menu-shell__content" data-testid="catalog-shelf-panel">
+            <div class="menu-shell__status" data-testid="menu-status-strip">
                 <slot name="status" />
+            </div>
 
-                <div class="mb-3 flex flex-col gap-2.5 sm:mb-4">
+            <div
+                class="menu-shell__catalog-scroll scrollbar-none"
+                data-testid="catalog-scroll-panel"
+                tabindex="0"
+                aria-label="Каталог блюд"
+            >
+                <div class="menu-shell__content-inner">
+                    <div class="mb-3 flex flex-col gap-2.5 sm:mb-4">
                     <div class="flex min-w-0 items-end justify-between gap-3">
                         <h2 id="menu-heading" tabindex="-1" class="text-balance text-[1.45rem] font-semibold leading-tight text-slate-950 outline-none sm:text-[1.7rem]">
                             {{ catalogTitle }}
@@ -245,7 +253,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                     >
                         <CardContent class="space-y-2.5 p-0">
                             <div class="p-1.5 pb-0 max-[430px]:p-0">
-                                <Skeleton class="h-[10rem] w-full rounded-[0.95rem] bg-[#f2f2f2] sm:h-[10.5rem] xl:h-[9.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl" />
+                                <Skeleton class="h-[11rem] w-full rounded-[1rem] bg-[#f2f2f2] sm:h-[11.25rem] xl:h-[10.75rem] 2xl:h-[11.25rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl" />
                             </div>
                             <div class="space-y-2 px-3.5 pb-3.5 pt-1 max-[430px]:space-y-2 max-[430px]:px-3 max-[430px]:pb-3 max-[430px]:pt-0.5">
                                 <Skeleton class="h-5 w-4/5 rounded-md bg-[#f2f2f2]" />
@@ -312,6 +320,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                             />
                         </div>
                     </section>
+                </div>
                 </div>
             </div>
         </div>

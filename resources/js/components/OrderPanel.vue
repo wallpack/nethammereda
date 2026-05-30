@@ -142,11 +142,11 @@ watch(() => props.menuItemsById, () => {
 </script>
 
 <template>
-    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 xl:px-5" :aria-busy="loading || actionLoading">
+    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 xl:px-5 xl:pt-5" :aria-busy="loading || actionLoading">
         <div v-if="showHeading" class="shrink-0">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <h2 class="text-balance text-lg font-semibold text-slate-950">{{ panelTitle }}</h2>
+                    <h2 class="text-balance text-xl font-semibold text-slate-950">{{ panelTitle }}</h2>
                     <Skeleton v-if="loading" class="mt-1 h-4 w-20 rounded-md bg-slate-100" />
                     <p v-else-if="!showGuestAuthPrompt" class="mt-0.5 text-xs font-medium tabular-nums text-slate-500">
                         <span>{{ totalPositions }}</span> {{ positionsLabel }}
@@ -162,7 +162,7 @@ watch(() => props.menuItemsById, () => {
                     {{ cartStatusLabel }}
                 </Badge>
             </div>
-            <p v-if="statusLine" class="mt-2 rounded-xl bg-blue-50/70 px-3 py-2 text-pretty text-xs font-medium text-blue-800">
+            <p v-if="statusLine" class="mt-3 rounded-2xl bg-blue-50/70 px-3.5 py-2.5 text-pretty text-xs font-medium text-blue-800">
                 {{ statusLine }}
             </p>
         </div>
@@ -177,7 +177,7 @@ watch(() => props.menuItemsById, () => {
             <AlertDescription>{{ error }}</AlertDescription>
         </Alert>
 
-        <div v-if="loading" class="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-4 pr-1">
+        <div v-if="loading" class="scrollbar-none mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-4 pr-1">
             <div
                 v-for="skeleton in orderSkeletonRows"
                 :key="`order-skeleton-${skeleton}`"
@@ -191,7 +191,7 @@ watch(() => props.menuItemsById, () => {
 
         <div
             v-else-if="showGuestAuthPrompt"
-            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-6 text-center"
+            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-5 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Войдите, чтобы заказать</p>
@@ -200,39 +200,41 @@ watch(() => props.menuItemsById, () => {
 
         <div
             v-else-if="!order || orderItems.length === 0"
-            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-6 text-center"
+            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-5 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Корзина пуста</p>
             <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Добавьте блюда из каталога.</p>
         </div>
 
-        <div data-testid="order-panel-items-scroll" v-else class="mt-4 min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pb-4 pr-1">
+        <div data-testid="order-panel-items-scroll" v-else class="scrollbar-none mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pb-4 pr-1">
             <article
                 v-for="item in orderItems"
                 :key="item.id"
-                class="relative grid grid-cols-[56px_minmax(0,1fr)] gap-3 rounded-2xl bg-slate-50/80 p-2.5 ring-1 ring-inset ring-slate-100"
+                class="relative grid grid-cols-[4rem_minmax(0,1fr)] gap-3.5 rounded-2xl bg-white p-3 ring-1 ring-inset ring-slate-100 xl:grid-cols-[4.5rem_minmax(0,1fr)]"
+                data-testid="order-panel-item"
             >
                 <img
                     v-if="orderItemImage(item)"
+                    data-testid="order-panel-item-image"
                     :src="orderItemImage(item)"
                     :alt="item.title_snapshot"
-                    class="size-14 rounded-xl bg-white object-contain p-1"
+                    class="size-16 rounded-2xl bg-white object-contain p-1 xl:size-[4.5rem]"
                     loading="lazy"
                     decoding="async"
                     @error="markOrderItemImageFailed(item)"
                 />
-                <div v-else class="grid size-14 place-items-center rounded-xl bg-white text-slate-400 ring-1 ring-inset ring-slate-100">
+                <div v-else data-testid="order-panel-item-image" class="grid size-16 place-items-center rounded-2xl bg-white text-slate-400 ring-1 ring-inset ring-slate-100 xl:size-[4.5rem]">
                     <UtensilsCrossed aria-hidden="true" class="size-5" />
                 </div>
 
-                <div class="min-w-0" :class="canEditOrder ? 'pr-8' : ''">
+                <div class="min-w-0 self-stretch">
                     <Button
                         v-if="canEditOrder"
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        class="absolute right-2 top-2 size-8 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-700"
+                        class="absolute right-2.5 top-2.5 size-8 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-700"
                         :disabled="actionLoading"
                         :aria-label="`Удалить блюдо: ${item.title_snapshot}`"
                         @click="emit('change-quantity', item, 0)"
@@ -240,15 +242,13 @@ watch(() => props.menuItemsById, () => {
                         <X aria-hidden="true" class="size-4" />
                     </Button>
 
-                    <p class="line-clamp-2 break-words text-sm font-semibold leading-5 text-slate-900">{{ item.title_snapshot }}</p>
-                    <p class="mt-1 text-xs font-medium tabular-nums text-slate-500">
+                    <p data-testid="order-panel-item-title" class="line-clamp-2 break-words pr-8 text-sm font-semibold leading-5 text-slate-900">{{ item.title_snapshot }}</p>
+                    <p data-testid="order-panel-item-weight" class="mt-1 text-xs font-medium tabular-nums text-slate-500">
                         {{ orderItemWeight(item) || 'Порция' }}
                     </p>
 
-                    <div class="mt-2 flex items-center justify-between gap-3">
-                        <p class="shrink-0 whitespace-nowrap text-base font-semibold tabular-nums text-slate-950">{{ orderItemTotal(item) }}</p>
-
-                        <div v-if="canEditOrder" class="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white p-0.5">
+                    <div class="mt-3 flex items-center justify-between gap-3">
+                        <div v-if="canEditOrder" data-testid="order-panel-item-stepper" class="inline-flex h-9 items-center rounded-full border border-slate-200 bg-white p-0.5">
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -265,7 +265,7 @@ watch(() => props.menuItemsById, () => {
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                class="size-8 rounded-full text-slate-900 hover:bg-blue-50 hover:text-blue-900"
+                                class="size-8 rounded-full text-blue-700 hover:bg-blue-50 hover:text-blue-900"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${item.title_snapshot}`"
                                 @click="emit('change-quantity', item, item.quantity + 1)"
@@ -273,7 +273,9 @@ watch(() => props.menuItemsById, () => {
                                 <Plus aria-hidden="true" class="size-4" />
                             </Button>
                         </div>
-                        <span v-else class="rounded-lg bg-slate-50 px-2 py-1 text-sm font-medium tabular-nums text-slate-600">{{ item.quantity }} шт.</span>
+                        <span v-else data-testid="order-panel-item-stepper" class="rounded-full bg-slate-50 px-3 py-1.5 text-sm font-medium tabular-nums text-slate-600">{{ item.quantity }} шт.</span>
+
+                        <p data-testid="order-panel-item-price" class="ml-auto shrink-0 whitespace-nowrap text-base font-semibold tabular-nums text-slate-950">{{ orderItemTotal(item) }}</p>
                     </div>
                 </div>
             </article>
@@ -281,7 +283,7 @@ watch(() => props.menuItemsById, () => {
 
         <div
             data-testid="order-panel-footer"
-            class="safe-cart-footer sticky bottom-0 z-10 -mx-4 mt-auto shrink-0 border-t border-slate-200 bg-white px-4 pb-4 pt-3"
+            class="safe-cart-footer sticky bottom-0 z-10 -mx-4 mt-auto shrink-0 border-t border-slate-200 bg-white px-4 pb-4 pt-3 xl:-mx-5 xl:px-5"
         >
             <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
             <template v-else>
@@ -300,7 +302,7 @@ watch(() => props.menuItemsById, () => {
                 <Button
                     v-if="showGuestAuthPrompt"
                     type="button"
-                    class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
+                    class="mt-3 h-[3.25rem] min-h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98]"
                     @click="emit('open-auth')"
                 >
                     Войти
@@ -309,7 +311,7 @@ watch(() => props.menuItemsById, () => {
                 <Button
                     v-else-if="canEditOrder"
                     type="button"
-                    class="mt-3 h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
+                    class="mt-3 h-[3.25rem] min-h-12 w-full rounded-full bg-blue-700 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500"
                     :disabled="!orderItems.length || actionLoading"
                     :title="!orderItems.length ? 'Добавьте блюда из каталога' : undefined"
                     @click="emit('submit-order')"
