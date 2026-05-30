@@ -312,7 +312,13 @@ watch(() => props.menuItemsById, () => {
             <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
             <template v-else>
                 <div :class="compactCart ? 'text-center' : 'rounded-2xl bg-slate-50 px-4 py-3'">
-                    <div :class="['gap-1', compactCart ? 'grid justify-items-center' : 'flex items-center justify-between']">
+                    <div v-if="!isAuthenticated" :class="compactCart ? 'grid justify-items-center' : 'flex items-center justify-center'">
+                        <p
+                            data-testid="order-panel-guest-checkout-prompt"
+                            :class="compactCart ? 'text-center text-[24px] font-bold leading-[30px] text-[#50545a]' : 'text-center text-base font-semibold text-slate-900'"
+                        >Оформить заказ</p>
+                    </div>
+                    <div v-else :class="['gap-1', compactCart ? 'grid justify-items-center' : 'flex items-center justify-between']">
                         <p
                             data-testid="order-panel-total-label"
                             :class="compactCart ? 'text-center text-[12px] font-semibold leading-4 text-[#a0a0a0]' : 'text-sm font-medium text-slate-600'"

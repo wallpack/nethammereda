@@ -73,6 +73,26 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.text()).not.toContain('Приём заказов закрыт');
     });
 
+    it('shows checkout prompt instead of zero total for unauthenticated guests', () => {
+        const wrapper = mountPanel({
+            panelTitle: 'Корзина',
+            isAuthenticated: false,
+            order: null,
+            orderItems: [],
+            canEditOrder: false,
+        });
+
+        const footer = wrapper.get('[data-testid="order-panel-footer"]');
+
+        expect(footer.text()).toContain('Оформить заказ');
+        expect(footer.find('[data-testid="order-panel-guest-checkout-prompt"]').exists()).toBe(true);
+        expect(footer.find('[data-testid="order-panel-total-label"]').exists()).toBe(false);
+        expect(footer.find('[data-testid="order-panel-total-price"]').exists()).toBe(false);
+        expect(footer.text()).not.toContain('Итого');
+        expect(footer.text()).not.toContain('0 ₽');
+        expect(footer.find('button').exists()).toBe(false);
+    });
+
     it('renders internal scroll and sticky footer structure for current cart', () => {
         const wrapper = mountPanel({
             order: {

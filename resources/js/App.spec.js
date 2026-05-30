@@ -880,8 +880,9 @@ describe('catalog auth UX', () => {
         expect(panel?.textContent).toContain('Корзина');
         expect(panel?.textContent).toContain('Корзина пуста');
         expect(panel?.textContent).toContain('Добавьте блюда из каталога.');
-        expect(panel?.textContent).toContain('Итого');
-        expect(panel?.textContent).toContain('0 ₽');
+        expect(footer?.textContent).toContain('Оформить заказ');
+        expect(footer?.textContent).not.toContain('Итого');
+        expect(footer?.textContent).not.toContain('0 ₽');
         expect(panel?.textContent).not.toContain('Войдите, чтобы заказать');
         expect(panel?.textContent).not.toContain('0 позиций');
         expect(panel?.textContent).not.toContain('закрыта');
