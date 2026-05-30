@@ -217,14 +217,14 @@ watch(() => props.menuItemsById, () => {
                         data-testid="order-panel-item-title"
                         :class="[
                             'line-clamp-2 break-words',
-                            compactCart ? 'pr-7 text-[14px] font-semibold leading-4 tracking-normal text-[#4f5963]' : 'pr-8 text-sm font-semibold leading-5 text-slate-900',
+                            compactCart ? 'pr-7 text-[14px] font-semibold leading-4 tracking-normal text-[#595959]' : 'pr-8 text-sm font-semibold leading-5 text-slate-900',
                         ]"
                     >{{ item.title_snapshot }}</p>
                     <p
                         data-testid="order-panel-item-weight"
                         :class="[
                             'tabular-nums',
-                            compactCart ? 'mt-px text-[13px] font-medium leading-[15px] text-[#969da6]' : 'mt-1 text-xs font-medium text-slate-500',
+                            compactCart ? 'mt-px text-[13px] font-semibold leading-[15px] text-[#a6a6a6]' : 'mt-1 text-xs font-medium text-slate-500',
                         ]"
                     >
                         {{ orderItemWeight(item) || 'Порция' }}
@@ -243,7 +243,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-stepper"
                             :class="[
                                 compactCart
-                                    ? 'grid h-6 w-[4.5rem] grid-cols-[1.375rem_1.75rem_1.375rem] items-center rounded-full bg-slate-100 p-0'
+                                    ? 'grid h-6 w-[4.875rem] grid-cols-[1.5rem_1.875rem_1.5rem] items-center rounded-full bg-slate-100 p-0'
                                     : 'inline-flex h-9 items-center rounded-full border border-slate-200 bg-white p-0.5',
                             ]"
                         >
@@ -254,7 +254,7 @@ watch(() => props.menuItemsById, () => {
                                 :class="[
                                     'rounded-full',
                                     compactCart
-                                        ? 'size-[1.375rem] text-[#6f7580] hover:bg-slate-200/70 hover:text-slate-800'
+                                        ? 'size-[1.375rem] justify-self-start text-[#6f7580] hover:bg-slate-200/70 hover:text-slate-800'
                                         : 'size-8 text-slate-900 hover:bg-blue-50 hover:text-blue-900',
                                 ]"
                                 :disabled="actionLoading"
@@ -263,14 +263,14 @@ watch(() => props.menuItemsById, () => {
                             >
                                 <Minus aria-hidden="true" class="size-4" />
                             </Button>
-                            <span :class="['text-center tabular-nums', compactCart ? 'min-w-7 text-[14px] font-semibold leading-none text-[#4f5660]' : 'min-w-7 text-sm font-semibold text-slate-950']">{{ item.quantity }}</span>
+                            <span :class="['text-center tabular-nums', compactCart ? 'min-w-7 justify-self-center text-[14px] font-semibold leading-none text-[#4f5660]' : 'min-w-7 text-sm font-semibold text-slate-950']">{{ item.quantity }}</span>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
                                 :class="[
                                     'rounded-full text-blue-700 hover:text-blue-900',
-                                    compactCart ? 'size-[1.375rem] hover:bg-slate-200/70' : 'size-8 hover:bg-blue-50',
+                                    compactCart ? 'size-[1.375rem] justify-self-end hover:bg-slate-200/70' : 'size-8 hover:bg-blue-50',
                                 ]"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${item.title_snapshot}`"
