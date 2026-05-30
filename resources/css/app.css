@@ -107,11 +107,41 @@
     font-family: Inter, "Avenir Next", Avenir, Helvetica, Arial, sans-serif;
 }
 
+.cart-panel-footer-overlay {
+    position: relative;
+    isolation: isolate;
+    background: rgb(255 255 255 / 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.cart-panel-footer-overlay::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: -1.75rem;
+    height: 1.75rem;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(to bottom, rgb(255 255 255 / 0), rgb(255 255 255 / 0.88));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.cart-panel-footer-overlay > * {
+    position: relative;
+    z-index: 1;
+}
+
 .page-shell,
 .header-inner {
     width: min(calc(100% - 1.5rem), 1780px);
     min-width: 0;
     margin-inline: auto;
+}
+
+.header-account-actions {
+    min-width: 0;
 }
 
 .app-main-shell {
@@ -294,7 +324,7 @@
 
     .catalog-layout--auth-cart,
     .catalog-layout--guest-cart {
-        grid-template-columns: minmax(0, 1fr) 380px;
+        grid-template-columns: minmax(0, 1fr) 400px;
         align-items: stretch;
         gap: 1.25rem;
     }
@@ -304,8 +334,12 @@
         align-items: stretch;
     }
 
+    .catalog-order-panel,
+    .header-account-actions {
+        width: 400px;
+    }
+
     .catalog-order-panel {
-        width: 380px;
         align-self: stretch;
     }
 
@@ -359,12 +393,13 @@
 @media (min-width: 1536px) {
     .catalog-layout--auth-cart,
     .catalog-layout--guest-cart {
-        grid-template-columns: minmax(0, 1fr) 400px;
+        grid-template-columns: minmax(0, 1fr) 420px;
         gap: 1.25rem;
     }
 
-    .catalog-order-panel {
-        width: 400px;
+    .catalog-order-panel,
+    .header-account-actions {
+        width: 420px;
     }
 
     .menu-shell {
@@ -382,12 +417,13 @@
 @media (min-width: 1680px) {
     .catalog-layout--auth-cart,
     .catalog-layout--guest-cart {
-        grid-template-columns: minmax(0, 1fr) 420px;
+        grid-template-columns: minmax(0, 1fr) 440px;
         gap: 1.25rem;
     }
 
-    .catalog-order-panel {
-        width: 420px;
+    .catalog-order-panel,
+    .header-account-actions {
+        width: 440px;
     }
 
     .menu-shell {

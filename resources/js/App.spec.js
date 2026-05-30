@@ -639,11 +639,16 @@ describe('catalog auth UX', () => {
         await mountApp();
 
         const loginButton = buttonByText('Войти');
+        const accountActions = document.querySelector('[data-testid="header-account-actions"]');
         const searchInput = document.querySelector('#global-menu-search');
         const searchIcon = document.querySelector('[data-testid="global-search-icon"]');
 
+        expect(accountActions).toBeTruthy();
+        expect(accountActions?.className).toContain('header-account-actions');
+        expect(accountActions?.className).toContain('gap-2.5');
         expect(loginButton).toBeTruthy();
-        expect(loginButton?.className).toContain('min-w-[11.5rem]');
+        expect(loginButton?.className).toContain('h-14');
+        expect(loginButton?.className).toContain('flex-1');
         expect(loginButton?.className).toContain('bg-[#f2f2f2]');
         expect(loginButton?.querySelector('.bg-white')).toBeNull();
         expect(searchInput?.getAttribute('placeholder')).toBe('Искать в меню');
@@ -898,7 +903,11 @@ describe('catalog auth UX', () => {
         const searchInput = document.querySelector('#global-menu-search');
         const searchLabel = searchInput?.closest('label');
         const profileButton = buttonByText(user.name);
+        const accountActions = document.querySelector('[data-testid="header-account-actions"]');
 
+        expect(accountActions).toBeTruthy();
+        expect(accountActions?.className).toContain('header-account-actions');
+        expect(accountActions?.className).toContain('gap-2.5');
         expect(document.body.textContent).toContain(user.name);
         expect(buttonByText('Войти')).toBeFalsy();
         expect(headerInner).toBeTruthy();
@@ -914,8 +923,8 @@ describe('catalog auth UX', () => {
         expect(searchInput?.className).toContain('rounded-full');
         expect(searchInput?.className).toContain('bg-[#f2f2f2]');
         expect(searchInput?.className).toContain('placeholder:text-slate-400');
-        expect(profileButton?.className).toContain('h-12');
-        expect(profileButton?.className).toContain('min-w-[13.5rem]');
+        expect(profileButton?.className).toContain('h-14');
+        expect(profileButton?.className).toContain('flex-1');
         expect(profileButton?.className).toContain('bg-[#f2f2f2]');
         expect(profileButton?.querySelector('.bg-white')).toBeNull();
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();

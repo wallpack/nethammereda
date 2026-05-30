@@ -74,45 +74,50 @@ const searchModel = computed({
                 />
             </label>
 
-            <div v-if="loading" data-testid="header-auth-loading" class="ml-auto flex shrink-0 items-center gap-2" aria-label="Загрузка профиля" aria-busy="true">
-                <Skeleton class="hidden h-12 w-52 rounded-full bg-[#f2f2f2] sm:block" />
-                <Skeleton class="size-12 rounded-full bg-[#f2f2f2] sm:hidden" />
+            <div
+                data-testid="header-account-actions"
+                class="header-account-actions ml-auto flex shrink-0 items-center justify-end gap-2.5"
+            >
+                <div v-if="loading" data-testid="header-auth-loading" class="flex w-full shrink-0 items-center gap-2" aria-label="Загрузка профиля" aria-busy="true">
+                    <Skeleton class="hidden h-14 flex-1 rounded-full bg-[#f2f2f2] sm:block" />
+                    <Skeleton class="size-12 rounded-full bg-[#f2f2f2] sm:hidden" />
+                </div>
+
+                <Button
+                    v-else-if="isAuthenticated"
+                    type="button"
+                    variant="outline"
+                    class="hidden h-14 flex-1 min-w-0 shrink justify-center rounded-full border-transparent bg-[#f2f2f2] px-5 text-slate-800 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:inline-flex"
+                    :aria-label="`Открыть профиль: ${displayUserName}`"
+                    :title="displayUserName"
+                    @click="emit('open-profile')"
+                >
+                    <UserRound aria-hidden="true" class="size-4 shrink-0 text-slate-500" />
+                    <span class="min-w-0 truncate text-center text-sm font-semibold">{{ displayUserName }}</span>
+                </Button>
+
+                <Button
+                    v-if="isAuthenticated && !loading"
+                    type="button"
+                    variant="outline"
+                    class="size-12 shrink-0 rounded-full border-transparent bg-[#f2f2f2] px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:hidden"
+                    :aria-label="`Открыть профиль: ${displayUserName}`"
+                    :title="displayUserName"
+                    @click="emit('open-profile')"
+                >
+                    <UserRound aria-hidden="true" class="size-4 text-slate-500" />
+                </Button>
+
+                <Button
+                    v-if="!isAuthenticated && !loading"
+                    type="button"
+                    class="h-14 flex-1 min-w-0 shrink rounded-full bg-[#f2f2f2] px-6 text-sm font-semibold text-slate-900 shadow-none transition-[background-color,color,transform] duration-150 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] max-sm:h-12 max-sm:px-4"
+                    @click="emit('open-auth')"
+                >
+                    <UserRound aria-hidden="true" class="size-4 text-slate-500" />
+                    Войти
+                </Button>
             </div>
-
-            <Button
-                v-else-if="isAuthenticated"
-                type="button"
-                variant="outline"
-                class="ml-auto hidden h-12 min-w-[13.5rem] max-w-60 shrink-0 justify-center rounded-full border-transparent bg-[#f2f2f2] px-5 text-slate-800 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:inline-flex"
-                :aria-label="`Открыть профиль: ${displayUserName}`"
-                :title="displayUserName"
-                @click="emit('open-profile')"
-            >
-                <UserRound aria-hidden="true" class="size-4 shrink-0 text-slate-500" />
-                <span class="min-w-0 truncate text-center text-sm font-semibold">{{ displayUserName }}</span>
-            </Button>
-
-            <Button
-                v-if="isAuthenticated && !loading"
-                type="button"
-                variant="outline"
-                class="ml-auto size-12 shrink-0 rounded-full border-transparent bg-[#f2f2f2] px-0 text-slate-700 shadow-none transition-[background-color,border-color,transform] duration-150 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] sm:hidden"
-                :aria-label="`Открыть профиль: ${displayUserName}`"
-                :title="displayUserName"
-                @click="emit('open-profile')"
-            >
-                <UserRound aria-hidden="true" class="size-4 text-slate-500" />
-            </Button>
-
-            <Button
-                v-if="!isAuthenticated && !loading"
-                type="button"
-                class="ml-auto h-12 min-w-[11.5rem] shrink-0 rounded-full bg-[#f2f2f2] px-6 text-sm font-semibold text-slate-900 shadow-none transition-[background-color,color,transform] duration-150 hover:bg-blue-50 hover:text-blue-900 active:scale-[0.98] max-sm:min-w-0 max-sm:px-4"
-                @click="emit('open-auth')"
-            >
-                <UserRound aria-hidden="true" class="size-4 text-slate-500" />
-                Войти
-            </Button>
         </div>
     </header>
 </template>

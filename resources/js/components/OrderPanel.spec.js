@@ -156,6 +156,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.classes()).toContain('cart-panel-compact');
         expect(list.classes()).not.toContain('divide-y');
         expect(list.classes()).not.toContain('border-b');
+        expect(list.classes()).toContain('pb-[9rem]');
         expect(list.classes().join(' ')).not.toContain('after:border');
         expect(itemClasses).toContain('grid-cols-[5.1875rem_minmax(0,1fr)]');
         expect(itemClasses).toContain('min-h-[6.625rem]');
@@ -197,6 +198,8 @@ describe('OrderPanel cart-only UX', () => {
         expect(price.classes()).toContain('leading-[1.625rem]');
         expect(price.classes()).toContain('text-[#374151]');
         expect(footer.classes()).not.toContain('border-t');
+        expect(footer.classes()).toContain('cart-panel-footer-overlay');
+        expect(footer.classes()).toContain('-mt-7');
         expect(totalLabel.classes()).toContain('text-center');
         expect(totalLabel.classes()).toContain('text-[12px]');
         expect(totalLabel.classes()).toContain('font-semibold');

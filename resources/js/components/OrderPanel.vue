@@ -146,7 +146,7 @@ watch(() => props.menuItemsById, () => {
             v-else
             :class="[
                 'scrollbar-none min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1',
-                compactCart ? 'mt-2.5 space-y-2.5 pb-3' : 'mt-4 space-y-3 pb-4',
+                compactCart ? 'mt-2.5 space-y-2.5 pb-[9rem]' : 'mt-4 space-y-3 pb-4',
             ]"
         >
             <article
@@ -304,7 +304,7 @@ watch(() => props.menuItemsById, () => {
             data-testid="order-panel-footer"
             :class="[
                 'safe-cart-footer sticky bottom-0 z-10 -mx-4 mt-auto shrink-0 bg-white px-4 xl:-mx-5 xl:px-5',
-                compactCart ? 'px-5 pb-[1.125rem] pt-4' : 'border-t border-slate-200 pb-4 pt-3',
+                compactCart ? 'cart-panel-footer-overlay -mt-7 px-5 pb-[1.125rem] pt-4' : 'border-t border-slate-200 pb-4 pt-3',
             ]"
         >
             <Skeleton v-if="loading" class="h-12 w-full rounded-xl bg-slate-100" />
