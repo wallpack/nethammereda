@@ -251,6 +251,61 @@ describe('OrderPanel cart-only UX', () => {
         expect(footer.classes()).toContain('sticky');
     });
 
+    it('renders full-page order rows with cart-matched hierarchy and constrained spacing', () => {
+        const wrapper = mountPanel({
+            panelTitle: 'Мой заказ',
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '100000.00',
+                items: [],
+            },
+            orderItems: [
+                {
+                    id: 77,
+                    menu_item_id: 11,
+                    title_snapshot: 'Суп с курицей',
+                    price_snapshot: '50000.00',
+                    quantity: 2,
+                },
+            ],
+            menuItemsById: new Map([
+                [11, { id: 11, title: 'Суп с курицей', weight: '300 г', image_url: null, image_display_url: '/storage/menu-items/manual/11/soup.png' }],
+            ]),
+            totalPositions: 2,
+            canEditOrder: true,
+        });
+
+        const list = wrapper.get('[data-testid="order-panel-items-scroll"]');
+        const item = wrapper.get('[data-testid="order-panel-item"]');
+        const imageWrap = wrapper.get('[data-testid="order-panel-item-image-wrap"]');
+        const title = wrapper.get('[data-testid="order-panel-item-title"]');
+        const weight = wrapper.get('[data-testid="order-panel-item-weight"]');
+        const actions = wrapper.get('[data-testid="order-panel-item-actions"]');
+        const stepper = wrapper.get('[data-testid="order-panel-item-stepper"]');
+        const price = wrapper.get('[data-testid="order-panel-item-price"]');
+        const remove = wrapper.get('[data-testid="order-panel-item-remove"]');
+        const totalPrice = wrapper.get('[data-testid="order-panel-total-price"]');
+
+        expect(wrapper.classes()).not.toContain('cart-panel-compact');
+        expect(list.classes()).toContain('mx-auto');
+        expect(list.classes()).toContain('max-w-[46rem]');
+        expect(item.classes().join(' ')).toContain('grid-cols-[4.75rem_minmax(0,1fr)]');
+        expect(item.classes().join(' ')).not.toContain('ring-1');
+        expect(imageWrap.classes().join(' ')).toContain('bg-slate-50');
+        expect(title.classes()).toContain('text-[#595959]');
+        expect(title.classes()).toContain('font-semibold');
+        expect(weight.classes()).toContain('text-[#a6a6a6]');
+        expect(weight.classes()).toContain('font-semibold');
+        expect(actions.classes().join(' ')).toContain('grid-cols-[auto_minmax(0,1fr)_auto_auto]');
+        expect(stepper.classes()).toContain('h-8');
+        expect(stepper.classes()).toContain('bg-blue-700');
+        expect(price.text()).toBe('100000 ₽');
+        expect(price.classes()).toContain('text-[#404040]');
+        expect(remove.classes()).toContain('justify-self-end');
+        expect(totalPrice.text()).toBe('100000 ₽');
+    });
+
     it('renders compact desktop cart item layout with unified list styling', () => {
         const wrapper = mountPanel({
             panelTitle: 'Корзина',

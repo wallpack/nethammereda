@@ -140,6 +140,47 @@
     color: #64748b;
 }
 
+.customer-stat-number {
+    color: #404040;
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 750;
+    line-height: 1.5rem;
+}
+
+.customer-badge {
+    border: 1px solid rgb(191 219 254 / 0.78);
+    border-radius: 9999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.customer-secondary-action {
+    border-color: rgb(191 219 254);
+    background: #ffffff;
+    color: #1e40af;
+    font-weight: 700;
+}
+
+.customer-secondary-action:hover {
+    background: #eff6ff;
+}
+
+.customer-tertiary-action {
+    border-color: rgb(226 232 240);
+    background: #ffffff;
+    color: #64748b;
+    font-weight: 650;
+}
+
+.customer-tertiary-action:hover {
+    border-color: rgb(254 205 211);
+    background: #fff1f2;
+    color: #be123c;
+}
+
 .customer-label {
     color: #4b5563;
     font-size: 0.875rem;

@@ -93,30 +93,31 @@ const summaryCards = computed(() => {
 </script>
 
 <template>
-    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4" :aria-busy="fridgeLoading || actionLoading">
+    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 pt-4 sm:px-5 sm:pt-5" :aria-busy="fridgeLoading || actionLoading">
         <div v-if="showHeading" class="flex shrink-0 items-start justify-between gap-3">
             <div class="min-w-0">
-                <h2 class="text-lg font-semibold text-slate-950">Мой холодильник</h2>
-                <p class="mt-0.5 text-pretty text-sm text-slate-500">Блюда, которые сейчас ждут вас.</p>
+                <h2 class="customer-heading text-balance text-xl leading-7 sm:text-2xl sm:leading-8">Мой холодильник</h2>
+                <p class="customer-muted mt-0.5 text-pretty text-sm leading-5">Блюда, которые сейчас ждут вас.</p>
             </div>
             <Skeleton v-if="fridgeLoading" class="h-7 w-14 rounded-lg bg-slate-100" />
-            <Badge v-else variant="outline" class="shrink-0 rounded-full border-blue-100 bg-blue-50 px-3 text-xs font-semibold tabular-nums text-blue-700">
+            <Badge v-else variant="outline" class="customer-badge h-auto min-h-6 shrink-0 px-3 py-1 text-xs leading-4">
                 {{ activeFridgeItemsCount }} шт.
             </Badge>
         </div>
 
         <div
             v-if="!fridgeLoading && summaryCards.length"
-            class="mt-3 grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3"
+            class="mt-4 grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-3 2xl:grid-cols-4"
             aria-label="Сводка холодильника"
         >
             <div
                 v-for="card in summaryCards"
                 :key="card.key"
-                class="rounded-xl border border-slate-200/90 bg-slate-50/90 px-3 py-2"
+                data-testid="fridge-summary-card"
+                class="customer-soft-card px-3.5 py-3"
             >
-                <p class="text-[11px] font-medium text-slate-500">{{ card.label }}</p>
-                <p class="mt-0.5 text-sm font-semibold tabular-nums text-slate-900">{{ card.value }}</p>
+                <p class="customer-meta text-[11px] leading-4">{{ card.label }}</p>
+                <p data-testid="fridge-summary-value" class="customer-stat-number mt-1">{{ card.value }}</p>
             </div>
         </div>
 
@@ -147,35 +148,41 @@ const summaryCards = computed(() => {
             class="mt-5 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-5 py-10 text-center"
         >
             <Refrigerator aria-hidden="true" class="size-7 text-slate-300" />
-            <p class="mt-3 text-balance text-base font-semibold text-slate-900">В вашем холодильнике пока ничего нет.</p>
-            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Когда заказ будет доставлен, блюда появятся здесь.</p>
+            <p class="customer-title mt-3 text-balance text-base leading-5">В вашем холодильнике пока ничего нет.</p>
+            <p class="customer-muted mt-1 text-pretty text-sm leading-6">Когда заказ будет доставлен, блюда появятся здесь.</p>
         </div>
 
         <div data-testid="fridge-panel-scroll" v-else class="mt-4 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-5 pr-1">
-            <div class="grid gap-2.5 xl:grid-cols-2">
+            <div class="grid gap-3 xl:grid-cols-2">
                 <article
                     v-for="item in fridgeItems"
                     :key="item.id"
-                    class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-3"
+                    data-testid="fridge-item-card"
+                    class="customer-row-card min-w-0 p-3.5 shadow-sm sm:p-4"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                            <p class="line-clamp-2 break-words text-sm font-semibold leading-5 text-slate-950">{{ item.title_snapshot }}</p>
-                            <p class="mt-1 text-xs font-medium text-slate-500">
-                                {{ fridgeStatusLabel(item.status) }}
-                            </p>
+                            <p data-testid="fridge-card-title" class="customer-title line-clamp-2 break-words text-pretty text-[15px] leading-5">{{ item.title_snapshot }}</p>
                         </div>
-                        <Badge variant="outline" class="shrink-0 rounded-full border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold tabular-nums text-slate-700">
+                        <Badge variant="outline" data-testid="fridge-quantity-badge" class="customer-badge h-auto min-h-6 shrink-0 px-2.5 py-1 text-xs leading-4">
                             {{ quantityLabel(item.quantity_remaining) }}
                         </Badge>
                     </div>
-                    <p class="mt-2 text-xs font-medium tabular-nums text-slate-600">{{ expiryLabel(item.expires_at) }}</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                        <span data-testid="fridge-card-status" class="customer-meta rounded-full bg-slate-50 px-2.5 py-1 text-xs leading-4">
+                            {{ fridgeStatusLabel(item.status) }}
+                        </span>
+                        <span data-testid="fridge-card-expiry" class="customer-meta rounded-full bg-slate-50 px-2.5 py-1 text-xs leading-4 tabular-nums">
+                            {{ expiryLabel(item.expires_at) }}
+                        </span>
+                    </div>
 
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                    <div data-testid="fridge-card-actions" class="mt-4 grid gap-2 sm:grid-cols-[minmax(7.5rem,1fr)_auto_auto]">
                         <Button
                             type="button"
                             size="sm"
-                            class="h-9 w-full rounded-full bg-blue-700 px-4 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] sm:w-auto"
+                            data-testid="fridge-eat-one-button"
+                            class="customer-cta h-11 w-full px-4 text-sm shadow-sm disabled:bg-slate-200 disabled:text-slate-500 sm:h-10"
                             :disabled="actionLoading"
                             @click="emit('eat-one', item.id)"
                         >
@@ -185,7 +192,8 @@ const summaryCards = computed(() => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            class="h-9 rounded-full border-blue-200 bg-white px-3 text-xs font-semibold text-blue-800 transition-[background-color,transform] duration-150 hover:bg-blue-50 active:scale-[0.98]"
+                            data-testid="fridge-eat-all-button"
+                            class="customer-secondary-action h-10 w-full rounded-full border border-blue-200 px-4 text-sm transition-[background-color,transform] duration-150 active:scale-[0.98]"
                             :disabled="actionLoading"
                             @click="emit('eat-all', item.id)"
                         >
@@ -197,7 +205,8 @@ const summaryCards = computed(() => {
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    class="h-9 rounded-full border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition-[background-color,transform] duration-150 hover:bg-slate-50 active:scale-[0.98]"
+                                    data-testid="fridge-discard-button"
+                                    class="customer-tertiary-action h-10 w-full rounded-full border px-4 text-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.98]"
                                     :disabled="actionLoading"
                                 >
                                     Списать

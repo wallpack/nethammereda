@@ -1106,7 +1106,7 @@ onBeforeUnmount(() => {
 
                 <Card
                     v-else-if="isOrderView"
-                    class="h-full min-h-0 gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white py-0 shadow-sm"
+                    class="mx-auto h-full min-h-0 w-full max-w-[52rem] gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white py-0 shadow-sm"
                 >
                     <CardContent class="flex h-full min-h-0 p-0">
                         <OrderPanel
@@ -1130,7 +1130,7 @@ onBeforeUnmount(() => {
 
                 <Card
                     v-else-if="isFridgeView"
-                    class="h-full min-h-0 gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white py-0 shadow-sm"
+                    class="mx-auto h-full min-h-0 w-full max-w-[64rem] gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white py-0 shadow-sm"
                 >
                     <CardContent class="flex h-full min-h-0 p-0">
                         <FridgePanel

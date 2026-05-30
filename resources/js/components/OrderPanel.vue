@@ -105,7 +105,8 @@ watch(() => props.menuItemsById, () => {
         <div v-if="showHeading" class="shrink-0">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <h2 class="customer-heading text-balance text-xl leading-7">{{ panelTitle }}</h2>
+                    <h2 class="customer-heading text-balance text-xl leading-7 sm:text-2xl sm:leading-8">{{ panelTitle }}</h2>
+                    <p v-if="!compactCart && panelTitle !== 'Корзина'" class="customer-muted mt-0.5 text-pretty text-sm leading-5">Ваши выбранные блюда.</p>
                     <Skeleton v-if="loading" class="mt-2 h-4 w-20 rounded-md bg-slate-100" />
                 </div>
             </div>
@@ -148,7 +149,7 @@ watch(() => props.menuItemsById, () => {
             v-else
             :class="[
                 'scrollbar-none min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1',
-                compactCart ? 'mt-2.5 space-y-2.5 pb-[9rem]' : 'mt-4 space-y-3 pb-4',
+                compactCart ? 'mt-2.5 space-y-2.5 pb-[9rem]' : 'mx-auto mt-4 w-full max-w-[46rem] divide-y divide-slate-100 pb-4',
             ]"
         >
             <article
@@ -158,7 +159,7 @@ watch(() => props.menuItemsById, () => {
                     'relative grid bg-white',
                     compactCart
                         ? 'min-h-[6.625rem] grid-cols-[5.1875rem_minmax(0,1fr)] gap-3 py-2.5 pr-1'
-                        : 'grid-cols-[4rem_minmax(0,1fr)] gap-3.5 rounded-2xl p-3 ring-1 ring-inset ring-slate-100 xl:grid-cols-[4.5rem_minmax(0,1fr)]',
+                        : 'min-h-[6.25rem] grid-cols-[4.75rem_minmax(0,1fr)] gap-3 py-3 max-[360px]:grid-cols-[4rem_minmax(0,1fr)] max-[360px]:gap-2.5 sm:grid-cols-[5.1875rem_minmax(0,1fr)] sm:gap-3.5',
                 ]"
                 data-testid="order-panel-item"
             >
@@ -168,7 +169,7 @@ watch(() => props.menuItemsById, () => {
                         'grid place-items-center',
                         compactCart
                             ? 'size-[5.1875rem] overflow-hidden rounded-[1rem] bg-slate-50'
-                            : 'size-16 rounded-2xl bg-white xl:size-[4.5rem]',
+                            : 'size-[4.75rem] overflow-hidden rounded-[1rem] bg-slate-50 max-[360px]:size-16 sm:size-[5.1875rem]',
                     ]"
                 >
                     <img
@@ -178,7 +179,7 @@ watch(() => props.menuItemsById, () => {
                         :alt="orderItemTitle(item)"
                         :class="[
                             'size-full object-contain',
-                            compactCart ? 'rounded-[1rem] p-1' : 'rounded-2xl p-1',
+                            compactCart ? 'rounded-[1rem] p-1' : 'rounded-[1rem] p-1',
                         ]"
                         loading="lazy"
                         decoding="async"
@@ -191,16 +192,16 @@ watch(() => props.menuItemsById, () => {
                             'grid size-full place-items-center text-slate-400',
                             compactCart
                                 ? 'rounded-[1rem] bg-slate-100'
-                                : 'rounded-2xl bg-white ring-1 ring-inset ring-slate-100',
+                                : 'rounded-[1rem] bg-slate-100',
                         ]"
                     >
                         <UtensilsCrossed aria-hidden="true" class="size-5" />
                     </span>
                 </div>
 
-                <div :class="['min-w-0 self-stretch', compactCart ? 'grid min-h-[5.1875rem] content-start pt-0.5' : '']">
+                <div :class="['min-w-0 self-stretch', compactCart ? 'grid min-h-[5.1875rem] content-start pt-0.5' : 'grid min-h-[4.75rem] content-start pt-0.5 sm:min-h-[5.1875rem]']">
                     <Button
-                        v-if="canEditOrder"
+                        v-if="canEditOrder && compactCart"
                         type="button"
                         variant="ghost"
                         size="icon-sm"
@@ -208,6 +209,7 @@ watch(() => props.menuItemsById, () => {
                             'absolute rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-700',
                             compactCart ? 'right-0 top-0 size-7' : 'right-2.5 top-2.5 size-8',
                         ]"
+                        data-testid="order-panel-item-remove"
                         :disabled="actionLoading"
                         :aria-label="`Удалить блюдо: ${orderItemTitle(item)}`"
                         @click="emit('change-quantity', item, 0)"
@@ -219,7 +221,7 @@ watch(() => props.menuItemsById, () => {
                         data-testid="order-panel-item-title"
                         :class="[
                             'line-clamp-2 break-words',
-                            compactCart ? 'pr-7 text-[14px] font-semibold leading-4 tracking-normal text-[#595959]' : 'pr-8 text-sm font-semibold leading-5 text-[#595959]',
+                            compactCart ? 'pr-7 text-[14px] font-semibold leading-4 tracking-normal text-[#595959]' : 'pr-0 text-[15px] font-semibold leading-5 text-[#595959]',
                         ]"
                     >{{ orderItemTitle(item) }}</p>
                     <p
@@ -237,7 +239,9 @@ watch(() => props.menuItemsById, () => {
                         :class="[
                             compactCart
                                 ? 'mt-1.5 grid grid-cols-[auto_1fr_auto] items-center gap-2.5'
-                                : 'mt-3 flex items-center justify-between gap-3',
+                                : canEditOrder
+                                    ? 'mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2.5 max-[360px]:gap-1.5'
+                                    : 'mt-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 max-[360px]:gap-1.5',
                         ]"
                     >
                         <div
@@ -246,7 +250,7 @@ watch(() => props.menuItemsById, () => {
                             :class="[
                                 compactCart
                                     ? 'grid h-7 w-[5.375rem] grid-cols-[1.625rem_2.125rem_1.625rem] items-center rounded-full bg-blue-700 p-0'
-                                    : 'inline-flex h-9 items-center rounded-full border border-blue-700 bg-blue-700 p-0.5 text-white',
+                                    : 'grid h-8 w-[5.375rem] grid-cols-[1.625rem_2.125rem_1.625rem] items-center rounded-full bg-blue-700 p-0 text-white',
                             ]"
                         >
                             <Button
@@ -257,7 +261,7 @@ watch(() => props.menuItemsById, () => {
                                     'rounded-full',
                                     compactCart
                                         ? 'size-6 justify-self-start text-white/85 hover:bg-blue-600 hover:text-white'
-                                        : 'size-8 text-white/85 hover:bg-blue-600 hover:text-white',
+                                        : 'size-7 justify-self-start text-white/85 hover:bg-blue-600 hover:text-white',
                                 ]"
                                 :disabled="actionLoading"
                                 :aria-label="`Уменьшить количество: ${orderItemTitle(item)}`"
@@ -265,14 +269,14 @@ watch(() => props.menuItemsById, () => {
                             >
                                 <Minus aria-hidden="true" class="size-4" />
                             </Button>
-                            <span :class="['text-center tabular-nums', compactCart ? 'min-w-7 justify-self-center text-[14px] font-semibold leading-none text-white' : 'min-w-7 text-sm font-semibold text-white']">{{ item.quantity }}</span>
+                            <span :class="['text-center tabular-nums', compactCart ? 'min-w-7 justify-self-center text-[14px] font-semibold leading-none text-white' : 'min-w-7 justify-self-center text-sm font-semibold leading-none text-white']">{{ item.quantity }}</span>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
                                 :class="[
                                     'rounded-full',
-                                    compactCart ? 'size-6 justify-self-end text-white hover:bg-blue-600 hover:text-white' : 'size-8 text-white hover:bg-blue-600 hover:text-white',
+                                    compactCart ? 'size-6 justify-self-end text-white hover:bg-blue-600 hover:text-white' : 'size-7 justify-self-end text-white hover:bg-blue-600 hover:text-white',
                                 ]"
                                 :disabled="actionLoading"
                                 :aria-label="`Увеличить количество: ${orderItemTitle(item)}`"
@@ -286,7 +290,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-stepper"
                             :class="[
                                 'rounded-full font-medium tabular-nums text-slate-600',
-                                compactCart ? 'h-7 bg-blue-700 px-3 text-[13px] leading-7 text-white' : 'bg-blue-700 px-3 py-1.5 text-sm text-white',
+                                compactCart ? 'h-7 bg-blue-700 px-3 text-[13px] leading-7 text-white' : 'h-8 bg-blue-700 px-3 text-sm leading-8 text-white',
                             ]"
                         >{{ item.quantity }} шт.</span>
 
@@ -294,9 +298,23 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-price"
                             :class="[
                                 'shrink-0 whitespace-nowrap tabular-nums',
-                                compactCart ? 'col-start-3 justify-self-end text-[16px] font-semibold leading-[18px] text-[#404040]' : 'ml-auto text-base font-semibold text-[#404040]',
+                                compactCart ? 'col-start-3 justify-self-end text-[16px] font-semibold leading-[18px] text-[#404040]' : 'justify-self-end text-[16px] font-semibold leading-[18px] text-[#404040]',
                             ]"
                         >{{ orderItemTotal(item) }}</p>
+
+                        <Button
+                            v-if="canEditOrder && !compactCart"
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            data-testid="order-panel-item-remove"
+                            class="size-9 justify-self-end rounded-full text-slate-400 transition-[background-color,color,transform] duration-150 hover:bg-rose-50 hover:text-rose-700 active:scale-[0.98]"
+                            :disabled="actionLoading"
+                            :aria-label="`Удалить блюдо: ${orderItemTitle(item)}`"
+                            @click="emit('change-quantity', item, 0)"
+                        >
+                            <X aria-hidden="true" class="size-4" />
+                        </Button>
                     </div>
                 </div>
             </article>
@@ -315,13 +333,13 @@ watch(() => props.menuItemsById, () => {
                     <div :class="['gap-1', compactCart ? 'grid justify-items-center' : 'flex items-center justify-between']">
                         <p
                             data-testid="order-panel-total-label"
-                            :class="compactCart ? 'text-center text-[12px] font-semibold leading-4 text-[#a0a0a0]' : 'text-sm font-medium text-slate-600'"
+                            :class="compactCart ? 'text-center text-[12px] font-semibold leading-4 text-[#a0a0a0]' : 'text-[12px] font-semibold leading-4 text-[#a0a0a0]'"
                         >Итого</p>
                         <strong
                             data-testid="order-panel-total-price"
                             :class="[
                                 'whitespace-nowrap font-bold tabular-nums',
-                                compactCart ? 'block text-center text-[32px] leading-[36px] text-[#404040]' : 'text-xl text-[#404040]',
+                                compactCart ? 'block text-center text-[32px] leading-[36px] text-[#404040]' : 'text-2xl leading-8 text-[#404040]',
                             ]"
                         >
                             {{ formatCartPrice(order?.total_price ?? 0) }}
