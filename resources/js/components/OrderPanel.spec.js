@@ -172,14 +172,16 @@ describe('OrderPanel cart-only UX', () => {
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
         expect(image.classes().join(' ')).not.toContain('blue');
         expect(title.text()).toContain('Суп с курицей');
-        expect(title.classes()).toContain('text-[12.75px]');
+        expect(title.classes()).toContain('text-[13px]');
         expect(title.classes()).toContain('leading-[15px]');
-        expect(title.classes()).toContain('font-[580]');
-        expect(title.classes()).toContain('text-[#59616a]');
+        expect(title.classes()).toContain('font-medium');
+        expect(title.classes()).toContain('tracking-[-0.005em]');
+        expect(title.classes()).toContain('text-[#515b65]');
         expect(weight.text()).toContain('300 г');
-        expect(weight.classes()).toContain('mt-px');
+        expect(weight.classes()).toContain('mt-0');
         expect(weight.classes()).toContain('text-[12px]');
-        expect(weight.classes()).toContain('leading-[15px]');
+        expect(weight.classes()).toContain('font-normal');
+        expect(weight.classes()).toContain('leading-[14px]');
         expect(weight.classes()).toContain('text-[#9aa0a6]');
         expect(actions.classes()).toContain('grid-cols-[auto_1fr_auto]');
         expect(actions.classes()).toContain('items-center');
@@ -194,9 +196,9 @@ describe('OrderPanel cart-only UX', () => {
         expect(price.classes()).toContain('col-start-3');
         expect(price.classes()).toContain('justify-self-end');
         expect(price.classes()).toContain('text-[14px]');
-        expect(price.classes()).toContain('font-[620]');
-        expect(price.classes()).toContain('leading-[1.625rem]');
-        expect(price.classes()).toContain('text-[#374151]');
+        expect(price.classes()).toContain('font-semibold');
+        expect(price.classes()).toContain('leading-4');
+        expect(price.classes()).toContain('text-[#1f2933]');
         expect(footer.classes()).not.toContain('border-t');
         expect(footer.classes()).toContain('cart-panel-footer-overlay');
         expect(footer.classes()).toContain('-mt-7');
@@ -208,10 +210,45 @@ describe('OrderPanel cart-only UX', () => {
         expect(totalPrice.classes()).toContain('text-center');
         expect(totalPrice.classes()).toContain('text-[32px]');
         expect(totalPrice.classes()).toContain('leading-[36px]');
-        expect(totalPrice.classes()).toContain('text-[#4a4f55]');
+        expect(totalPrice.classes()).toContain('text-[#50545a]');
         expect(checkoutButton.classes()).toContain('h-[3.625rem]');
         expect(checkoutButton.classes()).toContain('rounded-full');
         expect(checkoutButton.classes()).toContain('bg-blue-700');
+    });
+
+    it('formats compact cart prices as continuous integers without thousands separators', () => {
+        const wrapper = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '1909.00',
+                items: [],
+            },
+            orderItems: [
+                {
+                    id: 77,
+                    menu_item_id: 11,
+                    title_snapshot: 'Суп с курицей',
+                    price_snapshot: '508.00',
+                    quantity: 2,
+                },
+            ],
+            menuItemsById: new Map([
+                [11, { id: 11, title: 'Суп с курицей', weight: '300 г', image_url: null, image_display_url: null }],
+            ]),
+            totalPositions: 2,
+            canEditOrder: true,
+        });
+
+        const itemPrice = wrapper.get('[data-testid="order-panel-item-price"]');
+        const totalPrice = wrapper.get('[data-testid="order-panel-total-price"]');
+
+        expect(itemPrice.text()).toBe('1016 ₽');
+        expect(totalPrice.text()).toBe('1909 ₽');
+        expect(wrapper.text()).not.toContain('1 016 ₽');
+        expect(wrapper.text()).not.toContain('1 909 ₽');
     });
 
     it('does not render order history or repeat copy in cart panel', () => {

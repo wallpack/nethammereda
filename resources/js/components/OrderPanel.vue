@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatPrice } from '@/lib/formatters';
+import { formatCartPrice } from '@/lib/formatters';
 import { Loader2, Minus, Plus, ShoppingBag, UtensilsCrossed, X } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -85,7 +85,7 @@ const markOrderItemImageFailed = (orderItem) => {
     failedOrderImages.value = new Set([...failedOrderImages.value, orderItem.menu_item_id]);
 };
 const orderItemWeight = (orderItem) => props.menuItemsById.get(orderItem.menu_item_id)?.weight ?? null;
-const orderItemTotal = (orderItem) => formatPrice(Number(orderItem.price_snapshot) * Number(orderItem.quantity));
+const orderItemTotal = (orderItem) => formatCartPrice(Number(orderItem.price_snapshot) * Number(orderItem.quantity));
 
 watch(() => props.menuItemsById, () => {
     failedOrderImages.value = new Set();
@@ -217,14 +217,14 @@ watch(() => props.menuItemsById, () => {
                         data-testid="order-panel-item-title"
                         :class="[
                             'line-clamp-2 break-words',
-                            compactCart ? 'pr-7 text-[12.75px] font-[580] leading-[15px] text-[#59616a]' : 'pr-8 text-sm font-semibold leading-5 text-slate-900',
+                            compactCart ? 'pr-7 text-[13px] font-medium leading-[15px] tracking-[-0.005em] text-[#515b65]' : 'pr-8 text-sm font-semibold leading-5 text-slate-900',
                         ]"
                     >{{ item.title_snapshot }}</p>
                     <p
                         data-testid="order-panel-item-weight"
                         :class="[
-                            'font-medium tabular-nums',
-                            compactCart ? 'mt-px text-[12px] leading-[15px] text-[#9aa0a6]' : 'mt-1 text-xs text-slate-500',
+                            'tabular-nums',
+                            compactCart ? 'mt-0 text-[12px] font-normal leading-[14px] text-[#9aa0a6]' : 'mt-1 text-xs font-medium text-slate-500',
                         ]"
                     >
                         {{ orderItemWeight(item) || 'Порция' }}
@@ -292,7 +292,7 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-item-price"
                             :class="[
                                 'shrink-0 whitespace-nowrap tabular-nums',
-                                compactCart ? 'col-start-3 justify-self-end text-[14px] font-[620] leading-[1.625rem] text-[#374151]' : 'ml-auto text-base font-semibold text-slate-950',
+                                compactCart ? 'col-start-3 justify-self-end text-[14px] font-semibold leading-4 text-[#1f2933]' : 'ml-auto text-base font-semibold text-slate-950',
                             ]"
                         >{{ orderItemTotal(item) }}</p>
                     </div>
@@ -319,10 +319,10 @@ watch(() => props.menuItemsById, () => {
                             data-testid="order-panel-total-price"
                             :class="[
                                 'whitespace-nowrap font-bold tabular-nums',
-                                compactCart ? 'block text-center text-[32px] leading-[36px] text-[#4a4f55]' : 'text-xl text-slate-950',
+                                compactCart ? 'block text-center text-[32px] leading-[36px] text-[#50545a]' : 'text-xl text-slate-950',
                             ]"
                         >
-                            {{ formatPrice(order?.total_price ?? 0) }}
+                            {{ formatCartPrice(order?.total_price ?? 0) }}
                         </strong>
                     </div>
                 </div>

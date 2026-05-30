@@ -13,6 +13,12 @@ export const formatPrice = (value) => {
     })} ₽`;
 };
 
+export const formatCartPrice = (value) => {
+    const amount = Math.round(Number(value) || 0);
+
+    return `${amount.toString()} ₽`;
+};
+
 export const compactNumber = (value) => {
     if (value === null || value === undefined || value === '') {
         return '-';
