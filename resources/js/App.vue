@@ -114,9 +114,9 @@ const requiredFullNameSaving = ref(false);
 const requiredFullNameError = ref('');
 const telegramLinkStatusTimeoutMs = 4000;
 const closedOrderingMessage = 'Приём заказов закрыт.';
-const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина станет доступна в новом цикле.';
-const closedOrderingInfoMessage = 'Приём заказов сейчас закрыт. Новый заказ можно будет оформить, когда откроется следующий цикл.';
-const closedOrderingStatusText = 'Приём заказов закрыт.';
+const closedOrderingCartClearedMessage = 'Приём заказов закрыт.';
+const closedOrderingInfoMessage = 'Приём заказов закрыт.';
+const closedOrderingStatusText = 'Приём заказов закрыт';
 const repeatWhenClosedMessage = 'Повторить заказ можно, когда открыт приём заказов.';
 const repeatReplaceConfirmMessage = 'Заменить текущую корзину этим заказом?';
 
@@ -142,7 +142,7 @@ const effectiveAvailabilityDescription = computed(() => {
     }
 
     if (deadlinePassedLocally.value && cycle.value?.status === 'open') {
-        return 'Новый заказ можно будет оформить, когда откроется следующий цикл.';
+        return '';
     }
 
     return availabilityDescription.value;
@@ -163,6 +163,8 @@ const normalizeClosedCycleCopy = (message, options = {}) => {
     if (
         normalized.includes('черновик')
         || normalized.includes('цикл закрыт')
+        || normalized.includes('администратор')
+        || normalized.includes('новый заказ можно будет оформить')
         || normalized.includes('приём заказов закрыт')
     ) {
         return fallback;
@@ -184,7 +186,7 @@ const orderReadOnlyReason = computed(() => {
         return 'Заказ отправлен. Изменения больше недоступны.';
     }
 
-    return effectiveAvailabilityDescription.value || 'Новый заказ можно будет оформить, когда откроется следующий цикл.';
+    return closedOrderingStatusText;
 });
 
 const deadlineShortLabel = computed(() => {
@@ -204,24 +206,10 @@ const compactOrderStatusText = computed(() => {
         return '';
     }
 
-    if (!isAuthenticated.value) {
-        if (isOrderingWindowOpen.value) {
-            return `Заказ открыт · Дедлайн: ${deadlineShortLabel.value}`;
-        }
-
-        return closedOrderingStatusText;
-    }
-
-    if (canEditOrder.value) {
-        if (reopenedForEditing.value) {
-            return `Редактирование заказа открыто · Дедлайн: ${deadlineShortLabel.value}`;
-        }
-
-        return `Заказ открыт · Дедлайн: ${deadlineShortLabel.value}`;
-    }
-
-    if (isSubmittedOrder.value && canReopenSubmittedOrder.value) {
-        return `Заказ отправлен · Можно редактировать до ${deadlineShortLabel.value}`;
+    if (isOrderingWindowOpen.value) {
+        return deadlineShortLabel.value
+            ? `Приём заказов открыт · до ${deadlineShortLabel.value}`
+            : 'Приём заказов открыт';
     }
 
     return closedOrderingStatusText;
@@ -775,6 +763,12 @@ const showFavoritesFromProfile = () => {
     returnToCatalog();
 };
 
+const showCatalogFromProfile = () => {
+    clearCatalogFilters();
+    ui.closeProfileModal();
+    returnToCatalog();
+};
+
 const openPanelFromProfile = (panel) => {
     ui.closeProfileModal();
     navigateToView(panel);
@@ -1012,7 +1006,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="min-h-dvh overflow-x-clip bg-[#f8f4ec] text-slate-900">
+    <div class="min-h-dvh overflow-x-clip bg-[#f2f2f2] text-slate-900">
         <AppHeader
             :loading="loading"
             :is-authenticated="isAuthenticated"
@@ -1026,7 +1020,7 @@ onBeforeUnmount(() => {
             @open-profile="ui.openProfileModal"
         />
 
-        <main class="page-shell pt-2.5 sm:pt-3.5" :class="isAuthenticated ? 'pb-24 xl:pb-8' : 'pb-8 xl:pb-8'">
+        <main class="page-shell app-main-shell pt-2.5 sm:pt-3.5" :class="isAuthenticated ? 'pb-24 xl:pb-3' : 'pb-8 xl:pb-3'">
             <Alert
                 v-if="error && !mobilePanel"
                 variant="destructive"
@@ -1046,18 +1040,8 @@ onBeforeUnmount(() => {
                 <AlertDescription>{{ info }}</AlertDescription>
             </Alert>
 
-            <WeekStatus
-                :loading="loading"
-                :cycle="cycle"
-                :weekly-deadline-label="weeklyDeadlineLabel"
-                :is-open-for-ordering="isOrderingWindowOpen"
-                :availability-label="effectiveAvailabilityLabel"
-                :availability-description="effectiveAvailabilityDescription"
-                :order-status-text="compactOrderStatusText"
-            />
-
             <div
-                class="catalog-layout mt-3 sm:mt-4"
+                class="catalog-layout mt-0"
                 :class="isCatalogView ? (isAuthenticated ? 'catalog-layout--auth-cart' : 'catalog-layout--guest-cart') : 'catalog-layout--single'"
             >
                 <MenuGrid
@@ -1083,13 +1067,25 @@ onBeforeUnmount(() => {
                     @clear-filters="clearCatalogFilters"
                     @add-item="addItem"
                     @change-quantity="changeQuantity"
-                />
+                >
+                    <template #status>
+                        <WeekStatus
+                            :loading="loading"
+                            :cycle="cycle"
+                            :weekly-deadline-label="weeklyDeadlineLabel"
+                            :is-open-for-ordering="isOrderingWindowOpen"
+                            :availability-label="effectiveAvailabilityLabel"
+                            :availability-description="effectiveAvailabilityDescription"
+                            :order-status-text="compactOrderStatusText"
+                        />
+                    </template>
+                </MenuGrid>
 
                 <Card
                     v-else-if="isOrderView"
-                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgb(148_163_184/0.16)]"
+                    class="h-full min-h-0 gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white py-0 shadow-sm"
                 >
-                    <CardContent class="flex h-[calc(100dvh-11.35rem)] min-h-[30rem] p-0">
+                    <CardContent class="flex h-full min-h-0 p-0">
                         <OrderPanel
                             :order="order"
                             :order-items="orderItems"
@@ -1111,9 +1107,9 @@ onBeforeUnmount(() => {
 
                 <Card
                     v-else-if="isFridgeView"
-                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgb(148_163_184/0.16)]"
+                    class="h-full min-h-0 gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white py-0 shadow-sm"
                 >
-                    <CardContent class="flex h-[calc(100dvh-11.35rem)] min-h-[30rem] p-0">
+                    <CardContent class="flex h-full min-h-0 p-0">
                         <FridgePanel
                             :fridge-items="fridgeItems"
                             :fridge-meta="fridgeMeta"
@@ -1130,9 +1126,9 @@ onBeforeUnmount(() => {
 
                 <Card
                     v-else-if="isHistoryView"
-                    class="overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgb(148_163_184/0.16)]"
+                    class="h-full min-h-0 gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white py-0 shadow-sm"
                 >
-                    <CardContent class="flex h-[calc(100dvh-11.35rem)] min-h-[30rem] p-0">
+                    <CardContent class="flex h-full min-h-0 p-0">
                         <HistoryPanel
                             :fridge-history="fridgeHistory"
                             :fridge-loading="loading || fridgeLoading"
@@ -1145,7 +1141,7 @@ onBeforeUnmount(() => {
                     v-if="isCatalogView"
                     data-testid="desktop-order-panel"
                     aria-label="Панель корзины"
-                    class="catalog-order-panel hidden min-h-0 overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-white text-slate-900 shadow-[0_16px_38px_rgb(148_163_184/0.2)] xl:mt-[7.35rem] xl:block xl:sticky xl:top-[5.1rem] xl:h-[calc(100dvh-11.35rem)] xl:max-h-[calc(100dvh-11.35rem)]"
+                    class="catalog-order-panel hidden min-h-0 gap-0 overflow-hidden rounded-[1.65rem] border border-slate-200/90 bg-white py-0 text-slate-900 shadow-sm xl:block xl:sticky xl:top-[5.25rem] xl:h-full xl:max-h-full"
                 >
                     <CardContent class="flex h-full min-h-0 flex-col p-0">
                         <OrderPanel
@@ -1288,6 +1284,7 @@ onBeforeUnmount(() => {
             :telegram-error="telegramLinkError"
             @logout="logout"
             @show-favorites="showFavoritesFromProfile"
+            @show-catalog="showCatalogFromProfile"
             @show-order="openPanelFromProfile('order')"
             @show-fridge="openPanelFromProfile('fridge')"
             @show-history="openPanelFromProfile('history')"

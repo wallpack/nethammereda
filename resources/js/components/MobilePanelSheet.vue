@@ -51,7 +51,7 @@ const updateOpen = (open) => {
             />
             <DialogContent
                 :data-testid="testId"
-                class="safe-panel-bottom fixed inset-x-0 bottom-0 z-50 flex max-h-[calc(100dvh-0.75rem)] flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-[#fcfaf6] text-slate-900 shadow-xl outline-none xl:hidden"
+                class="safe-panel-bottom fixed inset-x-0 bottom-0 z-50 flex max-h-[calc(100dvh-0.75rem)] flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white text-slate-900 shadow-xl outline-none xl:hidden"
             >
                 <div class="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-4 pb-4 pt-5 sm:px-5">
                     <div class="min-w-0">

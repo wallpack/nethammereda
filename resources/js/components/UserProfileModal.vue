@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/formatters';
-import { Check, CheckCircle2, Heart, History, Link2, Loader2, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
+import { BookOpen, Check, CheckCircle2, Heart, History, Link2, Loader2, LogOut, Refrigerator, ShoppingBag, UserRound, X } from 'lucide-vue-next';
 
 const props = defineProps({
     open: {
@@ -78,6 +78,7 @@ const emit = defineEmits([
     'close',
     'logout',
     'show-favorites',
+    'show-catalog',
     'show-order',
     'show-fridge',
     'show-history',
@@ -305,8 +306,18 @@ const saveFullName = () => {
 
                     <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
                         <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Быстрые действия</p>
-                        <p class="mt-1 text-xs text-slate-500">Эти разделы также доступны в основной навигации.</p>
-                        <div class="mt-2 grid gap-2 sm:grid-cols-3">
+                        <p class="mt-1 text-xs text-slate-500">Переходите между каталогом и личными разделами.</p>
+                        <div class="mt-2 grid gap-2 sm:grid-cols-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="h-10 justify-start rounded-lg border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                                data-testid="profile-catalog-action"
+                                @click="emit('show-catalog')"
+                            >
+                                <BookOpen aria-hidden="true" class="size-4 text-slate-500" />
+                                Каталог
+                            </Button>
                             <Button
                                 type="button"
                                 variant="outline"

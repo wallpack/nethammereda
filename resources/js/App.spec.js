@@ -113,9 +113,9 @@ const fridgeHistoryItem = {
 };
 
 const closedOrderingMessage = 'Приём заказов закрыт.';
-const closedOrderingCartClearedMessage = 'Приём заказов закрыт. Корзина станет доступна в новом цикле.';
+const closedOrderingCartClearedMessage = 'Приём заказов закрыт.';
 const draftUnavailableMessage = 'Цикл закрыт, черновик заказа больше недоступен.';
-const closedOrderingInfoMessage = 'Приём заказов сейчас закрыт. Новый заказ можно будет оформить, когда откроется следующий цикл.';
+const closedOrderingInfoMessage = 'Приём заказов закрыт.';
 
 const jsonResponse = (payload, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,
@@ -619,7 +619,7 @@ describe('catalog auth UX', () => {
             menuCategories: [category, secondCategory],
         });
 
-        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
         expect(document.body.textContent).not.toContain('Меню недели');
         expect(document.body.textContent).not.toContain('Что нового');
         expect(document.body.textContent).not.toContain('доступно для заказа');
@@ -674,7 +674,7 @@ describe('catalog auth UX', () => {
         });
 
         expect(document.querySelector('[data-testid="week-status-loading"]')).toBeNull();
-        expect(document.querySelector('#menu-heading')?.textContent).toContain('Каталог');
+        expect(document.querySelector('#menu-heading')?.textContent).toContain('Все блюда');
         expect(document.querySelector('script[src*="telegram-widget.js"], script[src*="telegram-web-app.js"]')).toBeNull();
         expect(requestCount(fetchMock, '/auth/telegram-login/config')).toBe(0);
         expect(requestCount(fetchMock, '/auth/telegram-login')).toBe(0);
@@ -790,8 +790,8 @@ describe('catalog auth UX', () => {
         expect(footer?.querySelector('button')).toBeTruthy();
         expect(panel?.textContent).toContain('Корзина');
         expect(panel?.textContent).toContain('Войдите, чтобы заказать');
-        expect(panel?.textContent).toContain('После входа вы сможете добавить блюда в заказ.');
-        expect(panel?.textContent).not.toContain('Вы ещё ничего не добавили');
+        expect(panel?.textContent).toContain('После входа корзина сохранит выбранные блюда.');
+        expect(panel?.textContent).not.toContain('Корзина пуста');
     });
 
     it('opens login modal from guest cart CTA', async () => {
@@ -828,21 +828,29 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('Войдите, чтобы добавить блюдо в избранное.');
     });
 
-    it('renders authenticated header with the user name and order panel', async () => {
+    it('renders authenticated header with large search, neutral profile and no old desktop nav', async () => {
         await mountApp({ authenticated: true });
+
+        const header = document.querySelector('header');
+        const searchInput = document.querySelector('#global-menu-search');
+        const profileButton = buttonByText(user.name);
 
         expect(document.body.textContent).toContain(user.name);
         expect(buttonByText('Войти')).toBeFalsy();
-        expect(document.querySelector('[aria-label="Открыть раздел: Каталог"]')).toBeTruthy();
-        expect(document.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeTruthy();
-        expect(document.querySelector('[aria-label="Открыть раздел: История"]')).toBeTruthy();
-        expect(document.querySelector('[aria-label="Открыть раздел: Мой заказ"]')).toBeNull();
+        expect(header?.querySelector('[aria-label="Открыть раздел: Каталог"]')).toBeNull();
+        expect(header?.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeNull();
+        expect(header?.querySelector('[aria-label="Открыть раздел: История"]')).toBeNull();
+        expect(header?.textContent).not.toContain('Холодильник · 13');
+        expect(searchInput).toBeTruthy();
+        expect(searchInput?.getAttribute('placeholder')).toBe('Поиск по меню');
+        expect(searchInput?.className).toContain('bg-[#f2f2f2]');
+        expect(profileButton?.className).toContain('bg-[#f2f2f2]');
         expect(document.querySelector('.catalog-order-panel')).toBeTruthy();
         expect(document.body.textContent).toContain('Корзина');
         expect(document.body.textContent).not.toContain('Позиций:');
     });
 
-    it('renders top navigation with inline fridge count label and no standalone circle badge', async () => {
+    it('does not render old desktop nav buttons in the header', async () => {
         const fridgeItems = Array.from({ length: 13 }, (_, index) => ({
             ...fridgeItem,
             id: 400 + index,
@@ -855,11 +863,13 @@ describe('catalog auth UX', () => {
             fridgeItems,
         });
 
-        const fridgeNavButton = document.querySelector('[aria-label="Открыть раздел: Холодильник"]');
+        const header = document.querySelector('header');
 
-        expect(fridgeNavButton).toBeTruthy();
-        expect(fridgeNavButton?.textContent).toContain('Холодильник · 13');
-        expect(fridgeNavButton?.querySelector('[data-slot="badge"]')).toBeNull();
+        expect(header?.querySelector('[aria-label="Открыть раздел: Каталог"]')).toBeNull();
+        expect(header?.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeNull();
+        expect(header?.querySelector('[aria-label="Открыть раздел: История"]')).toBeNull();
+        expect(header?.textContent).not.toContain('Холодильник · 13');
+        expect(document.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeTruthy();
     });
 
     it('renders desktop shell with category rail, catalog and order panel', async () => {
@@ -869,7 +879,7 @@ describe('catalog auth UX', () => {
         });
 
         expect(document.querySelector('[data-testid="menu-category-rail"]')).toBeTruthy();
-        expect(document.getElementById('menu-heading')?.textContent).toContain('Каталог');
+        expect(document.getElementById('menu-heading')?.textContent).toContain('Все блюда');
         expect(document.querySelector('[data-testid="desktop-order-panel"]')).toBeTruthy();
     });
 
@@ -1101,7 +1111,7 @@ describe('catalog auth UX', () => {
         await click(buttonByText(user.name));
         await click(document.querySelector('[data-testid="profile-favorites-action"]'));
 
-        expect(buttonByText('Избранное')?.getAttribute('aria-pressed')).toBe('true');
+        expect(document.querySelector('[data-testid="menu-favorites-chip"]')).toBeNull();
         expect(document.body.textContent).toContain('В избранном пока ничего нет.');
         expect(document.body.textContent).toContain('Нажимайте сердечко на блюдах, чтобы сохранить их здесь.');
     });
@@ -1201,12 +1211,10 @@ describe('catalog auth UX', () => {
         expect(row?.className).toContain('min-w-0');
         expect(row?.className).not.toContain('w-max');
         expect(row?.className).not.toContain('min-w-full');
-        expect(row?.className).not.toContain('flex-nowrap');
+        expect(row?.className).toContain('xl:flex-nowrap');
 
-        expect(favoriteChip).toBeTruthy();
-        expect(favoriteChip?.textContent).toContain('Избранное');
+        expect(favoriteChip).toBeNull();
         expect(row?.textContent).not.toContain('Избранное');
-        expect(favoriteChip?.closest('[data-testid="category-chip-row"]')).toBeNull();
     });
 
     it('filters the catalog to locally selected favorites', async () => {
@@ -1217,7 +1225,8 @@ describe('catalog auth UX', () => {
         });
 
         await click(document.querySelector(`[aria-label="Добавить в избранное: ${menuItem.title}"]`));
-        await click(buttonByText('Избранное'));
+        await click(buttonByText(user.name));
+        await click(document.querySelector('[data-testid="profile-favorites-action"]'));
 
         expect(document.body.textContent).toContain(menuItem.title);
         expect(document.body.textContent).not.toContain(secondMenuItem.title);
@@ -1226,7 +1235,7 @@ describe('catalog auth UX', () => {
     it('shows the catalog as orderable when the cycle can accept orders', async () => {
         await mountApp({ authenticated: true });
 
-        expect(document.body.textContent).toContain('Заказ открыт');
+        expect(document.body.textContent).toContain('Приём заказов открыт');
         expect(buttonByText('Добавить')?.disabled).toBe(false);
     });
 
@@ -1276,7 +1285,7 @@ describe('catalog auth UX', () => {
         });
 
         expect(buttonByText('Редактировать заказ')).toBeTruthy();
-        expect(document.body.textContent).toContain('Заказ отправлен · Можно редактировать до');
+        expect(document.body.textContent).toContain('Приём заказов открыт · до');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
     });
@@ -1617,13 +1626,13 @@ describe('catalog auth UX', () => {
             },
         });
 
-        expect(document.body.textContent).toContain('Приём заказов закрыт');
+        expect(document.body.textContent).toContain('Приём заказов открыт');
         expect(document.querySelector(`[aria-label="Увеличить количество: ${menuItem.title}"]`)).toBeNull();
         expect(buttonByText('Добавить') === undefined || buttonByText('Добавить')?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
-        expect(mobileOrderText).toContain('Приём заказов закрыт');
+        expect(mobileOrderText).toContain('Приём заказов открыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });
 
@@ -1682,7 +1691,7 @@ describe('catalog auth UX', () => {
         await image.dispatchEvent(new Event('error'));
         await nextTick();
 
-        expect(document.body.textContent).toContain('Фото блюда появится скоро');
+        expect(document.body.textContent).toContain('Фото скоро');
     });
 
     it('renders menu cards from image_display_url before supplier image_url', async () => {
@@ -1711,9 +1720,10 @@ describe('catalog auth UX', () => {
         const image = imageArea?.querySelector(`img[alt="${menuItem.title}"]`);
 
         expect(imageArea).toBeTruthy();
-        expect(imageArea?.className).toContain('h-[13.5rem]');
+        expect(imageArea?.className).toContain('h-[12rem]');
+        expect(imageArea?.className).toContain('bg-white');
         expect(image?.className).toContain('object-contain');
-        expect(image?.className).toContain('scale-[1.02]');
+        expect(image?.className).toContain('scale-[1.08]');
     });
 
     it('prepares a compact mobile card variant for dense catalog rows', async () => {
@@ -1792,8 +1802,8 @@ describe('catalog auth UX', () => {
         expect(panel).toBeTruthy();
         expect(panel?.getAttribute('aria-label')).toBe('Панель корзины');
         expect(panel?.className).toContain('xl:sticky');
-        expect(panel?.className).toContain('xl:mt-[7.35rem]');
-        expect(panel?.className).toContain('xl:h-[calc(100dvh-11.35rem)]');
+        expect(panel?.className).toContain('xl:top-[5.25rem]');
+        expect(panel?.className).toContain('xl:h-full');
     });
 
     it('keeps the order total and submit action in a sticky footer', async () => {
@@ -1881,7 +1891,9 @@ describe('catalog auth UX', () => {
         await click(document.querySelector('[aria-label="Открыть раздел: Холодильник"]'));
         expect(document.querySelector('[data-testid="fridge-panel-scroll"]')?.className).toContain('overflow-y-auto');
 
-        await click(document.querySelector('[aria-label="Открыть раздел: История"]'));
+        await click(document.querySelector('[aria-label="Закрыть холодильник"]'));
+        await click(document.querySelector('[aria-label^="Открыть профиль:"]'));
+        await click(document.querySelector('[data-testid="profile-history-action"]'));
         expect(document.querySelector('[data-testid="history-panel-scroll"]')?.className).toContain('overflow-y-auto');
     });
 
@@ -1896,7 +1908,9 @@ describe('catalog auth UX', () => {
         expect(document.body.textContent).toContain('В вашем холодильнике пока ничего нет.');
         expect(document.body.textContent).toContain('Когда заказ будет доставлен, блюда появятся здесь.');
 
-        await click(document.querySelector('[aria-label="Открыть раздел: История"]'));
+        await click(document.querySelector('[aria-label="Закрыть холодильник"]'));
+        await click(document.querySelector('[aria-label^="Открыть профиль:"]'));
+        await click(document.querySelector('[data-testid="profile-history-action"]'));
         expect(document.body.textContent).toContain('Моя история');
         expect(document.body.textContent).toContain('Истории пока нет.');
         expect(document.body.textContent).toContain('Когда вы отметите блюдо в холодильнике, оно появится здесь.');

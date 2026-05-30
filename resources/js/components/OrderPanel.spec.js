@@ -52,8 +52,8 @@ describe('OrderPanel cart-only UX', () => {
             orderItems: [],
         });
 
-        expect(wrapper.text()).toContain('Вы ещё ничего не добавили');
-        expect(wrapper.text()).toContain('Откройте каталог и добавьте блюда в заказ.');
+        expect(wrapper.text()).toContain('Корзина пуста');
+        expect(wrapper.text()).toContain('Добавьте блюда из каталога.');
     });
 
     it('renders internal scroll and sticky footer structure for current cart', () => {

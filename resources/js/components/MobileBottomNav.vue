@@ -26,7 +26,7 @@ const emit = defineEmits(['catalog', 'order', 'fridge', 'profile']);
 
 <template>
     <nav
-        class="safe-nav-bottom fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/80 bg-[#fcfaf6]/95 backdrop-blur xl:hidden"
+        class="safe-nav-bottom fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/80 bg-white/95 backdrop-blur xl:hidden"
         aria-label="Основная навигация"
     >
         <div class="mx-auto grid max-w-lg grid-cols-4 gap-1 px-2 pt-1.5">

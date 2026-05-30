@@ -34,7 +34,7 @@ describe('MenuItemCard UI', () => {
         expect(wrapper.find('[data-testid="menu-item-card"]').exists()).toBe(true);
         expect(wrapper.text()).toContain(baseItem.title);
         expect(wrapper.text()).toContain('250');
-        expect(wrapper.text()).toContain('Фото блюда появится скоро');
+        expect(wrapper.text()).toContain('Фото скоро');
         expect(wrapper.find('[data-testid="menu-item-add-button"]').exists()).toBe(true);
         expect(wrapper.text()).toContain('Добавить');
     });

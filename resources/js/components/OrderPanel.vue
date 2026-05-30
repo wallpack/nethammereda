@@ -154,20 +154,20 @@ watch(() => props.menuItemsById, () => {
 
         <div
             v-else-if="showGuestAuthPrompt"
-            class="mt-4 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-7 text-center"
+            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/75 px-5 py-6 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="mt-3 text-balance text-base font-semibold text-slate-900">Войдите, чтобы заказать</p>
-            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">После входа вы сможете добавить блюда в заказ.</p>
+            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">После входа корзина сохранит выбранные блюда.</p>
         </div>
 
         <div
             v-else-if="!order || orderItems.length === 0"
-            class="mt-4 flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-7 text-center"
+            class="mt-4 flex shrink-0 flex-col items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/85 px-5 py-6 text-center"
         >
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
-            <p class="mt-3 text-balance text-base font-semibold text-slate-900">Вы ещё ничего не добавили</p>
-            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Откройте каталог и добавьте блюда в заказ.</p>
+            <p class="mt-3 text-balance text-base font-semibold text-slate-900">Корзина пуста</p>
+            <p class="mt-1 text-pretty text-sm leading-6 text-slate-500">Добавьте блюда из каталога.</p>
         </div>
 
         <div data-testid="order-panel-items-scroll" v-else class="mt-4 min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain pb-4 pr-1">
@@ -294,7 +294,7 @@ watch(() => props.menuItemsById, () => {
                 </Button>
 
                 <p v-else class="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-pretty text-sm leading-5 text-slate-600">
-                    {{ statusLine?.includes('Приём заказов закрыт') ? 'Приём заказов закрыт. Корзина станет доступна в новом цикле.' : orderStatusLabel(order?.status ?? 'draft') }}
+                    {{ statusLine?.includes('Приём заказов закрыт') ? 'Приём заказов закрыт' : orderStatusLabel(order?.status ?? 'draft') }}
                 </p>
             </template>
         </div>

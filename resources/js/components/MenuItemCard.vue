@@ -54,19 +54,19 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
 <template>
     <Card
         data-testid="menu-item-card"
-        class="menu-card overflow-hidden rounded-[1.35rem] border border-slate-200/85 bg-white text-slate-900 shadow-[0_12px_32px_rgb(148_163_184/0.14)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-slate-300 hover:shadow-[0_18px_38px_rgb(148_163_184/0.2)] max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
+        class="menu-card gap-0 overflow-hidden rounded-[1.35rem] border border-slate-200/80 bg-white py-0 text-slate-900 shadow-none transition-[border-color,box-shadow] duration-150 hover:border-blue-200 hover:shadow-sm max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
     >
         <CardContent class="flex h-full flex-col p-0">
             <div class="relative p-2 pb-0 max-[430px]:p-0 max-[430px]:pb-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative h-[13.5rem] overflow-hidden rounded-[1.05rem] bg-white sm:h-[14.25rem] lg:h-[14.5rem] xl:h-[14.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl"
+                    class="relative h-[12rem] overflow-hidden rounded-[1.05rem] bg-white sm:h-[12.5rem] lg:h-[12.75rem] xl:h-[11.75rem] max-[430px]:h-[7.35rem] max-[430px]:rounded-2xl"
                 >
                     <img
                         v-if="showImage"
                         :src="imageSrc"
                         :alt="item.title"
-                        class="size-full scale-[1.02] object-contain p-2.5 sm:p-3 max-[430px]:scale-[1.03] max-[430px]:p-1.5"
+                        class="size-full scale-[1.08] object-contain p-1.5 sm:p-2 max-[430px]:scale-[1.05] max-[430px]:p-1"
                         loading="lazy"
                         decoding="async"
                         @error="imageFailed = true"
@@ -75,7 +75,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                         <span class="grid size-9 place-items-center rounded-xl border border-slate-200/80 bg-slate-50 text-slate-400 max-[430px]:size-7 max-[430px]:rounded-lg">
                             <ImageIcon aria-hidden="true" class="size-4 max-[430px]:size-3.5" />
                         </span>
-                        <span class="text-pretty text-xs font-medium">Фото блюда появится скоро</span>
+                        <span class="text-pretty text-xs font-medium">Фото скоро</span>
                     </div>
                 </div>
 
@@ -95,7 +95,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                 <h3
                     :title="item.title"
                     :aria-label="`Название блюда: ${item.title}`"
-                    class="line-clamp-2 min-h-[2.9rem] break-words text-balance text-[1.02rem] font-semibold leading-[1.35] text-slate-950 sm:text-[1.08rem] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
+                    class="line-clamp-2 min-h-[2.65rem] break-words text-balance text-[0.98rem] font-semibold leading-[1.32] text-slate-950 sm:text-[1.02rem] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
                 >
                     {{ item.title }}
                 </h3>
@@ -105,8 +105,8 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                     <span v-if="caloriesLabel"> · {{ caloriesLabel }}</span>
                 </p>
 
-                <div class="mt-auto flex min-h-11 items-center justify-between gap-2.5 pt-3.5 max-[430px]:min-h-0 max-[430px]:gap-2 max-[430px]:pt-2">
-                    <p class="shrink-0 whitespace-nowrap text-[1.18rem] font-bold tabular-nums text-slate-950 max-[430px]:text-[0.95rem]">{{ formatPrice(item.price) }}</p>
+                <div class="mt-auto flex min-h-11 items-center justify-between gap-2 pt-3.5 max-[430px]:min-h-0 max-[430px]:gap-2 max-[430px]:pt-2">
+                    <p class="shrink-0 whitespace-nowrap text-[1.2rem] font-bold tabular-nums text-slate-950 max-[430px]:text-[0.95rem]">{{ formatPrice(item.price) }}</p>
 
                     <template v-if="!orderItem">
                         <Badge
@@ -125,7 +125,7 @@ const caloriesLabel = computed(() => props.item.calories ? `${compactNumber(prop
                             :disabled="controlsDisabled"
                             :title="controlsDisabled ? disabledReason : undefined"
                             :aria-label="`Добавить в заказ: ${item.title}`"
-                            class="h-10 shrink-0 rounded-full bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
+                            class="h-10 shrink-0 rounded-full bg-blue-700 px-3 text-xs font-semibold text-white shadow-sm transition-[background-color,transform] duration-150 hover:bg-blue-800 active:scale-[0.98] disabled:bg-slate-200 disabled:text-slate-500 2xl:px-4 2xl:text-sm max-[430px]:inline-flex max-[430px]:size-10 max-[430px]:min-h-10 max-[430px]:min-w-10 max-[430px]:shrink-0 max-[430px]:items-center max-[430px]:justify-center max-[430px]:gap-0 max-[430px]:rounded-full max-[430px]:p-0 max-[430px]:leading-none max-[430px]:text-[0px]"
                             @click="emit('add-item', item.id)"
                         >
                             <Plus aria-hidden="true" class="size-4 max-[430px]:m-0 max-[430px]:size-[18px]" />
