@@ -102,8 +102,9 @@
     }
 }
 
-.cart-panel-compact {
-    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+.cart-panel-compact,
+.cart-panel-compact button {
+    font-family: Inter, "Avenir Next", Avenir, Helvetica, Arial, sans-serif;
 }
 
 .page-shell,
