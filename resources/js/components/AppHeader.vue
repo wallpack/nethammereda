@@ -46,8 +46,11 @@ const searchModel = computed({
 </script>
 
 <template>
-    <header class="sticky top-0 z-30 border-b border-slate-200/60 bg-white">
-        <div class="header-inner flex min-h-[4.5rem] items-center gap-3 py-2.5 md:min-h-[4.875rem] md:gap-5">
+    <header class="sticky top-0 z-30 bg-transparent pt-2 max-sm:pt-1.5">
+        <div
+            data-testid="header-surface"
+            class="header-inner flex min-h-[4.5rem] items-center gap-3 rounded-[1.5rem] border border-slate-200/60 bg-white px-3 py-2.5 shadow-sm md:min-h-[4.875rem] md:gap-5 md:px-4 max-sm:rounded-[1.25rem]"
+        >
             <div class="flex min-w-[10rem] shrink-0 items-center sm:min-w-[12.5rem] xl:min-w-[14.5rem]">
                 <button
                     type="button"

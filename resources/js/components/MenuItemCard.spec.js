@@ -39,7 +39,7 @@ describe('MenuItemCard UI', () => {
         expect(stepper.classes()).toContain('border-transparent');
         expect(stepper.classes()).toContain('grid');
         expect(stepper.classes()).toContain('h-9');
-        expect(stepper.classes()).toContain('w-[124px]');
+        expect(stepper.classes()).toContain('w-[132px]');
         expect(stepper.classes()).toContain('grid-cols-[2.25rem_minmax(0,1fr)_2.25rem]');
         expect(stepper.classes()).not.toContain('w-full');
         expect(stepper.classes()).toContain('text-[#404040]');
@@ -79,6 +79,7 @@ describe('MenuItemCard UI', () => {
         expect(card.classes()).toContain('min-w-0');
         expect(card.classes()).toContain('border-transparent');
         expect(card.classes()).toContain('shadow-none');
+        expect(card.classes().join(' ')).not.toContain('hover:border');
         expect(imageArea.classes()).toContain('size-[176px]');
         expect(imageArea.classes()).toContain('bg-white');
         expect(imageArea.classes()).not.toContain('bg-slate-50');
@@ -99,11 +100,12 @@ describe('MenuItemCard UI', () => {
         expect(meta.element.compareDocumentPosition(stepper.element) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(copyColumn.classes()).toContain('w-[176px]');
         expect(copyColumn.classes()).toContain('max-w-full');
-        expect(title.classes()).toContain('text-[14px]');
-        expect(title.classes()).toContain('leading-4');
+        expect(title.classes()).toContain('text-[13.25px]');
+        expect(title.classes()).toContain('leading-[16px]');
         expect(title.classes()).toContain('font-semibold');
         expect(title.classes()).toContain('text-[#595959]');
         expect(title.classes()).toContain('line-clamp-2');
+        expect(meta.classes()).toContain('mt-1');
         expect(meta.classes()).toContain('text-[13px]');
         expect(meta.classes()).toContain('leading-[15px]');
         expect(meta.classes()).toContain('font-semibold');
@@ -164,7 +166,7 @@ describe('MenuItemCard UI', () => {
 
         expect(stepper.classes()).toContain('bg-blue-700');
         expect(stepper.classes()).toContain('h-9');
-        expect(stepper.classes()).toContain('w-[124px]');
+        expect(stepper.classes()).toContain('w-[132px]');
         expect(stepper.text()).toContain('250');
         expect(price.classes()).toContain('text-white');
         expect(price.classes()).not.toContain('text-[#404040]');
@@ -198,6 +200,15 @@ describe('MenuItemCard UI', () => {
         expect(price.classes()).toContain('text-white');
         expect(price.classes()).not.toContain('text-[#404040]');
         expect(buttons.every((button) => button.attributes('disabled') !== undefined)).toBe(true);
+    });
+
+    it('formats catalog stepper prices without thousands separators', () => {
+        const prices = ['100.00', '1000.00', '10000.00', '100000.00'];
+        const rendered = prices.map((price) => mountCard({ item: { ...baseItem, price } })
+            .find('[data-testid="menu-item-stepper-price"]')
+            .text());
+
+        expect(rendered).toEqual(['100 ₽', '1000 ₽', '10000 ₽', '100000 ₽']);
     });
 
     it('does not render quantity overlay when quantity is zero', () => {

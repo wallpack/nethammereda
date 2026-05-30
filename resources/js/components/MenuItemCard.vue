@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatPrice } from '@/lib/formatters';
 import { menuItemDisplayMeta, menuItemDisplayTitle } from '@/lib/menuDisplay';
 import { Heart, ImageIcon, Minus, Plus } from 'lucide-vue-next';
 
@@ -65,6 +64,11 @@ const minusButtonDisabled = computed(() => !props.orderItem || controlsDisabled.
 const plusButtonDisabled = computed(() => controlsDisabled.value);
 const displayTitle = computed(() => menuItemDisplayTitle(props.item));
 const displayMeta = computed(() => menuItemDisplayMeta(props.item));
+const formatStepperPrice = (value) => {
+    const amount = Math.round(Number(value) || 0);
+
+    return `${amount} ₽`;
+};
 const plusButtonLabel = computed(() => (props.orderItem
     ? `Увеличить количество: ${displayTitle.value}`
     : `Добавить в заказ: ${displayTitle.value}`));
@@ -73,13 +77,13 @@ const plusButtonLabel = computed(() => (props.orderItem
 <template>
     <Card
         data-testid="menu-item-card"
-        class="menu-card min-w-0 gap-0 overflow-hidden rounded-[1.15rem] border border-transparent bg-white py-0 text-slate-900 shadow-none ring-0 transition-[border-color,background-color] duration-150 hover:border-blue-100 max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
+        class="menu-card min-w-0 gap-0 overflow-hidden rounded-[1.15rem] border border-transparent bg-white py-0 text-slate-900 shadow-none ring-0 transition-[background-color] duration-150 max-[430px]:overflow-visible max-[430px]:rounded-none max-[430px]:border-transparent max-[430px]:bg-transparent max-[430px]:shadow-none max-[430px]:transition-none"
     >
         <CardContent class="flex h-full min-w-0 flex-col p-0">
             <div class="relative mx-auto w-[176px] max-w-full pt-1.5 max-[430px]:w-full max-[430px]:pt-0">
                 <div
                     data-testid="menu-item-image-area"
-                    class="relative size-[176px] max-w-full overflow-hidden rounded-[1rem] bg-white max-[430px]:h-[7.35rem] max-[430px]:w-full max-[430px]:rounded-2xl"
+                    class="relative size-[176px] max-w-full overflow-hidden rounded-[1rem] bg-white max-[430px]:size-auto max-[430px]:aspect-square max-[430px]:h-auto max-[430px]:w-full max-[430px]:rounded-2xl"
                 >
                     <img
                         v-if="showImage"
@@ -123,11 +127,11 @@ const plusButtonLabel = computed(() => (props.orderItem
                 <h3
                     :title="displayTitle"
                     :aria-label="`Название блюда: ${displayTitle}`"
-                    class="line-clamp-2 min-h-8 break-words text-[14px] font-semibold leading-4 text-[#595959] max-[430px]:line-clamp-2 max-[430px]:min-h-[2.2rem] max-[430px]:text-[0.84rem] max-[430px]:leading-[1.18] max-[430px]:[overflow-wrap:break-word] max-[430px]:[word-break:normal] max-[430px]:[hyphens:auto]"
+                    class="line-clamp-2 min-h-8 break-words text-[13.25px] font-semibold leading-[16px] text-[#595959] [hyphens:auto] [overflow-wrap:anywhere] max-[430px]:line-clamp-2 max-[430px]:min-h-[2rem] max-[430px]:text-[12.75px] max-[430px]:leading-[15px] max-[430px]:[word-break:normal]"
                 >
                     {{ displayTitle }}
                 </h3>
-                <p data-testid="menu-item-meta" class="mt-px min-h-[15px] min-w-0 truncate text-[13px] font-semibold leading-[15px] tabular-nums text-[#a6a6a6] max-[430px]:hidden">
+                <p data-testid="menu-item-meta" class="mt-1 min-h-[15px] min-w-0 truncate text-[13px] font-semibold leading-[15px] tabular-nums text-[#a6a6a6] max-[430px]:hidden">
                     <span v-if="displayMeta">{{ displayMeta }}</span>
                     <span v-else aria-hidden="true">&nbsp;</span>
                 </p>
@@ -135,7 +139,7 @@ const plusButtonLabel = computed(() => (props.orderItem
                 <div class="mt-auto pt-2.5 max-[430px]:pt-2">
                     <div
                         data-testid="menu-item-price-stepper"
-                        class="grid h-9 w-[124px] grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center rounded-full border p-0.5 transition-[background-color,border-color,color] duration-150 max-[430px]:h-9 max-[430px]:w-[118px] max-[430px]:grid-cols-[2.125rem_minmax(0,1fr)_2.125rem]"
+                        class="grid h-9 w-[132px] grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center rounded-full border p-0.5 transition-[background-color,border-color,color] duration-150 max-[430px]:h-9 max-[430px]:w-[128px] max-[430px]:grid-cols-[2.125rem_minmax(0,1fr)_2.125rem]"
                         :class="priceStepperTone"
                     >
                         <Button
@@ -157,7 +161,7 @@ const plusButtonLabel = computed(() => (props.orderItem
                             class="min-w-0 truncate whitespace-nowrap text-center text-[13px] font-bold tabular-nums max-[430px]:min-w-0 max-[430px]:text-[0.78rem]"
                             :class="priceTextTone"
                         >
-                            {{ formatPrice(item.price) }}
+                            {{ formatStepperPrice(item.price) }}
                         </span>
 
                         <Button

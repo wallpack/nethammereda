@@ -535,7 +535,8 @@ describe('catalog auth UX', () => {
         expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
         const menuLoadingGrid = document.querySelector('.dishes-grid[aria-busy="true"]');
         const menuCardSkeleton = menuLoadingGrid?.querySelector('.menu-card [data-slot="skeleton"]');
-        expect(menuCardSkeleton?.className).toContain('max-[430px]:h-[7.35rem]');
+        expect(menuCardSkeleton?.className).toContain('max-[430px]:aspect-square');
+        expect(menuCardSkeleton?.className).toContain('max-[430px]:h-auto');
         expect(document.body.textContent).not.toContain('Недельный цикл не создан');
         expect(document.body.textContent).not.toContain('Ничего не найдено');
         expect(document.body.textContent).not.toContain('0 блюд');
@@ -915,6 +916,7 @@ describe('catalog auth UX', () => {
 
         const header = document.querySelector('header');
         const headerInner = header?.querySelector('.header-inner');
+        const headerSurface = header?.querySelector('[data-testid="header-surface"]');
         const searchInput = document.querySelector('#global-menu-search');
         const searchLabel = searchInput?.closest('label');
         const profileButton = buttonByText(user.name);
@@ -927,6 +929,12 @@ describe('catalog auth UX', () => {
         expect(buttonByText('Войти')).toBeFalsy();
         expect(headerInner).toBeTruthy();
         expect(headerInner?.className).toContain('header-inner');
+        expect(header?.className).toContain('bg-transparent');
+        expect(header?.className).not.toContain('bg-white');
+        expect(headerSurface).toBeTruthy();
+        expect(headerSurface?.className).toContain('header-inner');
+        expect(headerSurface?.className).toContain('rounded-[1.5rem]');
+        expect(headerSurface?.className).toContain('bg-white');
         expect(header?.querySelector('[aria-label="Открыть раздел: Каталог"]')).toBeNull();
         expect(header?.querySelector('[aria-label="Открыть раздел: Холодильник"]')).toBeNull();
         expect(header?.querySelector('[aria-label="Открыть раздел: История"]')).toBeNull();
@@ -1867,10 +1875,11 @@ describe('catalog auth UX', () => {
         const favoriteButton = card?.querySelector('button[aria-pressed]');
 
         expect(card).toBeTruthy();
-        expect(imageArea?.className).toContain('max-[430px]:h-[7.35rem]');
+        expect(imageArea?.className).toContain('max-[430px]:aspect-square');
+        expect(imageArea?.className).toContain('max-[430px]:h-auto');
         expect(meta?.className).toContain('max-[430px]:hidden');
         expect(title?.className).toContain('max-[430px]:line-clamp-2');
-        expect(title?.className).toContain('max-[430px]:min-h-[2.2rem]');
+        expect(title?.className).toContain('max-[430px]:min-h-[2rem]');
         expect(title?.getAttribute('title')).toBe(menuItem.title);
         expect(title?.getAttribute('aria-label')).toBe(`Название блюда: ${menuItem.title}`);
         expect(priceStepper?.className).toContain('max-[430px]:h-9');
