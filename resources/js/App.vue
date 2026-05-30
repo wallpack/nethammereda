@@ -214,6 +214,24 @@ const compactOrderStatusText = computed(() => {
     return closedOrderingStatusText;
 });
 
+const infoNeedsAttention = (message) => {
+    if (typeof message !== 'string' || message.trim() === '') {
+        return false;
+    }
+
+    const normalized = message.toLowerCase();
+
+    return normalized.includes('недоступ')
+        || normalized.includes('не удалось')
+        || normalized.includes('ошибка')
+        || normalized.includes('закрыт')
+        || normalized.includes('некоторые')
+        || normalized.includes('подтвердите')
+        || normalized.includes('обратитесь');
+};
+
+const visibleInfo = computed(() => (infoNeedsAttention(info.value) ? info.value : ''));
+
 const orderPanelDescription = computed(() => 'Ваши выбранные блюда.');
 
 const normalizeFullName = (value) => {
@@ -602,34 +620,35 @@ const clearTelegramLoginQuery = () => {
 
 const hydrateAuthFromTelegramCallback = async () => {
     if (typeof window === 'undefined') {
-        return;
+        return '';
     }
 
     const status = new URLSearchParams(window.location.search).get('telegram_login');
 
     if (!status) {
-        return;
+        return '';
     }
 
     if (status === 'error') {
         ui.error = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
         clearTelegramLoginQuery();
-        return;
+        return 'error';
     }
 
     if (status !== 'success') {
         clearTelegramLoginQuery();
-        return;
+        return '';
     }
 
     try {
         await auth.completeTelegramSiteLoginFromSession();
-        ui.info = 'Вход через Telegram выполнен.';
+        return 'success';
     } catch {
         ui.error = 'Не удалось войти через Telegram. Попробуйте ещё раз.';
+        return 'error';
+    } finally {
+        clearTelegramLoginQuery();
     }
-
-    clearTelegramLoginQuery();
 };
 
 const loginFromWeb = async () => {
@@ -1001,9 +1020,15 @@ onMounted(async () => {
     window.Telegram?.WebApp?.ready();
     window.Telegram?.WebApp?.expand();
 
-    await hydrateAuthFromTelegramCallback();
+    const telegramCallbackResult = await hydrateAuthFromTelegramCallback();
+    const telegramCallbackError = ui.error;
+
     await ensureAuth();
     await loadData();
+
+    if (telegramCallbackResult === 'error' && telegramCallbackError && !ui.error) {
+        ui.error = telegramCallbackError;
+    }
 
     if (isAuthenticated.value && activeSidebarTab.value === 'order') {
         ui.activeSidebarTab = 'catalog';
@@ -1042,12 +1067,12 @@ onBeforeUnmount(() => {
             </Alert>
 
             <Alert
-                v-if="info"
+                v-if="visibleInfo"
                 class="mb-4 rounded-xl border-blue-100 bg-blue-50 text-blue-800"
                 role="status"
                 aria-live="polite"
             >
-                <AlertDescription>{{ info }}</AlertDescription>
+                <AlertDescription>{{ visibleInfo }}</AlertDescription>
             </Alert>
 
             <div

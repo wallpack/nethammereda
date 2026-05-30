@@ -807,6 +807,18 @@ describe('catalog auth UX', () => {
         expect(sessionStorage.getItem('lunch_mvp_token')).toBeNull();
         expect(buttonByText('Telegram User')).toBeTruthy();
         expect(window.location.search).not.toContain('telegram_login');
+        expect(document.body.textContent).not.toContain('Вход через Telegram выполнен.');
+        expect(document.querySelector('[role="status"]')).toBeNull();
+    });
+
+    it('keeps Telegram callback error visible', async () => {
+        window.history.replaceState({}, '', '/?telegram_login=error');
+
+        await mountApp();
+
+        expect(document.body.textContent).toContain('Не удалось войти через Telegram. Попробуйте ещё раз.');
+        expect(document.querySelector('[role="alert"]')).toBeTruthy();
+        expect(window.location.search).not.toContain('telegram_login');
     });
 
     it('persists token after Telegram WebApp auth', async () => {
@@ -1036,7 +1048,8 @@ describe('catalog auth UX', () => {
         await click(document.querySelector('[data-testid="profile-save-full-name"]'));
 
         expect(patchedTo(fetchMock, '/me/profile')).toBe(true);
-        expect(document.body.textContent).toContain('Профиль обновлен.');
+        expect(document.body.textContent).not.toContain('Профиль обновлен.');
+        expect(document.querySelector('[role="status"]')).toBeNull();
         expect(document.querySelector('[data-testid="profile-name"]')?.textContent).toContain('Иванов И.И.');
         expect(buttonByText('Иванов И.И.')).toBeTruthy();
     });

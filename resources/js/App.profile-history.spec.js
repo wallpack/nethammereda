@@ -189,7 +189,7 @@ const mountApp = async (options = {}) => {
 };
 
 describe('App profile order-history repeat flow', () => {
-    it('repeats order from profile history when cart is empty and shows success', async () => {
+    it('repeats order from profile history when cart is empty without a routine success banner', async () => {
         const { fetchMock } = await mountApp({
             order: emptyOrder,
             orderHistory: [historyOrder],
@@ -212,7 +212,8 @@ describe('App profile order-history repeat flow', () => {
         await flushPromises();
 
         expect(postedTo(fetchMock, `/my-orders/${historyOrder.id}/repeat`)).toBe(true);
-        expect(document.body.textContent).toContain('Заказ добавлен в корзину.');
+        expect(document.body.textContent).not.toContain('Заказ добавлен в корзину.');
+        expect(document.querySelector('[role="status"]')).toBeNull();
         expect(document.querySelector('[data-testid="order-panel-item"]')?.textContent).toContain('Котлета');
     });
 
