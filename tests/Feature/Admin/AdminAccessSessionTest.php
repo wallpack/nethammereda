@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -78,6 +79,32 @@ class AdminAccessSessionTest extends TestCase
         $this->get('/admin')
             ->assertOk()
             ->assertSee('Панель управления');
+    }
+
+    #[Test]
+    public function admin_user_menu_keeps_logout_without_theme_switcher(): void
+    {
+        $admin = User::factory()->create([
+            'role' => UserRole::Admin,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin, 'web');
+
+        $panel = Filament::getPanel('admin');
+        $userMenuItems = $panel->getUserMenuItems();
+
+        $this->assertTrue($panel->hasDarkMode());
+        $this->assertTrue($panel->hasDarkModeForced());
+        $this->assertArrayHasKey('logout', $userMenuItems);
+        $this->assertSame('Выйти', $userMenuItems['logout']->getLabel());
+
+        $this->get('/admin')
+            ->assertOk()
+            ->assertDontSee('fi-theme-switcher', false)
+            ->assertDontSee('Enable light theme')
+            ->assertDontSee('Enable dark theme')
+            ->assertDontSee('Enable system theme');
     }
 
     #[Test]
