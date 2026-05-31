@@ -457,7 +457,7 @@ class OrderCycleResourceTest extends TestCase
             ->callAction(TestAction::make('exportCsv')->table($cycle))
             ->assertFileDownloaded(
                 "supplier-order-cycle-{$cycle->id}.csv",
-                content: "\xEF\xBB\xBF\"Тестов Т.Т.\";;;;;\n;Наименование;Вес;Цена;Количество;Сумма\n;\"Test Dish full name (260 г)\";;100;1;100\n\"Итого по сотруднику\";;;;1;100\n;;;;;\n\"ИТОГО ПО ВСЕМ\";;;;1;100\n",
+                content: "\xEF\xBB\xBF\"Тестов Т.Т.\";;;;\n;Наименование;Цена;Количество;Сумма\n;\"Test Dish full name (260г)\";100;1;100\n\"Итого по сотруднику\";;;1;100\n;;;;\n\"ИТОГО ПО ВСЕМ\";;;1;100\n",
                 contentType: 'text/csv; charset=UTF-8',
             );
     }

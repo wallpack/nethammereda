@@ -235,7 +235,10 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $this->assertNotEmpty($lines);
         $this->assertSame('Чертова Е.Н.', str_getcsv($lines[0], ';')[0] ?? '');
-        $this->assertSame(['', 'Наименование', 'Вес', 'Цена', 'Количество', 'Сумма'], str_getcsv($lines[1], ';'));
+        $this->assertSame(['', 'Наименование', 'Цена', 'Количество', 'Сумма'], str_getcsv($lines[1], ';'));
+        $this->assertStringNotContainsString('Категория', $csv);
+        $this->assertStringNotContainsString('Вес', $csv);
+        $this->assertStringNotContainsString('Граммовка', $csv);
         $this->assertStringContainsString('Итого по сотруднику', $csv);
         $this->assertStringContainsString('ИТОГО ПО ВСЕМ', $csv);
         $this->assertStringNotContainsString('Новое ФИО', $csv);
@@ -269,7 +272,7 @@ class SupplierOrderExportServiceTest extends TestCase
     }
 
     #[Test]
-    public function supplier_order_csv_includes_weight_column_and_keeps_totals(): void
+    public function supplier_order_csv_embeds_grammage_in_dish_name_and_keeps_totals(): void
     {
         $cycle = $this->createCycle();
         $user = User::factory()->create(['full_name' => 'Иванов И.И.']);
@@ -299,10 +302,13 @@ class SupplierOrderExportServiceTest extends TestCase
         $missingWeightRow = collect($lines)->first(fn (string $line): bool => str_contains($line, 'Лазанья'));
         $employeeTotal = collect($lines)->first(fn (string $line): bool => str_contains($line, 'Итого по сотруднику'));
 
-        $this->assertSame(['', 'Наименование', 'Вес', 'Цена', 'Количество', 'Сумма'], $header);
-        $this->assertSame(['', 'Запеканка картофельнаяс куриным жульеном', '280 г', '156', '2', '312'], str_getcsv($weightedRow, ';'));
-        $this->assertSame(['', 'Лазанья домашняя', '', '100', '1', '100'], str_getcsv($missingWeightRow, ';'));
-        $this->assertSame(['Итого по сотруднику', '', '', '', '3', '412'], str_getcsv($employeeTotal, ';'));
+        $this->assertSame(['', 'Наименование', 'Цена', 'Количество', 'Сумма'], $header);
+        $this->assertNotContains('Категория', $header);
+        $this->assertNotContains('Вес', $header);
+        $this->assertNotContains('Граммовка', $header);
+        $this->assertSame(['', 'Запеканка картофельнаяс куриным жульеном (280г)', '156', '2', '312'], str_getcsv($weightedRow, ';'));
+        $this->assertSame(['', 'Лазанья домашняя', '100', '1', '100'], str_getcsv($missingWeightRow, ';'));
+        $this->assertSame(['Итого по сотруднику', '', '', '3', '412'], str_getcsv($employeeTotal, ';'));
         $this->assertStringContainsString('ИТОГО ПО ВСЕМ', $csv);
     }
 
@@ -353,7 +359,8 @@ class SupplierOrderExportServiceTest extends TestCase
 
         $csv = app(SupplierOrderExportService::class)->csvForCycle($cycle);
 
-        $this->assertStringContainsString('Баветте с курицей и грибами в сливочном соусе (260 г)', $csv);
+        $this->assertStringContainsString('Баветте с курицей и грибами в сливочном соусе (260г)', $csv);
+        $this->assertStringNotContainsString('Баветте с курицей и грибами в сливочном соусе (260 г) (260г)', $csv);
         $this->assertStringNotContainsString("\"Баветте с курицей и грибами\";105;1;105", $csv);
     }
 
@@ -432,7 +439,8 @@ class SupplierOrderExportServiceTest extends TestCase
         $dishRow = collect($lines)->first(fn (string $line): bool => str_contains($line, 'Тестовое блюдо'));
 
         $this->assertIsString($dishRow);
-        $this->assertCount(6, str_getcsv($dishRow, ';'));
+        $this->assertStringContainsString('Тестовое блюдо (123г)', $dishRow);
+        $this->assertCount(5, str_getcsv($dishRow, ';'));
         $this->assertSame(1, count(str_getcsv($dishRow, ',')));
     }
 
@@ -471,27 +479,33 @@ class SupplierOrderExportServiceTest extends TestCase
             $sheet = $spreadsheet->getActiveSheet();
 
             $this->assertSame('Ivanov I.I.', (string) $sheet->getCell('A1')->getValue());
-                $this->assertSame('Наименование', (string) $sheet->getCell('B2')->getValue());
-            $this->assertSame('Вес', (string) $sheet->getCell('C2')->getValue());
-            $this->assertSame('Цена', (string) $sheet->getCell('D2')->getValue());
-            $this->assertSame('Количество', (string) $sheet->getCell('E2')->getValue());
-            $this->assertSame('Сумма', (string) $sheet->getCell('F2')->getValue());
+            $headers = [
+                (string) $sheet->getCell('B2')->getValue(),
+                (string) $sheet->getCell('C2')->getValue(),
+                (string) $sheet->getCell('D2')->getValue(),
+                (string) $sheet->getCell('E2')->getValue(),
+            ];
+
+            $this->assertSame(['Наименование', 'Цена', 'Количество', 'Сумма'], $headers);
+            $this->assertSame('', (string) $sheet->getCell('F2')->getValue());
+            $this->assertNotContains('Категория', $headers);
+            $this->assertNotContains('Вес', $headers);
+            $this->assertNotContains('Граммовка', $headers);
             $this->assertSame(28.0, $sheet->getColumnDimension('A')->getWidth());
             $this->assertSame(75.0, $sheet->getColumnDimension('B')->getWidth());
-            $this->assertSame(12.0, $sheet->getColumnDimension('C')->getWidth());
+            $this->assertSame(14.0, $sheet->getColumnDimension('C')->getWidth());
             $this->assertSame(14.0, $sheet->getColumnDimension('D')->getWidth());
             $this->assertSame(14.0, $sheet->getColumnDimension('E')->getWidth());
-            $this->assertSame(14.0, $sheet->getColumnDimension('F')->getWidth());
             $this->assertSame('A2', $sheet->getFreezePane());
             $this->assertTrue($sheet->getStyle('B3')->getAlignment()->getWrapText());
-            $this->assertStringContainsString('0.00', $sheet->getStyle('D3')->getNumberFormat()->getFormatCode());
-            $this->assertStringContainsString('0.00', $sheet->getStyle('F3')->getNumberFormat()->getFormatCode());
+            $this->assertStringContainsString('0.00', $sheet->getStyle('C3')->getNumberFormat()->getFormatCode());
+            $this->assertStringContainsString('0.00', $sheet->getStyle('E3')->getNumberFormat()->getFormatCode());
             $this->assertSame('Итого по сотруднику', (string) $sheet->getCell('A4')->getValue());
-            $this->assertSame(2.0, (float) $sheet->getCell('E4')->getCalculatedValue());
-            $this->assertSame(300.0, (float) $sheet->getCell('F4')->getCalculatedValue());
+            $this->assertSame(2.0, (float) $sheet->getCell('D4')->getCalculatedValue());
+            $this->assertSame(300.0, (float) $sheet->getCell('E4')->getCalculatedValue());
             $this->assertSame('ИТОГО ПО ВСЕМ', (string) $sheet->getCell('A6')->getValue());
-            $this->assertSame(2.0, (float) $sheet->getCell('E6')->getCalculatedValue());
-            $this->assertSame(300.0, (float) $sheet->getCell('F6')->getCalculatedValue());
+            $this->assertSame(2.0, (float) $sheet->getCell('D6')->getCalculatedValue());
+            $this->assertSame(300.0, (float) $sheet->getCell('E6')->getCalculatedValue());
         } finally {
             if (isset($spreadsheet)) {
                 $spreadsheet->disconnectWorksheets();
@@ -505,7 +519,7 @@ class SupplierOrderExportServiceTest extends TestCase
 
     #[Test]
     #[RunInSeparateProcess]
-    public function supplier_order_xlsx_includes_weight_column_and_empty_fallback(): void
+    public function supplier_order_xlsx_embeds_grammage_in_dish_name_and_keeps_empty_fallback(): void
     {
         $cycle = $this->createCycle();
         $user = User::factory()->create(['full_name' => 'Иванов И.И.']);
@@ -527,6 +541,15 @@ class SupplierOrderExportServiceTest extends TestCase
             price: 100,
             menuWeight: null,
         );
+        $this->createOrderItem(
+            cycle: $cycle,
+            orderStatus: OrderStatus::Submitted,
+            user: $user,
+            title: 'Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)',
+            quantity: 1,
+            price: 125,
+            menuWeight: '260 г',
+        );
 
         $xlsx = app(SupplierOrderExportService::class)->xlsxForCycle($cycle);
         $path = tempnam(sys_get_temp_dir(), 'supplier-xlsx-');
@@ -537,11 +560,13 @@ class SupplierOrderExportServiceTest extends TestCase
             $spreadsheet = IOFactory::load($path);
             $sheet = $spreadsheet->getActiveSheet();
 
-            $this->assertSame('Вес', (string) $sheet->getCell('C2')->getValue());
-            $this->assertSame('280 г', (string) $sheet->getCell('C3')->getValue());
-            $this->assertSame('', (string) $sheet->getCell('C4')->getValue());
-            $this->assertSame(3.0, (float) $sheet->getCell('E5')->getCalculatedValue());
-            $this->assertSame(412.0, (float) $sheet->getCell('F5')->getCalculatedValue());
+            $this->assertSame('Цена', (string) $sheet->getCell('C2')->getValue());
+            $this->assertSame('Запеканка картофельнаяс куриным жульеном (280г)', (string) $sheet->getCell('B3')->getValue());
+            $this->assertSame('Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)', (string) $sheet->getCell('B4')->getValue());
+            $this->assertStringNotContainsString('(260г) (260г)', (string) $sheet->getCell('B4')->getValue());
+            $this->assertSame('Лазанья домашняя', (string) $sheet->getCell('B5')->getValue());
+            $this->assertSame(4.0, (float) $sheet->getCell('D6')->getCalculatedValue());
+            $this->assertSame(537.0, (float) $sheet->getCell('E6')->getCalculatedValue());
         } finally {
             if (isset($spreadsheet)) {
                 $spreadsheet->disconnectWorksheets();

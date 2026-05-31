@@ -66,6 +66,24 @@ class SupplierOrderExport extends Model
         return filled($title) ? (string) $title : 'Цикл удален';
     }
 
+    public static function dishNameWithGrammage(mixed $title, mixed $weight): string
+    {
+        $name = is_scalar($title) ? trim((string) $title) : '';
+
+        if ($name === '') {
+            return '';
+        }
+
+        $normalizedName = self::normalizeExistingGrammageParentheses($name);
+        $grammage = self::compactGrammage($weight);
+
+        if ($grammage === null || self::containsGrammageParentheses($name)) {
+            return $normalizedName;
+        }
+
+        return "{$normalizedName} ({$grammage})";
+    }
+
     /**
      * @return array<int, array{
      *     full_name: string,
@@ -101,13 +119,14 @@ class SupplierOrderExport extends Model
                 $supplierName = $row['supplier_name'] ?? $row['supplier_title'] ?? $row['title'] ?? $row['dish'] ?? '';
                 $title = $row['title'] ?? $row['dish'] ?? $supplierName;
                 $weight = $row['weight'] ?? $row['display_weight'] ?? $row['grammage'] ?? null;
+                $displayWeight = is_scalar($weight) && filled($weight) ? (string) $weight : '';
 
                 return [
                     'full_name' => is_string($fullName) ? $fullName : '',
-                    'title' => (string) $title,
+                    'title' => self::dishNameWithGrammage($title, $displayWeight),
                     'supplier_name' => is_string($supplierName) ? $supplierName : (string) $supplierName,
                     'category' => filled($row['category'] ?? null) ? (string) $row['category'] : null,
-                    'weight' => is_scalar($weight) && filled($weight) ? (string) $weight : '',
+                    'weight' => $displayWeight,
                     'quantity' => $quantity,
                     'unit_price' => round($unitPrice, 2),
                     'total_price' => $totalPrice,
@@ -116,6 +135,52 @@ class SupplierOrderExport extends Model
             })
             ->values()
             ->all();
+    }
+
+    private static function compactGrammage(mixed $weight): ?string
+    {
+        if (! is_scalar($weight)) {
+            return null;
+        }
+
+        $text = trim((string) $weight);
+
+        if ($text === '') {
+            return null;
+        }
+
+        if (! preg_match('/^(\d+(?:[,.]\d+)?)\s*(г|гр|кг|мл|л|шт)\.?$/iu', $text, $matches)) {
+            return null;
+        }
+
+        $unit = mb_strtolower($matches[2]);
+        $unit = $unit === 'гр' ? 'г' : $unit;
+
+        return str_replace('.', ',', $matches[1]).$unit;
+    }
+
+    private static function containsGrammageParentheses(string $title): bool
+    {
+        return preg_match(self::grammageParenthesesPattern(), $title) === 1;
+    }
+
+    private static function normalizeExistingGrammageParentheses(string $title): string
+    {
+        return preg_replace_callback(
+            self::grammageParenthesesPattern(),
+            static function (array $matches): string {
+                $unit = mb_strtolower($matches[2]);
+                $unit = $unit === 'гр' ? 'г' : $unit;
+
+                return '('.str_replace('.', ',', $matches[1]).$unit.')';
+            },
+            $title,
+        ) ?? $title;
+    }
+
+    private static function grammageParenthesesPattern(): string
+    {
+        return '/\(\s*(\d+(?:[,.]\d+)?)\s*(г|гр|кг|мл|л|шт)\.?\s*\)/iu';
     }
 
     /**
