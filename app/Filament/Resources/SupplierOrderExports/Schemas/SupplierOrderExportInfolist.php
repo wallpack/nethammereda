@@ -66,6 +66,7 @@ class SupplierOrderExportInfolist
                             ->table([
                                 TableColumn::make('ФИО'),
                                 TableColumn::make('Наименование'),
+                                TableColumn::make('Вес'),
                                 TableColumn::make('Цена'),
                                 TableColumn::make('Количество'),
                                 TableColumn::make('Сумма'),
@@ -79,6 +80,10 @@ class SupplierOrderExportInfolist
                                     ->label('Наименование')
                                     ->hiddenLabel()
                                     ->placeholder('-'),
+                                TextEntry::make('weight')
+                                    ->label('Вес')
+                                    ->hiddenLabel()
+                                    ->placeholder('—'),
                                 TextEntry::make('unit_price')
                                     ->label('Цена')
                                     ->hiddenLabel()

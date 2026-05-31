@@ -52,7 +52,12 @@ class SupplierOrderExportResourceTest extends TestCase
     public function view_page_renders_readable_snapshot_rows(): void
     {
         $this->actingAsAdmin();
-        $export = $this->createSupplierExport(title: 'Chicken Bowl', quantity: 3, price: 210);
+        $export = $this->createSupplierExport(
+            title: 'Chicken Bowl',
+            quantity: 3,
+            price: 210,
+            supplierName: 'Chicken Bowl (280 г)',
+        );
 
         Livewire::test(ViewSupplierOrderExport::class, ['record' => $export->id])
             ->assertSee('Отправка поставщику')
@@ -60,6 +65,8 @@ class SupplierOrderExportResourceTest extends TestCase
             ->assertSee('Test Week')
             ->assertSee('Admin Sender')
             ->assertSee('Chicken Bowl')
+            ->assertSee('Вес')
+            ->assertSee('280 г')
             ->assertSee('3')
             ->assertSee('210,00')
             ->assertSee('630,00')
@@ -111,7 +118,7 @@ class SupplierOrderExportResourceTest extends TestCase
             ->callAction(TestAction::make('downloadCsv')->table($export))
             ->assertFileDownloaded(
                 "supplier-order-export-{$export->id}.csv",
-                content: "\xEF\xBB\xBF\"Чертова Е.Н.\";;;;\n;Наименование;Цена;Количество;Сумма\n;\"Stored Soup full name (260 г)\";120;2;240\n\"Итого по сотруднику\";;;2;240\n;;;;\n\"ИТОГО ПО ВСЕМ\";;;2;240\n",
+                content: "\xEF\xBB\xBF\"Чертова Е.Н.\";;;;;\n;Наименование;Вес;Цена;Количество;Сумма\n;\"Stored Soup full name (260 г)\";\"260 г\";120;2;240\n\"Итого по сотруднику\";;;;2;240\n;;;;;\n\"ИТОГО ПО ВСЕМ\";;;;2;240\n",
                 contentType: 'text/csv; charset=UTF-8',
             );
     }

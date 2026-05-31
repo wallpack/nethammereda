@@ -72,6 +72,7 @@ class SupplierOrderExport extends Model
      *     title: string,
      *     supplier_name: string,
      *     category: ?string,
+     *     weight: string,
      *     quantity: int,
      *     unit_price: float,
      *     total_price: float,
@@ -99,12 +100,14 @@ class SupplierOrderExport extends Model
                 $fullName = $row['full_name'] ?? $row['fio'] ?? '';
                 $supplierName = $row['supplier_name'] ?? $row['supplier_title'] ?? $row['title'] ?? $row['dish'] ?? '';
                 $title = $row['title'] ?? $row['dish'] ?? $supplierName;
+                $weight = $row['weight'] ?? $row['display_weight'] ?? $row['grammage'] ?? null;
 
                 return [
                     'full_name' => is_string($fullName) ? $fullName : '',
                     'title' => (string) $title,
                     'supplier_name' => is_string($supplierName) ? $supplierName : (string) $supplierName,
                     'category' => filled($row['category'] ?? null) ? (string) $row['category'] : null,
+                    'weight' => is_scalar($weight) && filled($weight) ? (string) $weight : '',
                     'quantity' => $quantity,
                     'unit_price' => round($unitPrice, 2),
                     'total_price' => $totalPrice,

@@ -6,6 +6,7 @@ use App\Enums\OrderCycleStatus;
 use App\Enums\OrderItemStatus;
 use App\Enums\OrderStatus;
 use App\Exceptions\SupplierOrderCannotBeSentException;
+use App\Models\MenuItem;
 use App\Models\OrderCycle;
 use App\Models\OrderItem;
 use App\Models\SupplierOrderExport;
@@ -22,7 +23,7 @@ class SupplierOrderExportService
 {
     private const CSV_DELIMITER = ';';
     private const XLSX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    private const ITEM_TABLE_HEADERS = ['Наименование', 'Цена', 'Количество', 'Сумма'];
+    private const ITEM_TABLE_HEADERS = ['Наименование', 'Вес', 'Цена', 'Количество', 'Сумма'];
 
     public function sendToSupplier(OrderCycle $cycle, ?User $exportedBy = null, string $format = 'csv'): SupplierOrderExport
     {
@@ -75,6 +76,7 @@ class SupplierOrderExportService
                 order_items.supplier_name_snapshot,
                 menu_items.supplier_name as menu_item_supplier_name,
                 menu_items.title as menu_item_title,
+                MAX(NULLIF(menu_items.weight, \'\')) as menu_item_weight,
                 order_items.price_snapshot,
                 SUM(order_items.quantity) as quantity_sum,
                 SUM(order_items.quantity * order_items.price_snapshot) as total_sum'
@@ -118,6 +120,7 @@ class SupplierOrderExportService
                     'full_name' => $fullName,
                     'supplier_name' => $supplierName,
                     'title_snapshot' => (string) $row->title_snapshot,
+                    'weight' => $this->weightForExport($row->menu_item_weight, $row->menu_item_supplier_name),
                     'price_snapshot' => round((float) $row->price_snapshot, 2),
                     'quantity' => (int) $row->quantity_sum,
                     'total_sum' => round((float) $row->total_sum, 2),
@@ -149,6 +152,7 @@ class SupplierOrderExportService
                 'title' => (string) $row['supplier_name'],
                 'supplier_name' => (string) $row['supplier_name'],
                 'catalog_title' => (string) $row['title_snapshot'],
+                'weight' => (string) $row['weight'],
                 'unit_price' => round((float) $row['price_snapshot'], 2),
                 'quantity' => (int) $row['quantity'],
                 'total_price' => round((float) $row['total_sum'], 2),
@@ -257,6 +261,7 @@ class SupplierOrderExportService
             $sheet->getColumnDimension('C')->setWidth(12);
             $sheet->getColumnDimension('D')->setWidth(14);
             $sheet->getColumnDimension('E')->setWidth(14);
+            $sheet->getColumnDimension('F')->setWidth(14);
             $sheet->freezePane('A2');
 
             $rowNumber = 1;
@@ -274,8 +279,8 @@ class SupplierOrderExportService
                         (string) ($row['full_name'] ?? ''),
                         DataType::TYPE_STRING,
                     );
-                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
-                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")
+                    $sheet->getStyle("A{$rowNumber}:F{$rowNumber}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$rowNumber}:F{$rowNumber}")
                         ->getFill()
                         ->setFillType(Fill::FILL_SOLID)
                         ->getStartColor()
@@ -287,35 +292,37 @@ class SupplierOrderExportService
                     $sheet->setCellValueExplicit("C{$rowNumber}", self::ITEM_TABLE_HEADERS[1], DataType::TYPE_STRING);
                     $sheet->setCellValueExplicit("D{$rowNumber}", self::ITEM_TABLE_HEADERS[2], DataType::TYPE_STRING);
                     $sheet->setCellValueExplicit("E{$rowNumber}", self::ITEM_TABLE_HEADERS[3], DataType::TYPE_STRING);
-                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
+                    $sheet->setCellValueExplicit("F{$rowNumber}", self::ITEM_TABLE_HEADERS[4], DataType::TYPE_STRING);
+                    $sheet->getStyle("A{$rowNumber}:F{$rowNumber}")->getFont()->setBold(true);
                     $tableStartRow = $rowNumber;
                 }
 
                 if ($type === 'item') {
                     $sheet->setCellValueExplicit("B{$rowNumber}", (string) ($row['title'] ?? ''), DataType::TYPE_STRING);
-                    $sheet->setCellValue("C{$rowNumber}", round((float) ($row['unit_price'] ?? 0), 2));
-                    $sheet->setCellValue("D{$rowNumber}", $quantity);
-                    $sheet->setCellValue("E{$rowNumber}", $totalPrice);
+                    $sheet->setCellValueExplicit("C{$rowNumber}", (string) ($row['weight'] ?? ''), DataType::TYPE_STRING);
+                    $sheet->setCellValue("D{$rowNumber}", round((float) ($row['unit_price'] ?? 0), 2));
+                    $sheet->setCellValue("E{$rowNumber}", $quantity);
+                    $sheet->setCellValue("F{$rowNumber}", $totalPrice);
                 }
 
                 if ($type === 'employee_total') {
                     $sheet->setCellValueExplicit("A{$rowNumber}", 'Итого по сотруднику', DataType::TYPE_STRING);
-                    $sheet->setCellValue("D{$rowNumber}", $quantity);
-                    $sheet->setCellValue("E{$rowNumber}", $totalPrice);
-                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
+                    $sheet->setCellValue("E{$rowNumber}", $quantity);
+                    $sheet->setCellValue("F{$rowNumber}", $totalPrice);
+                    $sheet->getStyle("A{$rowNumber}:F{$rowNumber}")->getFont()->setBold(true);
 
                     if (is_int($tableStartRow)) {
-                        $tableRanges[] = "A{$tableStartRow}:E{$rowNumber}";
+                        $tableRanges[] = "A{$tableStartRow}:F{$rowNumber}";
                         $tableStartRow = null;
                     }
                 }
 
                 if ($type === 'grand_total') {
                     $sheet->setCellValueExplicit("A{$rowNumber}", 'ИТОГО ПО ВСЕМ', DataType::TYPE_STRING);
-                    $sheet->setCellValue("D{$rowNumber}", $quantity);
-                    $sheet->setCellValue("E{$rowNumber}", $totalPrice);
-                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")->getFont()->setBold(true);
-                    $sheet->getStyle("A{$rowNumber}:E{$rowNumber}")
+                    $sheet->setCellValue("E{$rowNumber}", $quantity);
+                    $sheet->setCellValue("F{$rowNumber}", $totalPrice);
+                    $sheet->getStyle("A{$rowNumber}:F{$rowNumber}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$rowNumber}:F{$rowNumber}")
                         ->getFill()
                         ->setFillType(Fill::FILL_SOLID)
                         ->getStartColor()
@@ -327,10 +334,10 @@ class SupplierOrderExportService
 
             $lastDataRow = max(1, $rowNumber - 1);
             $sheet->getStyle("B1:B{$lastDataRow}")->getAlignment()->setWrapText(true);
-            $sheet->getStyle("C1:C{$lastDataRow}")
+            $sheet->getStyle("D1:D{$lastDataRow}")
                 ->getNumberFormat()
                 ->setFormatCode('#,##0.00');
-            $sheet->getStyle("E1:E{$lastDataRow}")
+            $sheet->getStyle("F1:F{$lastDataRow}")
                 ->getNumberFormat()
                 ->setFormatCode('#,##0.00');
 
@@ -426,6 +433,7 @@ class SupplierOrderExportService
                 $exportRows[] = [
                     'type' => 'item',
                     'title' => $item['title'],
+                    'weight' => $item['weight'],
                     'unit_price' => $item['unit_price'],
                     'quantity' => $item['quantity'],
                     'total_price' => round((float) $item['total_price'], 2),
@@ -488,6 +496,9 @@ class SupplierOrderExportService
             }
 
             $fullName = $currentFullName ?? $previousFullName ?? 'Пользователь';
+            $weight = is_scalar($row['weight'] ?? null)
+                ? $this->trimToNullable((string) $row['weight'])
+                : null;
             $quantity = max(0, (int) ($row['quantity'] ?? 0));
             $unitPrice = round((float) ($row['unit_price'] ?? 0), 2);
             $sum = array_key_exists('total_price', $row)
@@ -497,6 +508,7 @@ class SupplierOrderExportService
             $normalized[] = [
                 'full_name' => $fullName,
                 'title' => $nameForSupplier,
+                'weight' => $weight ?? '',
                 'unit_price' => $unitPrice,
                 'quantity' => $quantity,
                 'total_price' => $sum,
@@ -515,7 +527,7 @@ class SupplierOrderExportService
      *     quantity?: int,
      *     total_price?: float
      * }  $row
-     * @return array{0: string, 1: string, 2: string, 3: string, 4: string}
+     * @return array{0: string, 1: string, 2: string, 3: string, 4: string, 5: string}
      */
     private function csvCellsForRow(array $row): array
     {
@@ -531,6 +543,7 @@ class SupplierOrderExportService
                 '',
                 '',
                 '',
+                '',
             ],
             'table_header' => [
                 '',
@@ -538,16 +551,19 @@ class SupplierOrderExportService
                 self::ITEM_TABLE_HEADERS[1],
                 self::ITEM_TABLE_HEADERS[2],
                 self::ITEM_TABLE_HEADERS[3],
+                self::ITEM_TABLE_HEADERS[4],
             ],
             'item' => [
                 '',
                 (string) ($row['title'] ?? ''),
+                (string) ($row['weight'] ?? ''),
                 $unitPrice,
                 $quantity,
                 $total,
             ],
             'employee_total' => [
                 'Итого по сотруднику',
+                '',
                 '',
                 '',
                 $quantity,
@@ -557,10 +573,11 @@ class SupplierOrderExportService
                 'ИТОГО ПО ВСЕМ',
                 '',
                 '',
+                '',
                 $quantity,
                 $total,
             ],
-            default => ['', '', '', '', ''],
+            default => ['', '', '', '', '', ''],
         };
 
         return array_map(fn (string $value): string => $this->escapeCsvCell($value), $cells);
@@ -592,6 +609,16 @@ class SupplierOrderExportService
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function weightForExport(mixed $menuItemWeight, mixed $menuItemSupplierName): string
+    {
+        $menuItem = new MenuItem([
+            'weight' => is_scalar($menuItemWeight) ? (string) $menuItemWeight : null,
+            'supplier_name' => is_scalar($menuItemSupplierName) ? (string) $menuItemSupplierName : null,
+        ]);
+
+        return $menuItem->display_weight ?? '';
     }
 
     private function supplierNameForExport(
