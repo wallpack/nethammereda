@@ -84,3 +84,6 @@ yarn-error.log*
 _ide_helper.php
 Homestead.json
 Homestead.yaml
+
+/_local/
+/diagramma_neschastnye_sluchai_rostrud.docx
