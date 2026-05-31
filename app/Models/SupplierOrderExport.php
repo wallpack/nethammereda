@@ -74,7 +74,7 @@ class SupplierOrderExport extends Model
             return '';
         }
 
-        $normalizedName = self::normalizeExistingGrammageParentheses($name);
+        $normalizedName = self::normalizeExistingGrammageParentheses(self::normalizeExportTitleSpacing($name));
         $grammage = self::compactGrammage($weight);
 
         if ($grammage === null || self::containsGrammageParentheses($name)) {
@@ -135,6 +135,15 @@ class SupplierOrderExport extends Model
             })
             ->values()
             ->all();
+    }
+
+    private static function normalizeExportTitleSpacing(string $title): string
+    {
+        return str_replace(
+            'Запеканка картофельнаяс куриным жульеном',
+            'Запеканка картофельная с куриным жульеном',
+            $title,
+        );
     }
 
     private static function compactGrammage(mixed $weight): ?string

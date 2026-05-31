@@ -306,7 +306,7 @@ class SupplierOrderExportServiceTest extends TestCase
         $this->assertNotContains('Категория', $header);
         $this->assertNotContains('Вес', $header);
         $this->assertNotContains('Граммовка', $header);
-        $this->assertSame(['', 'Запеканка картофельнаяс куриным жульеном (280г)', '156', '2', '312'], str_getcsv($weightedRow, ';'));
+        $this->assertSame(['', 'Запеканка картофельная с куриным жульеном (280г)', '156', '2', '312'], str_getcsv($weightedRow, ';'));
         $this->assertSame(['', 'Лазанья домашняя', '100', '1', '100'], str_getcsv($missingWeightRow, ';'));
         $this->assertSame(['Итого по сотруднику', '', '', '3', '412'], str_getcsv($employeeTotal, ';'));
         $this->assertStringContainsString('ИТОГО ПО ВСЕМ', $csv);
@@ -561,7 +561,7 @@ class SupplierOrderExportServiceTest extends TestCase
             $sheet = $spreadsheet->getActiveSheet();
 
             $this->assertSame('Цена', (string) $sheet->getCell('C2')->getValue());
-            $this->assertSame('Запеканка картофельнаяс куриным жульеном (280г)', (string) $sheet->getCell('B3')->getValue());
+            $this->assertSame('Запеканка картофельная с куриным жульеном (280г)', (string) $sheet->getCell('B3')->getValue());
             $this->assertSame('Комбо.Котлета по-Киевски с картофельным пюре и фасолью (260г)', (string) $sheet->getCell('B4')->getValue());
             $this->assertStringNotContainsString('(260г) (260г)', (string) $sheet->getCell('B4')->getValue());
             $this->assertSame('Лазанья домашняя', (string) $sheet->getCell('B5')->getValue());
