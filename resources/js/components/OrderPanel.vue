@@ -105,10 +105,18 @@ watch(() => props.menuItemsById, () => {
         <div v-if="showHeading" class="shrink-0">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                    <h2 class="customer-heading text-balance text-xl leading-7 sm:text-2xl sm:leading-8">{{ panelTitle }}</h2>
+                    <h2 data-testid="order-panel-heading" class="customer-heading text-balance text-xl leading-7 sm:text-2xl sm:leading-8">{{ panelTitle }}</h2>
                     <p v-if="!compactCart && panelTitle !== 'Корзина'" class="customer-muted mt-0.5 text-pretty text-sm leading-5">Ваши выбранные блюда.</p>
                     <Skeleton v-if="loading" class="mt-2 h-4 w-20 rounded-md bg-slate-100" />
                 </div>
+                <span
+                    v-if="statusLine"
+                    data-testid="order-cycle-status"
+                    class="mt-0.5 max-w-32 shrink-0 truncate rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold leading-4 text-slate-600 sm:max-w-44"
+                    :title="statusLine"
+                    aria-label="Статус приёма заказов"
+                    aria-live="polite"
+                >{{ statusLine }}</span>
             </div>
         </div>
 

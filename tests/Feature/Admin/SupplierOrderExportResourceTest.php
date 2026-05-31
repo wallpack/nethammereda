@@ -17,6 +17,7 @@ use App\Models\OrderItem;
 use App\Models\SupplierOrderExport;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -65,6 +66,27 @@ class SupplierOrderExportResourceTest extends TestCase
             ->assertDontSee('Unit price')
             ->assertDontSee('Total price')
             ->assertDontSee('snapshot_json');
+    }
+
+    #[Test]
+    public function export_history_dates_use_business_timezone_on_table_and_view(): void
+    {
+        config()->set('app.timezone', 'UTC');
+        config()->set('lunch.business_timezone', 'Asia/Yekaterinburg');
+
+        $this->actingAsAdmin();
+        $export = $this->createSupplierExport();
+        $export->forceFill([
+            'exported_at' => CarbonImmutable::create(2026, 5, 29, 7, 0, 0, 'UTC'),
+        ])->save();
+
+        Livewire::test(ListSupplierOrderExports::class)
+            ->assertSee('29.05.2026 12:00')
+            ->assertDontSee('29.05.2026 07:00');
+
+        Livewire::test(ViewSupplierOrderExport::class, ['record' => $export->id])
+            ->assertSee('29.05.2026 12:00')
+            ->assertDontSee('29.05.2026 07:00');
     }
 
     #[Test]

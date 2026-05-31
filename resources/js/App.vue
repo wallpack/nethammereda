@@ -115,7 +115,7 @@ const telegramLinkStatusTimeoutMs = 4000;
 const closedOrderingMessage = 'Приём заказов закрыт.';
 const closedOrderingCartClearedMessage = 'Приём заказов закрыт.';
 const closedOrderingInfoMessage = 'Приём заказов закрыт.';
-const closedOrderingStatusText = 'Приём заказов закрыт';
+const closedOrderingStatusText = 'Приём закрыт';
 const repeatWhenClosedMessage = 'Повторить заказ можно, когда открыт приём заказов.';
 const repeatReplaceConfirmMessage = 'Заменить текущую корзину этим заказом?';
 
@@ -165,6 +165,7 @@ const normalizeClosedCycleCopy = (message, options = {}) => {
         || normalized.includes('администратор')
         || normalized.includes('новый заказ можно будет оформить')
         || normalized.includes('приём заказов закрыт')
+        || normalized.includes('прием заказов закрыт')
     ) {
         return fallback;
     }
@@ -207,11 +208,19 @@ const compactOrderStatusText = computed(() => {
 
     if (isOrderingWindowOpen.value) {
         return deadlineShortLabel.value
-            ? `Приём заказов открыт · до ${deadlineShortLabel.value}`
-            : 'Приём заказов открыт';
+            ? `Приём открыт · до ${deadlineShortLabel.value}`
+            : 'Приём открыт';
     }
 
     return closedOrderingStatusText;
+});
+
+const mobileOrderStatusText = computed(() => {
+    if (loading.value) {
+        return 'Загрузка';
+    }
+
+    return isOrderingWindowOpen.value ? 'Открыт' : 'Закрыт';
 });
 
 const infoNeedsAttention = (message) => {
@@ -230,9 +239,15 @@ const infoNeedsAttention = (message) => {
         || normalized.includes('обратитесь');
 };
 
-const visibleInfo = computed(() => (infoNeedsAttention(info.value) ? info.value : ''));
+const visibleInfo = computed(() => {
+    if (!infoNeedsAttention(info.value)) {
+        return '';
+    }
 
-const orderPanelDescription = computed(() => 'Ваши выбранные блюда.');
+    return normalizeClosedCycleCopy(info.value) === closedOrderingInfoMessage ? '' : info.value;
+});
+
+const orderPanelDescription = computed(() => mobileOrderStatusText.value);
 
 const normalizeFullName = (value) => {
     if (typeof value !== 'string') {

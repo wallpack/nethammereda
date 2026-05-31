@@ -15,6 +15,8 @@ class SupplierOrderExportsTable
 {
     public static function configure(Table $table): Table
     {
+        $businessTimezone = config('lunch.business_timezone', config('app.timezone'));
+
         return $table
             ->defaultSort('exported_at', 'desc')
             ->columns([
@@ -32,7 +34,7 @@ class SupplierOrderExportsTable
                     ->sortable(),
                 TextColumn::make('exported_at')
                     ->label('Дата отправки')
-                    ->dateTime('d.m.Y H:i')
+                    ->dateTime('d.m.Y H:i', $businessTimezone)
                     ->sortable(),
                 TextColumn::make('rows_count')
                     ->label('Строк')

@@ -13,6 +13,8 @@ class SupplierOrderExportInfolist
 {
     public static function configure(Schema $schema): Schema
     {
+        $businessTimezone = config('lunch.business_timezone', config('app.timezone'));
+
         return $schema
             ->components([
                 Section::make('Сведения об отправке')
@@ -30,7 +32,7 @@ class SupplierOrderExportInfolist
                             ->placeholder('Не указано'),
                         TextEntry::make('exported_at')
                             ->label('Дата отправки')
-                            ->dateTime('d.m.Y H:i'),
+                            ->dateTime('d.m.Y H:i', $businessTimezone),
                         TextEntry::make('format')
                             ->label('Формат')
                             ->formatStateUsing(fn (?string $state): string => strtoupper((string) ($state ?? 'csv')))

@@ -629,8 +629,11 @@ describe('catalog auth UX', () => {
             },
         });
 
+        const cartStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
+
         expect(document.querySelector('.week-status')).toBeNull();
         expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
+        expect(cartStatus?.textContent).toContain('Приём закрыт');
         expect(document.body.textContent).not.toContain('Приём заказов закрыт');
         expect(document.body.textContent).not.toContain('Администратор закрыл сбор заказов');
         expect(document.body.textContent?.toLowerCase()).not.toContain('черновик');
@@ -1670,7 +1673,10 @@ describe('catalog auth UX', () => {
 
         await click(buttonByAriaLabel(`Добавить в заказ: ${secondMenuItem.title}`));
 
-        expect(document.body.textContent).toContain(closedOrderingCartClearedMessage);
+        const cartStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
+
+        expect(document.body.textContent).not.toContain(closedOrderingCartClearedMessage);
+        expect(cartStatus?.textContent).toContain('Приём закрыт');
         expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
 
         wrapper.unmount();
@@ -1750,6 +1756,7 @@ describe('catalog auth UX', () => {
 
         await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
+        expect(mobileOrderText).toContain('Закрыт');
         expect(mobileOrderText).not.toContain('Приём заказов закрыт');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });

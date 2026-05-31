@@ -42,7 +42,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.find('[data-testid="order-repeat-button"]').exists()).toBe(false);
     });
 
-    it('shows centered empty current-cart state without closed/status service copy', () => {
+    it('shows compact cycle status in the cart header while keeping the empty cart centered', () => {
         const wrapper = mountPanel({
             panelTitle: 'Корзина',
             order: {
@@ -52,14 +52,18 @@ describe('OrderPanel cart-only UX', () => {
                 items: [],
             },
             orderItems: [],
-            statusLine: 'Приём заказов закрыт',
+            statusLine: 'Приём закрыт',
             canEditOrder: false,
+            compactCart: true,
         });
 
         const emptyState = wrapper.get('[data-testid="order-panel-empty-state"]');
         const footer = wrapper.get('[data-testid="order-panel-footer"]');
+        const status = wrapper.get('[data-testid="order-cycle-status"]');
 
-        expect(wrapper.text()).toContain('Корзина');
+        expect(wrapper.get('[data-testid="order-panel-heading"]').text()).toContain('Корзина');
+        expect(status.text()).toBe('Приём закрыт');
+        expect(status.classes()).toContain('rounded-full');
         expect(wrapper.text()).toContain('Корзина пуста');
         expect(wrapper.text()).toContain('Добавьте блюда из каталога.');
         expect(emptyState.classes()).toContain('flex-1');
@@ -68,8 +72,6 @@ describe('OrderPanel cart-only UX', () => {
         expect(footer.text()).toContain('0 ₽');
         expect(footer.find('button').exists()).toBe(false);
         expect(wrapper.text()).not.toContain('0 позиций');
-        expect(wrapper.text()).not.toContain('закрыта');
-        expect(wrapper.text()).not.toContain('Закрыта');
         expect(wrapper.text()).not.toContain('Приём заказов закрыт');
     });
 
@@ -510,7 +512,6 @@ describe('OrderPanel cart-only UX', () => {
                 total_price: '0.00',
                 items: [],
             },
-            statusLine: 'Приём заказов закрыт',
             canEditOrder: false,
         });
 

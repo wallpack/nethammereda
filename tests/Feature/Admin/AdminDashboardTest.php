@@ -18,6 +18,7 @@ use App\Models\OrderCycle;
 use App\Models\OrderItem;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
@@ -50,6 +51,49 @@ class AdminDashboardTest extends TestCase
             ->assertSee('Текущий цикл заказа')
             ->assertSee('Открыт')
             ->assertSee('Закрыть заказ');
+    }
+
+    #[Test]
+    public function current_cycle_widget_displays_cycle_dates_in_business_timezone(): void
+    {
+        config()->set('app.timezone', 'UTC');
+        config()->set('lunch.business_timezone', 'Asia/Yekaterinburg');
+
+        $this->actingAsAdmin();
+
+        $startsAtUtc = CarbonImmutable::create(2026, 5, 24, 19, 0, 0, 'UTC');
+        $deadlineUtc = CarbonImmutable::create(2026, 5, 29, 7, 0, 0, 'UTC');
+        $cycle = OrderCycle::query()->create([
+            'title' => 'Timezone Week',
+            'starts_at' => $startsAtUtc,
+            'closes_at' => $deadlineUtc,
+            'status' => OrderCycleStatus::Open,
+        ]);
+
+        Livewire::test(CurrentOrderCycleWidget::class)
+            ->assertSee($cycle->title)
+            ->assertSee('25.05.2026 - 29.05.2026')
+            ->assertSee('29.05.2026 12:00')
+            ->assertDontSee('24.05.2026 - 29.05.2026')
+            ->assertDontSee('29.05.2026 07:00');
+    }
+
+    #[Test]
+    public function supplier_widget_displays_sent_date_in_business_timezone(): void
+    {
+        config()->set('app.timezone', 'UTC');
+        config()->set('lunch.business_timezone', 'Asia/Yekaterinburg');
+
+        $this->actingAsAdmin();
+
+        $cycle = $this->createSentToSupplierCycleWithOrderItem();
+        $cycle->forceFill([
+            'sent_to_supplier_at' => CarbonImmutable::create(2026, 5, 29, 7, 0, 0, 'UTC'),
+        ])->save();
+
+        Livewire::test(SupplierStatusWidget::class)
+            ->assertSee('29.05.2026 12:00')
+            ->assertDontSee('29.05.2026 07:00');
     }
 
     #[Test]

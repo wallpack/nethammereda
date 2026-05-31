@@ -46,15 +46,15 @@ class AdminDashboard
             return 'Цикл не создан';
         }
 
-        $start = $cycle->starts_at?->format('d.m.Y') ?? 'без даты начала';
-        $end = $cycle->closes_at?->format('d.m.Y') ?? 'без дедлайна';
+        $start = self::formatDate($cycle->starts_at, 'd.m.Y') ?? 'без даты начала';
+        $end = self::formatDate($cycle->closes_at, 'd.m.Y') ?? 'без дедлайна';
 
         return "{$start} - {$end}";
     }
 
     public static function formatDateTime(?CarbonInterface $date): string
     {
-        return $date?->format('d.m.Y H:i') ?? 'Не указано';
+        return self::formatDate($date, 'd.m.Y H:i') ?? 'Не указано';
     }
 
     public static function timeUntilDeadline(?OrderCycle $cycle): string
@@ -117,5 +117,17 @@ class AdminDashboard
     public static function money(int | float | string | null $amount): string
     {
         return number_format((float) ($amount ?? 0), 2, ',', ' ').' ₽';
+    }
+
+    private static function formatDate(?CarbonInterface $date, string $format): ?string
+    {
+        return $date?->copy()
+            ->setTimezone(self::businessTimezone())
+            ->format($format);
+    }
+
+    private static function businessTimezone(): string
+    {
+        return (string) config('lunch.business_timezone', config('app.timezone', 'UTC'));
     }
 }
