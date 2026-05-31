@@ -44,6 +44,18 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    disabledCheckoutLabel: {
+        type: String,
+        default: '',
+    },
+    disabledCheckoutHelper: {
+        type: String,
+        default: '',
+    },
+    emptyStateDetail: {
+        type: String,
+        default: '',
+    },
     canEditOrder: {
         type: Boolean,
         default: false,
@@ -155,6 +167,7 @@ watch(() => props.menuItemsById, () => {
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="customer-title mt-3 text-balance text-base leading-5">Корзина пуста</p>
             <p class="customer-muted mt-1 text-pretty text-sm leading-6">Добавьте блюда из каталога.</p>
+            <p v-if="emptyStateDetail" data-testid="order-panel-empty-state-detail" class="customer-muted mt-1 max-w-[15rem] text-pretty text-xs leading-5">{{ emptyStateDetail }}</p>
         </div>
 
         <div
@@ -361,7 +374,7 @@ watch(() => props.menuItemsById, () => {
                 </div>
 
                 <Button
-                    v-if="!isAuthenticated"
+                    v-if="!isAuthenticated && !disabledCheckoutLabel"
                     type="button"
                     data-testid="order-panel-guest-checkout-button"
                     :class="[
@@ -405,6 +418,27 @@ watch(() => props.menuItemsById, () => {
                     <Loader2 v-if="actionLoading" aria-hidden="true" class="size-4 animate-spin" />
                     Редактировать заказ
                 </Button>
+
+                <template v-else-if="disabledCheckoutLabel">
+                    <Button
+                        type="button"
+                        data-testid="order-panel-disabled-checkout-button"
+                        :class="[
+                            'w-full border border-slate-200 bg-slate-100 px-4 font-semibold text-slate-500 shadow-none disabled:cursor-not-allowed disabled:opacity-100',
+                            compactCart
+                                ? 'mt-4 h-[3.625rem] min-h-[3.625rem] rounded-full text-[15px] font-bold'
+                                : 'mt-3 h-[3.25rem] min-h-12 rounded-full text-sm',
+                        ]"
+                        disabled
+                    >
+                        {{ disabledCheckoutLabel }}
+                    </Button>
+                    <p
+                        v-if="disabledCheckoutHelper"
+                        data-testid="order-panel-disabled-checkout-helper"
+                        :class="compactCart ? 'mt-2 text-center text-xs leading-5 text-slate-500' : 'mt-2 text-center text-xs leading-5 text-slate-500'"
+                    >{{ disabledCheckoutHelper }}</p>
+                </template>
             </template>
         </div>
     </div>

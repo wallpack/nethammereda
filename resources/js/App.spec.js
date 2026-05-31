@@ -633,8 +633,8 @@ describe('catalog auth UX', () => {
 
         expect(document.querySelector('.week-status')).toBeNull();
         expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
-        expect(cartStatus?.textContent).toContain('Закрыт');
-        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
+        expect(cartStatus?.textContent).toContain('Приём закрыт');
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
         expect(document.body.textContent).not.toContain('Администратор закрыл сбор заказов');
         expect(document.body.textContent?.toLowerCase()).not.toContain('черновик');
     });
@@ -645,8 +645,8 @@ describe('catalog auth UX', () => {
         const openStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
         const openDetail = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status-detail"]');
 
-        expect(openStatus?.textContent).toBe('Открыт');
-        expect(openDetail?.textContent).toBe('до 22.05 12:00');
+        expect(openStatus?.textContent).toBe('Приём открыт');
+        expect(openDetail?.textContent).toBe('До 22.05 в 12:00');
         expect(openStatus?.textContent).not.toContain('22.05');
         expect(document.body.textContent).not.toContain('Приём открыт · до');
 
@@ -668,14 +668,56 @@ describe('catalog auth UX', () => {
                 opens_at_display_full: '01.06.2026, 00:00',
                 availability_label: 'Скоро откроется',
             },
+            order: orderWithItem,
         });
 
         const upcomingStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
         const upcomingDetail = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status-detail"]');
 
-        expect(upcomingStatus?.textContent).toBe('Скоро');
-        expect(upcomingDetail?.textContent).toBe('откроется 01.06 00:00');
+        expect(upcomingStatus?.textContent).toBe('Приём скоро');
+        expect(upcomingDetail?.textContent).toBe('Откроется 01.06 в 00:00');
+        expect(upcomingStatus?.textContent).not.toBe('Скоро');
+        expect(document.querySelector('[data-testid="order-panel-disabled-checkout-button"]')?.textContent).toContain('Заказы откроются 01.06');
+        expect(document.querySelector('[data-testid="order-panel-disabled-checkout-helper"]')?.textContent).toBe('Оформить заказ можно с 01.06 в 00:00.');
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
         expect(buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`)?.disabled).toBe(true);
+
+        await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
+        const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
+        expect(mobileOrderText).toContain('Приём скоро');
+        expect(mobileOrderText).toContain('Откроется 01.06 в 00:00');
+        expect(mobileOrderText).not.toMatch(/(^|\s)Скоро(\s|$)/);
+    });
+
+    it('renders closed disabled checkout copy without reintroducing the global banner', async () => {
+        await mountApp({
+            authenticated: true,
+            currentCycle: {
+                ...cycle,
+                status: 'closed',
+                effective_state: 'closed',
+                accepting_orders: false,
+                is_open_for_ordering: false,
+                is_orderable: false,
+                can_order: false,
+                deadline_passed: true,
+                availability_label: 'Приём закрыт',
+                availability_description: 'Прием заказов завершен.',
+            },
+            order: orderWithItem,
+        });
+
+        const status = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
+        const disabledButton = document.querySelector('[data-testid="order-panel-disabled-checkout-button"]');
+
+        expect(status?.textContent).toBe('Приём закрыт');
+        expect(disabledButton?.textContent).toContain('Приём заказов закрыт');
+        expect(disabledButton?.hasAttribute('disabled')).toBe(true);
+        expect(document.querySelector('[data-testid="order-panel-disabled-checkout-helper"]')?.textContent).toBe('Новый цикл появится позже.');
+        expect(buttonByText('Оформить заказ')).toBeFalsy();
+        expect(document.querySelector('.week-status')).toBeNull();
+        expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
     });
 
     it('renders guest header with a wide neutral login action, muted search and no old guest copy', async () => {
@@ -1428,7 +1470,7 @@ describe('catalog auth UX', () => {
         const plusButton = buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`);
         const stepper = document.querySelector('[data-testid="menu-item-price-stepper"]');
 
-        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
         expect(document.body.textContent).not.toContain('Заказ закрыт');
         expect(plusButton?.disabled).toBe(true);
         expect(stepper?.className).toContain('bg-blue-50/60');
@@ -1448,7 +1490,7 @@ describe('catalog auth UX', () => {
         });
 
         expect(document.querySelector('.week-status')).toBeNull();
-        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
         expect(document.body.textContent).not.toContain('Проверьте холодильник.');
     });
 
@@ -1583,7 +1625,7 @@ describe('catalog auth UX', () => {
         const addPlus = buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`);
 
         expect(currentCycleRequestCount).toBeGreaterThan(1);
-        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
         expect(document.body.textContent).not.toContain('Можно редактировать до');
         expect(addPlus?.disabled).toBe(true);
 
@@ -1715,7 +1757,7 @@ describe('catalog auth UX', () => {
         const cartStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
 
         expect(document.body.textContent).not.toContain(closedOrderingCartClearedMessage);
-        expect(cartStatus?.textContent).toContain('Закрыт');
+        expect(cartStatus?.textContent).toContain('Приём закрыт');
         expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
 
         wrapper.unmount();
@@ -1745,7 +1787,7 @@ describe('catalog auth UX', () => {
         const pageText = document.body.textContent ?? '';
         const selectedPlus = buttonByAriaLabel(`Увеличить количество: ${menuItem.title}`);
 
-        expect(pageText).not.toContain('Приём заказов закрыт');
+        expect(pageText).not.toContain('Приём заказов закрыт.');
         expect(pageText).not.toContain('Можно редактировать до');
         expect(buttonByText('Редактировать заказ')).toBeFalsy();
         expect(selectedPlus?.disabled).toBe(true);
@@ -1789,14 +1831,14 @@ describe('catalog auth UX', () => {
         });
 
         expect(buttonByText('Редактировать заказ')).toBeFalsy();
-        expect(document.body.textContent).not.toContain('Приём заказов закрыт');
+        expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
         expect(buttonByAriaLabel(`Увеличить количество: ${menuItem.title}`)?.disabled).toBe(true);
         expect(buttonByAriaLabel(`Добавить в заказ: ${secondMenuItem.title}`)?.disabled).toBe(true);
 
         await click(document.querySelector('[aria-label="Открыть раздел: Корзина"]'));
         const mobileOrderText = document.querySelector('[data-testid="mobile-order-panel"]')?.textContent ?? '';
-        expect(mobileOrderText).toContain('Закрыт');
-        expect(mobileOrderText).not.toContain('Приём заказов закрыт');
+        expect(mobileOrderText).toContain('Приём закрыт');
+        expect(mobileOrderText).not.toContain('Приём заказов закрыт.');
         expect(mobileOrderText).not.toContain('отправьте заказ до дедлайна');
     });
 

@@ -16,6 +16,9 @@ const baseProps = {
     panelTitle: 'Мой заказ',
     statusLine: '',
     statusDetail: '',
+    disabledCheckoutLabel: '',
+    disabledCheckoutHelper: '',
+    emptyStateDetail: '',
     canEditOrder: false,
     canReopenOrder: false,
     loading: false,
@@ -53,8 +56,8 @@ describe('OrderPanel cart-only UX', () => {
                 items: [],
             },
             orderItems: [],
-            statusLine: 'Открыт',
-            statusDetail: 'до 05.06 07:00',
+            statusLine: 'Приём открыт',
+            statusDetail: 'До 05.06 в 07:00',
             canEditOrder: false,
             compactCart: true,
         });
@@ -65,9 +68,9 @@ describe('OrderPanel cart-only UX', () => {
         const detail = wrapper.get('[data-testid="order-cycle-status-detail"]');
 
         expect(wrapper.get('[data-testid="order-panel-heading"]').text()).toContain('Корзина');
-        expect(status.text()).toBe('Открыт');
+        expect(status.text()).toBe('Приём открыт');
         expect(status.classes()).toContain('rounded-full');
-        expect(detail.text()).toBe('до 05.06 07:00');
+        expect(detail.text()).toBe('До 05.06 в 07:00');
         expect(detail.classes()).toContain('text-slate-500');
         expect(wrapper.text()).toContain('Корзина пуста');
         expect(wrapper.text()).toContain('Добавьте блюда из каталога.');
@@ -81,25 +84,96 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.text()).not.toContain('Приём заказов закрыт');
     });
 
-    it('supports upcoming and closed short badge text without long copy', () => {
+    it('supports upcoming and closed badge text without unclear standalone copy', () => {
         const upcoming = mountPanel({
             panelTitle: 'Корзина',
             compactCart: true,
-            statusLine: 'Скоро',
-            statusDetail: 'откроется 01.06 00:00',
+            statusLine: 'Приём скоро',
+            statusDetail: 'Откроется 01.06 в 00:00',
         });
         const closed = mountPanel({
             panelTitle: 'Корзина',
             compactCart: true,
-            statusLine: 'Закрыт',
+            statusLine: 'Приём закрыт',
         });
 
-        expect(upcoming.get('[data-testid="order-cycle-status"]').text()).toBe('Скоро');
-        expect(upcoming.get('[data-testid="order-cycle-status-detail"]').text()).toBe('откроется 01.06 00:00');
-        expect(closed.get('[data-testid="order-cycle-status"]').text()).toBe('Закрыт');
+        expect(upcoming.get('[data-testid="order-cycle-status"]').text()).toBe('Приём скоро');
+        expect(upcoming.get('[data-testid="order-cycle-status-detail"]').text()).toBe('Откроется 01.06 в 00:00');
+        expect(closed.get('[data-testid="order-cycle-status"]').text()).toBe('Приём закрыт');
         expect(closed.find('[data-testid="order-cycle-status-detail"]').exists()).toBe(false);
+        expect(upcoming.text()).not.toMatch(/(^|\s)Скоро(\s|$)/);
         expect(upcoming.text()).not.toContain('Скоро откроется ·');
-        expect(closed.text()).not.toContain('Приём заказов закрыт');
+    });
+
+    it('shows calm disabled checkout copy for upcoming and closed ordering states', () => {
+        const commonOrder = {
+            id: 15,
+            status: 'draft',
+            total_price: '250.00',
+            items: [],
+        };
+        const commonItems = [
+            {
+                id: 77,
+                menu_item_id: 11,
+                title_snapshot: 'Суп с курицей',
+                price_snapshot: '250.00',
+                quantity: 1,
+            },
+        ];
+
+        const upcoming = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            order: commonOrder,
+            orderItems: commonItems,
+            canEditOrder: false,
+            disabledCheckoutLabel: 'Заказы откроются 01.06',
+            disabledCheckoutHelper: 'Оформить заказ можно с 01.06 в 00:00.',
+        });
+        const closed = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            order: commonOrder,
+            orderItems: commonItems,
+            canEditOrder: false,
+            disabledCheckoutLabel: 'Приём заказов закрыт',
+            disabledCheckoutHelper: 'Новый цикл появится позже.',
+        });
+
+        const upcomingButton = upcoming.get('[data-testid="order-panel-disabled-checkout-button"]');
+        const closedButton = closed.get('[data-testid="order-panel-disabled-checkout-button"]');
+
+        expect(upcomingButton.text()).toContain('Заказы откроются 01.06');
+        expect(upcomingButton.attributes('disabled')).toBeDefined();
+        expect(upcoming.get('[data-testid="order-panel-disabled-checkout-helper"]').text()).toBe('Оформить заказ можно с 01.06 в 00:00.');
+        expect(closedButton.text()).toContain('Приём заказов закрыт');
+        expect(closedButton.attributes('disabled')).toBeDefined();
+        expect(closed.get('[data-testid="order-panel-disabled-checkout-helper"]').text()).toBe('Новый цикл появится позже.');
+    });
+
+    it('keeps the empty cart centered while explaining upcoming ordering', () => {
+        const wrapper = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            order: {
+                id: 15,
+                status: 'draft',
+                total_price: '0.00',
+                items: [],
+            },
+            orderItems: [],
+            statusLine: 'Приём скоро',
+            statusDetail: 'Откроется 01.06 в 00:00',
+            emptyStateDetail: 'Оформить заказ можно с 01.06 в 00:00.',
+        });
+
+        const emptyState = wrapper.get('[data-testid="order-panel-empty-state"]');
+
+        expect(emptyState.classes()).toContain('justify-center');
+        expect(emptyState.text()).toContain('Корзина пуста');
+        expect(emptyState.text()).toContain('Добавьте блюда из каталога.');
+        expect(emptyState.get('[data-testid="order-panel-empty-state-detail"]').text()).toBe('Оформить заказ можно с 01.06 в 00:00.');
     });
 
     it('shows a real checkout CTA button instead of zero total for unauthenticated guests', async () => {

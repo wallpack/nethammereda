@@ -117,12 +117,12 @@ const closedOrderingCartClearedMessage = 'Приём заказов закрыт
 const closedOrderingInfoMessage = 'Приём заказов закрыт.';
 const closedOrderingStatusText = 'Приём закрыт';
 const cartStatusLabels = {
-    open: 'Открыт',
-    upcoming: 'Скоро',
-    closed: 'Закрыт',
-    draft: 'Закрыт',
-    delivered: 'Закрыт',
-    archived: 'Закрыт',
+    open: 'Приём открыт',
+    upcoming: 'Приём скоро',
+    closed: 'Приём закрыт',
+    draft: 'Приём закрыт',
+    delivered: 'Приём закрыт',
+    archived: 'Приём закрыт',
 };
 const repeatWhenClosedMessage = 'Повторить заказ можно, когда открыт приём заказов.';
 const repeatReplaceConfirmMessage = 'Заменить текущую корзину этим заказом?';
@@ -214,13 +214,28 @@ const deadlineShortLabel = computed(() => {
 });
 
 const compactDateTimeLabel = (value) => (typeof value === 'string' ? value.replace(',', '') : '');
+const readableDateTimeLabel = (value) => {
+    const compact = compactDateTimeLabel(value);
+    const match = compact.match(/^(.+)\s+(\d{2}:\d{2})$/);
+
+    return match ? `${match[1]} в ${match[2]}` : compact;
+};
+const compactDateLabel = (value) => compactDateTimeLabel(value).replace(/\s+\d{2}:\d{2}$/, '');
 
 const cycleEffectiveState = computed(() => {
     if (cycle.value?.effective_state) {
         return cycle.value.effective_state;
     }
 
-    return isOrderingWindowOpen.value ? 'open' : 'closed';
+    if (cycle.value?.status === 'open') {
+        return isOrderingWindowOpen.value ? 'open' : 'closed';
+    }
+
+    if (cycle.value?.status === 'sent_to_supplier') {
+        return 'closed';
+    }
+
+    return cycle.value?.status ?? 'closed';
 });
 
 const cartStatusBadgeText = computed(() => {
@@ -237,17 +252,61 @@ const cartStatusDetailText = computed(() => {
     }
 
     if (cycleEffectiveState.value === 'open' && deadlineShortLabel.value) {
-        return `до ${compactDateTimeLabel(deadlineShortLabel.value)}`;
+        return `До ${readableDateTimeLabel(deadlineShortLabel.value)}`;
     }
 
     if (cycleEffectiveState.value === 'upcoming') {
         const opensAt = cycle.value?.opens_at_display || cycle.value?.opens_at_display_full;
 
-        return opensAt ? `откроется ${compactDateTimeLabel(opensAt)}` : '';
+        return opensAt ? `Откроется ${readableDateTimeLabel(opensAt)}` : '';
     }
 
     return '';
 });
+
+const cartOpensAtLabel = computed(() => {
+    const opensAt = cycle.value?.opens_at_display || cycle.value?.opens_at_display_full;
+
+    return opensAt ? readableDateTimeLabel(opensAt) : '';
+});
+
+const cartOpensDateLabel = computed(() => {
+    const opensAt = cycle.value?.opens_at_display || cycle.value?.opens_at_display_full;
+
+    return opensAt ? compactDateLabel(opensAt) : '';
+});
+
+const disabledCheckoutLabel = computed(() => {
+    if (isOrderingWindowOpen.value) {
+        return '';
+    }
+
+    if (cycleEffectiveState.value === 'upcoming') {
+        return cartOpensDateLabel.value ? `Заказы откроются ${cartOpensDateLabel.value}` : 'Заказы скоро откроются';
+    }
+
+    if (cycleEffectiveState.value === 'closed' || cycleEffectiveState.value === 'draft') {
+        return 'Приём заказов закрыт';
+    }
+
+    return '';
+});
+
+const disabledCheckoutHelper = computed(() => {
+    if (cycleEffectiveState.value === 'upcoming') {
+        return cartOpensAtLabel.value ? `Оформить заказ можно с ${cartOpensAtLabel.value}.` : '';
+    }
+
+    if (cycleEffectiveState.value === 'closed' || cycleEffectiveState.value === 'draft') {
+        return 'Новый цикл появится позже.';
+    }
+
+    return '';
+});
+
+const emptyCartDetail = computed(() => (
+    cycleEffectiveState.value === 'upcoming' ? disabledCheckoutHelper.value : ''
+));
 
 const mobileOrderStatusText = computed(() => {
     if (loading.value) {
@@ -281,7 +340,11 @@ const visibleInfo = computed(() => {
     return normalizeClosedCycleCopy(info.value) === closedOrderingInfoMessage ? '' : info.value;
 });
 
-const orderPanelDescription = computed(() => mobileOrderStatusText.value);
+const orderPanelDescription = computed(() => (
+    cartStatusDetailText.value
+        ? `${mobileOrderStatusText.value} · ${cartStatusDetailText.value}`
+        : mobileOrderStatusText.value
+));
 
 const normalizeFullName = (value) => {
     if (typeof value !== 'string') {
@@ -1173,6 +1236,9 @@ onBeforeUnmount(() => {
                             :panel-title="'Мой заказ'"
                             :status-line="cartStatusBadgeText"
                             :status-detail="cartStatusDetailText"
+                            :disabled-checkout-label="disabledCheckoutLabel"
+                            :disabled-checkout-helper="disabledCheckoutHelper"
+                            :empty-state-detail="emptyCartDetail"
                             :can-edit-order="canEditOrder"
                             :can-reopen-order="canReopenSubmittedOrder"
                             :loading="loading"
@@ -1233,6 +1299,9 @@ onBeforeUnmount(() => {
                             compact-cart
                             :status-line="cartStatusBadgeText"
                             :status-detail="cartStatusDetailText"
+                            :disabled-checkout-label="disabledCheckoutLabel"
+                            :disabled-checkout-helper="disabledCheckoutHelper"
+                            :empty-state-detail="emptyCartDetail"
                             :is-authenticated="isAuthenticated"
                             :can-edit-order="isAuthenticated ? canEditOrder : false"
                             :can-reopen-order="isAuthenticated ? canReopenSubmittedOrder : false"
@@ -1279,6 +1348,9 @@ onBeforeUnmount(() => {
                 :show-heading="false"
                 :status-line="cartStatusBadgeText"
                 :status-detail="cartStatusDetailText"
+                :disabled-checkout-label="disabledCheckoutLabel"
+                :disabled-checkout-helper="disabledCheckoutHelper"
+                :empty-state-detail="emptyCartDetail"
                 :can-edit-order="canEditOrder"
                 :can-reopen-order="canReopenSubmittedOrder"
                 :loading="loading"
