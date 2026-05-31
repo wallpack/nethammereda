@@ -116,6 +116,14 @@ const closedOrderingMessage = 'Приём заказов закрыт.';
 const closedOrderingCartClearedMessage = 'Приём заказов закрыт.';
 const closedOrderingInfoMessage = 'Приём заказов закрыт.';
 const closedOrderingStatusText = 'Приём закрыт';
+const cartStatusLabels = {
+    open: 'Открыт',
+    upcoming: 'Скоро',
+    closed: 'Закрыт',
+    draft: 'Закрыт',
+    delivered: 'Закрыт',
+    archived: 'Закрыт',
+};
 const repeatWhenClosedMessage = 'Повторить заказ можно, когда открыт приём заказов.';
 const repeatReplaceConfirmMessage = 'Заменить текущую корзину этим заказом?';
 
@@ -186,6 +194,10 @@ const orderReadOnlyReason = computed(() => {
         return 'Заказ отправлен. Изменения больше недоступны.';
     }
 
+    if (cycleEffectiveState.value === 'upcoming') {
+        return 'Приём скоро откроется.';
+    }
+
     return closedOrderingStatusText;
 });
 
@@ -201,18 +213,40 @@ const deadlineShortLabel = computed(() => {
     return weeklyDeadlineLabel.value;
 });
 
-const compactOrderStatusText = computed(() => {
+const compactDateTimeLabel = (value) => (typeof value === 'string' ? value.replace(',', '') : '');
+
+const cycleEffectiveState = computed(() => {
+    if (cycle.value?.effective_state) {
+        return cycle.value.effective_state;
+    }
+
+    return isOrderingWindowOpen.value ? 'open' : 'closed';
+});
+
+const cartStatusBadgeText = computed(() => {
     if (loading.value) {
         return '';
     }
 
-    if (isOrderingWindowOpen.value) {
-        return deadlineShortLabel.value
-            ? `Приём открыт · до ${deadlineShortLabel.value}`
-            : 'Приём открыт';
+    return cartStatusLabels[cycleEffectiveState.value] ?? 'Закрыт';
+});
+
+const cartStatusDetailText = computed(() => {
+    if (loading.value) {
+        return '';
     }
 
-    return closedOrderingStatusText;
+    if (cycleEffectiveState.value === 'open' && deadlineShortLabel.value) {
+        return `до ${compactDateTimeLabel(deadlineShortLabel.value)}`;
+    }
+
+    if (cycleEffectiveState.value === 'upcoming') {
+        const opensAt = cycle.value?.opens_at_display || cycle.value?.opens_at_display_full;
+
+        return opensAt ? `откроется ${compactDateTimeLabel(opensAt)}` : '';
+    }
+
+    return '';
 });
 
 const mobileOrderStatusText = computed(() => {
@@ -220,7 +254,7 @@ const mobileOrderStatusText = computed(() => {
         return 'Загрузка';
     }
 
-    return isOrderingWindowOpen.value ? 'Открыт' : 'Закрыт';
+    return cartStatusBadgeText.value;
 });
 
 const infoNeedsAttention = (message) => {
@@ -291,15 +325,19 @@ const validateRequiredFullName = (value) => {
     return '';
 };
 
-const parseDeadlineTimestamp = () => {
-    if (!cycle.value?.closes_at) {
+const parseCycleTimestamp = (value) => {
+    if (!value) {
         return null;
     }
 
-    const timestamp = Date.parse(cycle.value.closes_at);
+    const timestamp = Date.parse(value);
 
     return Number.isNaN(timestamp) ? null : timestamp;
 };
+
+const parseDeadlineTimestamp = () => parseCycleTimestamp(cycle.value?.closes_at);
+
+const parseStartsAtTimestamp = () => parseCycleTimestamp(cycle.value?.starts_at);
 
 const isClosedOrderingErrorMessage = (message) => {
     if (typeof message !== 'string') {
@@ -357,17 +395,15 @@ const scheduleDeadlineRefresh = () => {
     clearDeadlineRefreshTimer();
     deadlinePassedLocally.value = Boolean(cycle.value?.deadline_passed);
 
-    if (!isOpenForOrdering.value) {
+    const refreshTimestamp = cycleEffectiveState.value === 'upcoming'
+        ? parseStartsAtTimestamp()
+        : (isOpenForOrdering.value ? parseDeadlineTimestamp() : null);
+
+    if (refreshTimestamp === null) {
         return;
     }
 
-    const deadlineTimestamp = parseDeadlineTimestamp();
-
-    if (deadlineTimestamp === null) {
-        return;
-    }
-
-    const delayMs = deadlineTimestamp - Date.now();
+    const delayMs = refreshTimestamp - Date.now();
 
     if (delayMs <= 0) {
         void refreshOrderingState();
@@ -375,7 +411,10 @@ const scheduleDeadlineRefresh = () => {
     }
 
     deadlineRefreshTimerId = setTimeout(() => {
-        deadlinePassedLocally.value = true;
+        if (cycleEffectiveState.value !== 'upcoming') {
+            deadlinePassedLocally.value = true;
+        }
+
         void refreshOrderingState();
     }, delayMs + 50);
 };
@@ -437,7 +476,9 @@ watch(() => order.value?.status, (status) => {
 watch(
     [
         () => cycle.value?.id,
+        () => cycle.value?.starts_at,
         () => cycle.value?.closes_at,
+        () => cycle.value?.effective_state,
         isOpenForOrdering,
     ],
     () => {
@@ -1130,7 +1171,8 @@ onBeforeUnmount(() => {
                             :menu-items-by-id="menuItemsById"
                             :total-positions="totalPositions"
                             :panel-title="'Мой заказ'"
-                            :status-line="compactOrderStatusText"
+                            :status-line="cartStatusBadgeText"
+                            :status-detail="cartStatusDetailText"
                             :can-edit-order="canEditOrder"
                             :can-reopen-order="canReopenSubmittedOrder"
                             :loading="loading"
@@ -1189,7 +1231,8 @@ onBeforeUnmount(() => {
                             :total-positions="totalPositions"
                             :panel-title="'Корзина'"
                             compact-cart
-                            :status-line="compactOrderStatusText"
+                            :status-line="cartStatusBadgeText"
+                            :status-detail="cartStatusDetailText"
                             :is-authenticated="isAuthenticated"
                             :can-edit-order="isAuthenticated ? canEditOrder : false"
                             :can-reopen-order="isAuthenticated ? canReopenSubmittedOrder : false"
@@ -1234,7 +1277,8 @@ onBeforeUnmount(() => {
                 :menu-items-by-id="menuItemsById"
                 :total-positions="totalPositions"
                 :show-heading="false"
-                :status-line="compactOrderStatusText"
+                :status-line="cartStatusBadgeText"
+                :status-detail="cartStatusDetailText"
                 :can-edit-order="canEditOrder"
                 :can-reopen-order="canReopenSubmittedOrder"
                 :loading="loading"

@@ -15,6 +15,7 @@ const baseProps = {
     showHeading: true,
     panelTitle: 'Мой заказ',
     statusLine: '',
+    statusDetail: '',
     canEditOrder: false,
     canReopenOrder: false,
     loading: false,
@@ -42,7 +43,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(wrapper.find('[data-testid="order-repeat-button"]').exists()).toBe(false);
     });
 
-    it('shows compact cycle status in the cart header while keeping the empty cart centered', () => {
+    it('shows short cycle status and separate muted detail while keeping the empty cart centered', () => {
         const wrapper = mountPanel({
             panelTitle: 'Корзина',
             order: {
@@ -52,7 +53,8 @@ describe('OrderPanel cart-only UX', () => {
                 items: [],
             },
             orderItems: [],
-            statusLine: 'Приём закрыт',
+            statusLine: 'Открыт',
+            statusDetail: 'до 05.06 07:00',
             canEditOrder: false,
             compactCart: true,
         });
@@ -60,10 +62,13 @@ describe('OrderPanel cart-only UX', () => {
         const emptyState = wrapper.get('[data-testid="order-panel-empty-state"]');
         const footer = wrapper.get('[data-testid="order-panel-footer"]');
         const status = wrapper.get('[data-testid="order-cycle-status"]');
+        const detail = wrapper.get('[data-testid="order-cycle-status-detail"]');
 
         expect(wrapper.get('[data-testid="order-panel-heading"]').text()).toContain('Корзина');
-        expect(status.text()).toBe('Приём закрыт');
+        expect(status.text()).toBe('Открыт');
         expect(status.classes()).toContain('rounded-full');
+        expect(detail.text()).toBe('до 05.06 07:00');
+        expect(detail.classes()).toContain('text-slate-500');
         expect(wrapper.text()).toContain('Корзина пуста');
         expect(wrapper.text()).toContain('Добавьте блюда из каталога.');
         expect(emptyState.classes()).toContain('flex-1');
@@ -72,7 +77,29 @@ describe('OrderPanel cart-only UX', () => {
         expect(footer.text()).toContain('0 ₽');
         expect(footer.find('button').exists()).toBe(false);
         expect(wrapper.text()).not.toContain('0 позиций');
+        expect(wrapper.text()).not.toContain('Приём открыт · до');
         expect(wrapper.text()).not.toContain('Приём заказов закрыт');
+    });
+
+    it('supports upcoming and closed short badge text without long copy', () => {
+        const upcoming = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            statusLine: 'Скоро',
+            statusDetail: 'откроется 01.06 00:00',
+        });
+        const closed = mountPanel({
+            panelTitle: 'Корзина',
+            compactCart: true,
+            statusLine: 'Закрыт',
+        });
+
+        expect(upcoming.get('[data-testid="order-cycle-status"]').text()).toBe('Скоро');
+        expect(upcoming.get('[data-testid="order-cycle-status-detail"]').text()).toBe('откроется 01.06 00:00');
+        expect(closed.get('[data-testid="order-cycle-status"]').text()).toBe('Закрыт');
+        expect(closed.find('[data-testid="order-cycle-status-detail"]').exists()).toBe(false);
+        expect(upcoming.text()).not.toContain('Скоро откроется ·');
+        expect(closed.text()).not.toContain('Приём заказов закрыт');
     });
 
     it('shows a real checkout CTA button instead of zero total for unauthenticated guests', async () => {

@@ -54,6 +54,26 @@ class AdminDashboardTest extends TestCase
     }
 
     #[Test]
+    public function current_cycle_widget_marks_future_open_cycle_as_upcoming(): void
+    {
+        $this->actingAsAdmin();
+        $now = CarbonImmutable::create(2026, 6, 1, 10, 0, 0, config('lunch.business_timezone'));
+        $this->travelTo($now);
+
+        OrderCycle::query()->create([
+            'title' => 'Future Week',
+            'starts_at' => $now->addDay(),
+            'closes_at' => $now->addDays(4),
+            'status' => OrderCycleStatus::Open,
+        ]);
+
+        Livewire::test(CurrentOrderCycleWidget::class)
+            ->assertSee('Future Week')
+            ->assertSee('Скоро откроется')
+            ->assertDontSee('Не выбран');
+    }
+
+    #[Test]
     public function current_cycle_widget_displays_cycle_dates_in_business_timezone(): void
     {
         config()->set('app.timezone', 'UTC');

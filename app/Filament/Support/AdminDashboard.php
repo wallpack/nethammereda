@@ -57,10 +57,40 @@ class AdminDashboard
         return self::formatDate($date, 'd.m.Y H:i') ?? 'Не указано';
     }
 
+    public static function cycleStatusLabel(?OrderCycle $cycle): string
+    {
+        if (! $cycle) {
+            return 'Нет цикла';
+        }
+
+        if ($cycle->isUpcomingForOrdering()) {
+            return 'Скоро откроется';
+        }
+
+        return $cycle->status?->label() ?? 'Черновик';
+    }
+
+    public static function cycleStatusColor(?OrderCycle $cycle): string
+    {
+        if (! $cycle) {
+            return 'gray';
+        }
+
+        if ($cycle->isUpcomingForOrdering()) {
+            return 'warning';
+        }
+
+        return $cycle->status?->color() ?? 'gray';
+    }
+
     public static function timeUntilDeadline(?OrderCycle $cycle): string
     {
         if (! $cycle?->closes_at) {
             return 'Дедлайн не задан';
+        }
+
+        if ($cycle->isUpcomingForOrdering()) {
+            return 'Приём ещё не начался';
         }
 
         if ($cycle->closes_at->isPast()) {
@@ -103,6 +133,10 @@ class AdminDashboard
     {
         if (! $cycle) {
             return 'Нет активного цикла';
+        }
+
+        if ($cycle->isUpcomingForOrdering()) {
+            return 'Приём скоро откроется';
         }
 
         return match ($cycle->status) {

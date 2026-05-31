@@ -633,10 +633,49 @@ describe('catalog auth UX', () => {
 
         expect(document.querySelector('.week-status')).toBeNull();
         expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();
-        expect(cartStatus?.textContent).toContain('Приём закрыт');
+        expect(cartStatus?.textContent).toContain('Закрыт');
         expect(document.body.textContent).not.toContain('Приём заказов закрыт');
         expect(document.body.textContent).not.toContain('Администратор закрыл сбор заказов');
         expect(document.body.textContent?.toLowerCase()).not.toContain('черновик');
+    });
+
+    it('renders short open and upcoming cart status with date outside the badge', async () => {
+        const { wrapper } = await mountApp({ authenticated: true });
+
+        const openStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
+        const openDetail = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status-detail"]');
+
+        expect(openStatus?.textContent).toBe('Открыт');
+        expect(openDetail?.textContent).toBe('до 22.05 12:00');
+        expect(openStatus?.textContent).not.toContain('22.05');
+        expect(document.body.textContent).not.toContain('Приём открыт · до');
+
+        wrapper.unmount();
+        document.body.innerHTML = '';
+        localStorage.clear();
+        sessionStorage.clear();
+
+        await mountApp({
+            authenticated: true,
+            currentCycle: {
+                ...cycle,
+                effective_state: 'upcoming',
+                accepting_orders: false,
+                is_open_for_ordering: false,
+                is_orderable: false,
+                can_order: false,
+                opens_at_display: '01.06, 00:00',
+                opens_at_display_full: '01.06.2026, 00:00',
+                availability_label: 'Скоро откроется',
+            },
+        });
+
+        const upcomingStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
+        const upcomingDetail = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status-detail"]');
+
+        expect(upcomingStatus?.textContent).toBe('Скоро');
+        expect(upcomingDetail?.textContent).toBe('откроется 01.06 00:00');
+        expect(buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`)?.disabled).toBe(true);
     });
 
     it('renders guest header with a wide neutral login action, muted search and no old guest copy', async () => {
@@ -1676,7 +1715,7 @@ describe('catalog auth UX', () => {
         const cartStatus = document.querySelector('[data-testid="desktop-order-panel"] [data-testid="order-cycle-status"]');
 
         expect(document.body.textContent).not.toContain(closedOrderingCartClearedMessage);
-        expect(cartStatus?.textContent).toContain('Приём закрыт');
+        expect(cartStatus?.textContent).toContain('Закрыт');
         expect(document.querySelectorAll('.catalog-order-panel article').length).toBe(0);
 
         wrapper.unmount();

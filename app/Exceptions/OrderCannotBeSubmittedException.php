@@ -19,6 +19,11 @@ class OrderCannotBeSubmittedException extends RuntimeException implements Should
         return new self('Нельзя отправить пустой заказ.');
     }
 
+    public static function forUnavailableCycle(): self
+    {
+        return new self('Приём заказов закрыт.');
+    }
+
     public function render(Request $request): JsonResponse
     {
         return response()->json([

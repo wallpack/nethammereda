@@ -14,8 +14,9 @@ trait FormatsApiPayloads
     protected function cyclePayload(OrderCycle $cycle): array
     {
         $isOpenStatus = $cycle->status === OrderCycleStatus::Open;
-        $deadlinePassed = $cycle->closes_at !== null && $cycle->closes_at->isPast();
-        $isOrderable = $cycle->isOpenForOrdering();
+        $effectiveState = $cycle->effectiveOrderState();
+        $deadlinePassed = $cycle->closes_at !== null && $this->deadlineForDisplay($cycle)?->isPast() === true;
+        $isOrderable = $effectiveState === 'open';
 
         return [
             'id' => $cycle->id,
@@ -26,7 +27,11 @@ trait FormatsApiPayloads
             'deadline_time' => $this->deadlineTime($cycle),
             'deadline_display' => $this->deadlineDisplay($cycle),
             'deadline_display_full' => $this->deadlineDisplayFull($cycle),
+            'opens_at_display' => $this->opensAtDisplay($cycle),
+            'opens_at_display_full' => $this->opensAtDisplayFull($cycle),
             'status' => $cycle->status->value,
+            'effective_state' => $effectiveState,
+            'accepting_orders' => $isOrderable,
             'is_open_status' => $isOpenStatus,
             'is_orderable' => $isOrderable,
             'can_order' => $isOrderable,
@@ -36,8 +41,8 @@ trait FormatsApiPayloads
             'is_closed' => $cycle->status === OrderCycleStatus::Closed,
             'is_delivered' => $cycle->status === OrderCycleStatus::Delivered,
             'status_label' => $this->orderCycleStatusLabel($cycle->status),
-            'availability_label' => $this->availabilityLabel($cycle, $isOrderable, $deadlinePassed),
-            'availability_description' => $this->availabilityDescription($cycle, $isOrderable, $deadlinePassed),
+            'availability_label' => $this->availabilityLabel($cycle, $effectiveState, $deadlinePassed),
+            'availability_description' => $this->availabilityDescription($cycle, $effectiveState, $deadlinePassed),
             'deadline_label' => $this->deadlineLabel($cycle),
         ];
     }
@@ -117,43 +122,31 @@ trait FormatsApiPayloads
         return $status->label();
     }
 
-    protected function availabilityLabel(OrderCycle $cycle, bool $isOrderable, bool $deadlinePassed): string
+    protected function availabilityLabel(OrderCycle $cycle, string $effectiveState, bool $deadlinePassed): string
     {
-        if ($isOrderable) {
-            return 'Заказ открыт';
-        }
-
-        if ($cycle->status === OrderCycleStatus::Open && $deadlinePassed) {
-            return 'Дедлайн прошел';
-        }
-
-        return match ($cycle->status) {
-            OrderCycleStatus::Draft => 'Заказ еще не открыт',
-            OrderCycleStatus::Open => 'Прием заказов завершен',
-            OrderCycleStatus::Closed => 'Заказ закрыт',
-            OrderCycleStatus::SentToSupplier => 'Отправлен поставщику',
-            OrderCycleStatus::Delivered => 'Доставлен',
-            OrderCycleStatus::Archived => 'Архивирован',
+        return match ($effectiveState) {
+            'open' => 'Приём открыт',
+            'upcoming' => 'Скоро откроется',
+            'draft' => 'Приём закрыт',
+            'delivered' => 'Доставлен',
+            'archived' => 'Архивирован',
+            default => $cycle->status === OrderCycleStatus::SentToSupplier
+                ? 'Отправлен поставщику'
+                : 'Приём закрыт',
         };
     }
 
-    protected function availabilityDescription(OrderCycle $cycle, bool $isOrderable, bool $deadlinePassed): string
+    protected function availabilityDescription(OrderCycle $cycle, string $effectiveState, bool $deadlinePassed): string
     {
-        if ($isOrderable) {
-            return 'Можно добавлять блюда до дедлайна.';
-        }
-
-        if ($cycle->status === OrderCycleStatus::Open && $deadlinePassed) {
-            return 'Прием заказов завершен.';
-        }
-
-        return match ($cycle->status) {
-            OrderCycleStatus::Draft => 'Администратор еще не открыл сбор заказов.',
-            OrderCycleStatus::Open => 'Прием заказов завершен.',
-            OrderCycleStatus::Closed => 'Администратор закрыл сбор заказов.',
-            OrderCycleStatus::SentToSupplier => 'Сводный заказ уже отправлен поставщику.',
-            OrderCycleStatus::Delivered => 'Доставка отмечена, блюда попали в холодильники.',
-            OrderCycleStatus::Archived => 'Недельный цикл завершен.',
+        return match ($effectiveState) {
+            'open' => 'Можно добавлять блюда до дедлайна.',
+            'upcoming' => 'Приём заказов откроется в указанное время.',
+            'draft' => 'Администратор еще не открыл сбор заказов.',
+            'delivered' => 'Доставка отмечена, блюда попали в холодильники.',
+            'archived' => 'Недельный цикл завершен.',
+            default => $cycle->status === OrderCycleStatus::SentToSupplier
+                ? 'Сводный заказ уже отправлен поставщику.'
+                : ($deadlinePassed ? 'Прием заказов завершен.' : 'Администратор закрыл сбор заказов.'),
         };
     }
 
@@ -165,7 +158,7 @@ trait FormatsApiPayloads
             return null;
         }
 
-        $prefix = $cycle->isOpenForOrdering() ? 'Дедлайн' : 'Дедлайн был';
+        $prefix = $deadline->isFuture() ? 'Дедлайн' : 'Дедлайн был';
 
         return $prefix.' '.$deadline->format('Y-m-d H:i');
     }
@@ -190,14 +183,36 @@ trait FormatsApiPayloads
         return $this->deadlineForDisplay($cycle)?->format('d.m.Y, H:i');
     }
 
+    protected function opensAtDisplay(OrderCycle $cycle): ?string
+    {
+        return $this->startsAtForDisplay($cycle)?->format('d.m, H:i');
+    }
+
+    protected function opensAtDisplayFull(OrderCycle $cycle): ?string
+    {
+        return $this->startsAtForDisplay($cycle)?->format('d.m.Y, H:i');
+    }
+
+    protected function startsAtForDisplay(OrderCycle $cycle): ?CarbonInterface
+    {
+        if ($cycle->starts_at === null) {
+            return null;
+        }
+
+        return $cycle->starts_at->copy()->setTimezone($this->businessTimezone());
+    }
+
     protected function deadlineForDisplay(OrderCycle $cycle): ?CarbonInterface
     {
         if ($cycle->closes_at === null) {
             return null;
         }
 
-        return $cycle->closes_at->copy()->setTimezone(
-            config('lunch.business_timezone', config('app.timezone', 'UTC')),
-        );
+        return $cycle->closes_at->copy()->setTimezone($this->businessTimezone());
+    }
+
+    private function businessTimezone(): string
+    {
+        return (string) config('lunch.business_timezone', config('app.timezone', 'UTC'));
     }
 }

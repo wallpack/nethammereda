@@ -6,6 +6,7 @@ use App\Enums\OrderCycleStatus;
 use App\Exceptions\SupplierOrderCannotBeSentException;
 use App\Filament\Resources\OrderCycles\Actions\MarkOrderCycleDeliveredAction;
 use App\Filament\Resources\OrderCycles\Actions\ReopenOrderCycleAction;
+use App\Filament\Support\AdminDashboard;
 use App\Models\OrderCycle;
 use App\Models\User;
 use App\Services\SupplierOrderExportService;
@@ -36,9 +37,9 @@ class OrderCyclesTable
                     ->wrap(),
                 TextColumn::make('status')
                     ->label('Статус')
-                    ->formatStateUsing(fn (OrderCycleStatus $state): string => $state->label())
+                    ->formatStateUsing(fn (OrderCycleStatus $state, OrderCycle $record): string => AdminDashboard::cycleStatusLabel($record))
                     ->badge()
-                    ->color(fn (OrderCycleStatus $state): string => $state->color())
+                    ->color(fn (OrderCycleStatus $state, OrderCycle $record): string => AdminDashboard::cycleStatusColor($record))
                     ->sortable(),
                 TextColumn::make('starts_at')
                     ->label('Старт')

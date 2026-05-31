@@ -31,6 +31,8 @@ class OrderFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $cycle->id)
             ->assertJsonPath('data.status', OrderCycleStatus::Open->value)
+            ->assertJsonPath('data.effective_state', 'open')
+            ->assertJsonPath('data.accepting_orders', true)
             ->assertJsonPath('data.is_open_status', true)
             ->assertJsonPath('data.is_orderable', true)
             ->assertJsonPath('data.can_order', true)
@@ -47,9 +49,64 @@ class OrderFlowTest extends TestCase
                     'deadline_time',
                     'deadline_display',
                     'deadline_display_full',
+                    'opens_at_display',
+                    'opens_at_display_full',
                     'availability_description',
                 ],
             ]);
+    }
+
+    #[Test]
+    public function future_open_cycle_is_upcoming_and_not_orderable_until_starts_at(): void
+    {
+        $now = CarbonImmutable::create(2026, 6, 1, 10, 0, 0, config('lunch.business_timezone'));
+        $this->travelTo($now);
+
+        $cycle = $this->createCycle(
+            OrderCycleStatus::Open,
+            $now->addDays(4),
+            $now->addDay(),
+        );
+
+        $this->getJson('/api/current-cycle')
+            ->assertOk()
+            ->assertJsonPath('data.id', $cycle->id)
+            ->assertJsonPath('data.status', OrderCycleStatus::Open->value)
+            ->assertJsonPath('data.effective_state', 'upcoming')
+            ->assertJsonPath('data.accepting_orders', false)
+            ->assertJsonPath('data.can_order', false)
+            ->assertJsonPath('data.is_open_for_ordering', false)
+            ->assertJsonPath('data.availability_label', 'Скоро откроется')
+            ->assertJsonPath('data.opens_at_display', '02.06, 10:00')
+            ->assertJsonPath('data.opens_at_display_full', '02.06.2026, 10:00');
+
+        $this->assertDatabaseHas('order_cycles', [
+            'id' => $cycle->id,
+            'status' => OrderCycleStatus::Open->value,
+        ]);
+    }
+
+    #[Test]
+    public function draft_cycle_with_reached_start_remains_not_orderable(): void
+    {
+        $now = CarbonImmutable::create(2026, 6, 1, 10, 0, 0, config('lunch.business_timezone'));
+        $this->travelTo($now);
+
+        $cycle = $this->createCycle(
+            OrderCycleStatus::Draft,
+            $now->addDays(4),
+            $now->subDay(),
+        );
+
+        $this->getJson('/api/current-cycle')
+            ->assertOk()
+            ->assertJsonPath('data.id', $cycle->id)
+            ->assertJsonPath('data.status', OrderCycleStatus::Draft->value)
+            ->assertJsonPath('data.effective_state', 'draft')
+            ->assertJsonPath('data.accepting_orders', false)
+            ->assertJsonPath('data.can_order', false)
+            ->assertJsonPath('data.availability_label', 'Приём закрыт')
+            ->assertJsonPath('data.status_label', OrderCycleStatus::Draft->label());
     }
 
     #[Test]
@@ -79,6 +136,8 @@ class OrderFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $cycle->id)
             ->assertJsonPath('data.status', OrderCycleStatus::Closed->value)
+            ->assertJsonPath('data.effective_state', 'closed')
+            ->assertJsonPath('data.accepting_orders', false)
             ->assertJsonPath('data.is_open_status', false)
             ->assertJsonPath('data.is_orderable', false)
             ->assertJsonPath('data.can_order', false)
@@ -516,6 +575,46 @@ class OrderFlowTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'id' => $previousOrder->id,
             'status' => OrderStatus::Draft->value,
+        ]);
+    }
+
+    #[Test]
+    public function adding_or_submitting_order_before_cycle_start_is_rejected_without_changing_cycle_status(): void
+    {
+        $now = CarbonImmutable::create(2026, 6, 1, 10, 0, 0, config('lunch.business_timezone'));
+        $this->travelTo($now);
+
+        [$user, $order] = $this->createDraftOrderItem(
+            cycleStatus: OrderCycleStatus::Open,
+            closesAt: $now->addDays(4),
+            startsAt: $now->addDay(),
+        );
+        $menuItem = $this->createMenuItem(title: 'Soup', price: 180);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/my-order/items', [
+            'menu_item_id' => $menuItem->id,
+            'quantity' => 1,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->closedOrderingMessage());
+
+        $this->postJson('/api/my-order/submit')
+            ->assertUnprocessable()
+            ->assertJsonPath('message', $this->closedOrderingMessage());
+
+        $this->assertDatabaseHas('order_cycles', [
+            'id' => $order->order_cycle_id,
+            'status' => OrderCycleStatus::Open->value,
+        ]);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::Draft->value,
+        ]);
+        $this->assertDatabaseMissing('order_items', [
+            'order_id' => $order->id,
+            'menu_item_id' => $menuItem->id,
         ]);
     }
 
@@ -1177,11 +1276,12 @@ class OrderFlowTest extends TestCase
         int $price = 100,
         OrderCycleStatus $cycleStatus = OrderCycleStatus::Open,
         mixed $closesAt = null,
+        mixed $startsAt = null,
     ): array
     {
         $user = User::factory()->create();
         $menuItem = $this->createMenuItem(price: $price);
-        $cycle = $this->createCycle($cycleStatus, $closesAt);
+        $cycle = $this->createCycle($cycleStatus, $closesAt, $startsAt);
         $order = Order::query()->create([
             'user_id' => $user->id,
             'order_cycle_id' => $cycle->id,
@@ -1220,11 +1320,11 @@ class OrderFlowTest extends TestCase
         return [$user, $order->fresh(), $orderItem->fresh('order')];
     }
 
-    private function createCycle(OrderCycleStatus $status, mixed $closesAt = null): OrderCycle
+    private function createCycle(OrderCycleStatus $status, mixed $closesAt = null, mixed $startsAt = null): OrderCycle
     {
         return OrderCycle::query()->create([
             'title' => 'Test Week',
-            'starts_at' => now()->startOfWeek(),
+            'starts_at' => $startsAt ?? now()->startOfWeek(),
             'closes_at' => $closesAt ?? now()->addDay(),
             'status' => $status,
         ]);
@@ -1280,29 +1380,17 @@ class OrderFlowTest extends TestCase
 
     private function openAvailabilityLabel(): string
     {
-        return json_decode(
-            '"\u0417\u0430\u043a\u0430\u0437 \u043e\u0442\u043a\u0440\u044b\u0442"',
-            true,
-            flags: JSON_THROW_ON_ERROR,
-        );
+        return 'Приём открыт';
     }
 
     private function closedAvailabilityLabel(): string
     {
-        return json_decode(
-            '"\u0417\u0430\u043a\u0430\u0437 \u0437\u0430\u043a\u0440\u044b\u0442"',
-            true,
-            flags: JSON_THROW_ON_ERROR,
-        );
+        return 'Приём закрыт';
     }
 
     private function closedAvailabilityDescription(): string
     {
-        return json_decode(
-            '"\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440 \u0437\u0430\u043a\u0440\u044b\u043b \u0441\u0431\u043e\u0440 \u0437\u0430\u043a\u0430\u0437\u043e\u0432."',
-            true,
-            flags: JSON_THROW_ON_ERROR,
-        );
+        return 'Прием заказов завершен.';
     }
 
     private function closedOrderingMessage(): string

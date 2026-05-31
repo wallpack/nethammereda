@@ -4,6 +4,7 @@ namespace App\Filament\Resources\OrderCycles\Schemas;
 
 use App\Enums\OrderCycleStatus;
 use App\Models\OrderCycle;
+use App\Rules\FourDigitYearDateTime;
 use Carbon\Carbon;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
@@ -34,12 +35,12 @@ class OrderCycleForm
                             ->required()
                             ->maxLength(255)
                             ->columnSpanFull(),
-                        DateTimePicker::make('starts_at')
+                        self::dateTimePicker('starts_at')
                             ->label('Начало недели')
                             ->timezone($businessTimezone)
                             ->seconds(false)
                             ->required(),
-                        DateTimePicker::make('closes_at')
+                        self::dateTimePicker('closes_at')
                             ->label('Дедлайн заказа')
                             ->timezone($businessTimezone)
                             ->seconds(false)
@@ -55,6 +56,11 @@ class OrderCycleForm
                             ->required()
                             ->options(fn (?OrderCycle $record = null): array => self::statusOptions($record))
                             ->helperText('Операционные действия «Отправить поставщику» и «Отметить доставку» доступны отдельными кнопками.'),
+                        Callout::make('Скоро откроется')
+                            ->description('Статус уже «Открыт», но пользователи смогут оформить заказ только после начала недели.')
+                            ->info()
+                            ->columnSpanFull()
+                            ->visible(fn (?OrderCycle $record = null): bool => $record?->isUpcomingForOrdering() === true),
                         Callout::make('Цикл открыт, но дедлайн уже прошел')
                             ->description('Пользователи уже не могут добавлять блюда. Закройте цикл, чтобы перейти к отправке поставщику.')
                             ->warning()
@@ -71,7 +77,7 @@ class OrderCycleForm
                     ])
                     ->visible(fn (?OrderCycle $record = null): bool => $record?->sent_to_supplier_at !== null || $record?->delivered_at !== null)
                     ->schema([
-                        DateTimePicker::make('sent_to_supplier_at')
+                        self::dateTimePicker('sent_to_supplier_at')
                             ->label('Дата отправки поставщику')
                             ->timezone($businessTimezone)
                             ->disabled()
@@ -84,7 +90,7 @@ class OrderCycleForm
                             ->dehydrated(false)
                             ->placeholder('-')
                             ->visible(fn (?OrderCycle $record = null): bool => $record?->sent_to_supplier_by !== null),
-                        DateTimePicker::make('delivered_at')
+                        self::dateTimePicker('delivered_at')
                             ->label('Дата доставки')
                             ->timezone($businessTimezone)
                             ->disabled()
@@ -98,6 +104,20 @@ class OrderCycleForm
                             ->placeholder('-')
                             ->visible(fn (?OrderCycle $record = null): bool => $record?->delivered_by !== null),
                     ]),
+            ]);
+    }
+
+    private static function dateTimePicker(string $name): DateTimePicker
+    {
+        return DateTimePicker::make($name)
+            ->native(false)
+            ->minDate('0001-01-01 00:00:00')
+            ->maxDate('9999-12-31 23:59:59')
+            ->rules([
+                new FourDigitYearDateTime,
+                'date',
+                'after_or_equal:0001-01-01 00:00:00',
+                'before_or_equal:9999-12-31 23:59:59',
             ]);
     }
 

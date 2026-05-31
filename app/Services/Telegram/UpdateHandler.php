@@ -259,7 +259,9 @@ class UpdateHandler
         }
 
         $state = match ($cycle->status->value) {
-            'open' => $cycle->isOpenForOrdering() ? 'Заказ открыт.' : 'Прием заказов завершен.',
+            'open' => $cycle->isUpcomingForOrdering()
+                ? 'Приём скоро откроется.'
+                : ($cycle->isOpenForOrdering() ? 'Заказ открыт.' : 'Прием заказов завершен.'),
             'closed' => 'Прием заказов завершен.',
             'sent_to_supplier' => 'Заказ отправлен поставщику. Ожидается доставка.',
             'delivered' => 'Доставка отмечена, проверьте холодильник.',
@@ -448,7 +450,9 @@ class UpdateHandler
 
         $text = $isOpen
             ? "Приём заказов открыт ✅\nМожно выбрать блюда в меню."
-            : "Приём заказов сейчас закрыт ⏰\nМеню можно посмотреть, но оформить заказ получится позже.";
+            : ($cycle->isUpcomingForOrdering()
+                ? "Приём заказов скоро откроется ⏰\nМеню можно посмотреть, но оформить заказ получится позже."
+                : "Приём заказов сейчас закрыт ⏰\nМеню можно посмотреть, но оформить заказ получится позже.");
 
         $this->botClient->sendMessage(
             $chatId,
@@ -693,7 +697,9 @@ class UpdateHandler
     {
         return match ($cycle->status->value) {
             'draft' => 'Черновик',
-            'open' => $cycle->isOpenForOrdering() ? 'Открыт' : 'Открыт (дедлайн прошел)',
+            'open' => $cycle->isUpcomingForOrdering()
+                ? 'Скоро откроется'
+                : ($cycle->isOpenForOrdering() ? 'Открыт' : 'Открыт (дедлайн прошел)'),
             'closed' => 'Закрыт',
             'sent_to_supplier' => 'Отправлен поставщику',
             'delivered' => 'Доставлен',

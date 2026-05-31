@@ -10,7 +10,8 @@ export const useCatalogStore = defineStore('catalog', () => {
     const selectedCategory = ref(null);
 
     const isOpenForOrdering = computed(() => Boolean(
-        cycle.value?.can_order
+        cycle.value?.accepting_orders
+        ?? cycle.value?.can_order
         ?? cycle.value?.is_orderable
         ?? cycle.value?.is_open_for_ordering,
     ));
@@ -23,7 +24,11 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
 
         if (isOpenForOrdering.value) {
-            return 'Заказ открыт';
+            return 'Приём открыт';
+        }
+
+        if (cycle.value?.effective_state === 'upcoming') {
+            return 'Скоро откроется';
         }
 
         if (cycle.value?.status === 'open' && deadlinePassed.value) {
@@ -31,9 +36,9 @@ export const useCatalogStore = defineStore('catalog', () => {
         }
 
         const labels = {
-            draft: 'Заказ еще не открыт',
-            open: 'Прием заказов завершен',
-            closed: 'Заказ закрыт',
+            draft: 'Приём закрыт',
+            open: 'Приём закрыт',
+            closed: 'Приём закрыт',
             sent_to_supplier: 'Отправлен поставщику',
             delivered: 'Доставлен',
             archived: 'Архивирован',

@@ -19,6 +19,10 @@ class OrderService
 {
     public function getOrCreateOrder(User $user, OrderCycle $cycle): Order
     {
+        if (! $cycle->isOpenForOrdering()) {
+            throw OrderCannotBeSubmittedException::forUnavailableCycle();
+        }
+
         return Order::query()->firstOrCreate(
             [
                 'user_id' => $user->id,
@@ -119,6 +123,12 @@ class OrderService
 
             if (! $order->isDraft()) {
                 throw OrderCannotBeSubmittedException::forNonDraftOrder();
+            }
+
+            $order->loadMissing('cycle');
+
+            if ($order->cycle === null || ! $order->cycle->isOpenForOrdering()) {
+                throw OrderCannotBeSubmittedException::forUnavailableCycle();
             }
 
             $hasItems = $order->items()

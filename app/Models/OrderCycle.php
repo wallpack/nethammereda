@@ -74,11 +74,50 @@ class OrderCycle extends Model
         return $this;
     }
 
+    public function effectiveOrderState(?CarbonInterface $now = null): string
+    {
+        if ($this->status !== OrderCycleStatus::Open) {
+            return match ($this->status) {
+                OrderCycleStatus::Draft, null => 'draft',
+                OrderCycleStatus::Delivered => 'delivered',
+                OrderCycleStatus::Archived => 'archived',
+                default => 'closed',
+            };
+        }
+
+        $now = $this->businessNow($now);
+        $startsAt = $this->starts_at?->copy()->setTimezone($now->getTimezone());
+        $closesAt = $this->closes_at?->copy()->setTimezone($now->getTimezone());
+
+        if ($startsAt === null || $closesAt === null) {
+            return 'closed';
+        }
+
+        if ($now->lt($startsAt)) {
+            return 'upcoming';
+        }
+
+        if ($now->gte($closesAt)) {
+            return 'closed';
+        }
+
+        return 'open';
+    }
+
     public function isOpenForOrdering(?CarbonInterface $now = null): bool
     {
-        $now ??= now();
+        return $this->effectiveOrderState($now) === 'open';
+    }
 
-        return $this->status === OrderCycleStatus::Open
-            && $now->lt($this->closes_at);
+    public function isUpcomingForOrdering(?CarbonInterface $now = null): bool
+    {
+        return $this->effectiveOrderState($now) === 'upcoming';
+    }
+
+    private function businessNow(?CarbonInterface $now = null): CarbonInterface
+    {
+        $timezone = config('lunch.business_timezone', config('app.timezone', 'UTC'));
+
+        return ($now ?? now($timezone))->copy()->setTimezone($timezone);
     }
 }

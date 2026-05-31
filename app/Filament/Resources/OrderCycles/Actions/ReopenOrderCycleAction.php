@@ -4,6 +4,7 @@ namespace App\Filament\Resources\OrderCycles\Actions;
 
 use App\Enums\OrderCycleStatus;
 use App\Models\OrderCycle;
+use App\Rules\FourDigitYearDateTime;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
@@ -28,9 +29,18 @@ class ReopenOrderCycleAction
                 DateTimePicker::make('new_closes_at')
                     ->label('Новый дедлайн')
                     ->timezone($businessTimezone)
+                    ->native(false)
+                    ->minDate('0001-01-01 00:00:00')
+                    ->maxDate('9999-12-31 23:59:59')
                     ->required()
                     ->seconds(false)
-                    ->rules(['after:now'])
+                    ->rules([
+                        new FourDigitYearDateTime,
+                        'date',
+                        'after_or_equal:0001-01-01 00:00:00',
+                        'before_or_equal:9999-12-31 23:59:59',
+                        'after:now',
+                    ])
                     ->default(fn (): string => now()->addHour()->setSecond(0)->toDateTimeString()),
             ])
             ->action(function (OrderCycle $record, array $data, \Livewire\Component $livewire) use ($businessTimezone, $appTimezone): void {

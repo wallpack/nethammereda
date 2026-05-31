@@ -79,7 +79,7 @@ class DemoResetCommandTest extends TestCase
             ->assertJsonPath('data.status', OrderCycleStatus::Open->value)
             ->assertJsonPath('data.can_order', true)
             ->assertJsonPath('data.is_orderable', true)
-            ->assertJsonPath('data.availability_label', 'Заказ открыт');
+            ->assertJsonPath('data.availability_label', 'Приём открыт');
     }
 
     #[Test]
@@ -95,7 +95,8 @@ class DemoResetCommandTest extends TestCase
 
         $this->assertSame('2026-05-25 00:00', $cycle->starts_at->setTimezone($businessTimezone)->format('Y-m-d H:i'));
         $this->assertSame('2026-05-29 17:00', $cycle->closes_at->setTimezone($businessTimezone)->format('Y-m-d H:i'));
-        $this->assertTrue($cycle->isOpenForOrdering());
+        $this->assertSame('upcoming', $cycle->effectiveOrderState());
+        $this->assertFalse($cycle->isOpenForOrdering());
     }
 
     #[Test]

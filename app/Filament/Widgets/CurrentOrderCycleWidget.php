@@ -36,8 +36,8 @@ class CurrentOrderCycleWidget extends Widget
             'deadline' => AdminDashboard::formatDateTime($cycle?->closes_at),
             'timeLeft' => AdminDashboard::timeUntilDeadline($cycle),
             'nextStep' => AdminDashboard::nextStep($cycle),
-            'statusLabel' => $cycle?->status->label() ?? 'Нет цикла',
-            'statusColor' => $this->statusColor($cycle),
+            'statusLabel' => AdminDashboard::cycleStatusLabel($cycle),
+            'statusColor' => AdminDashboard::cycleStatusColor($cycle),
             'cycleUrl' => $cycle ? OrderCycleResource::getUrl('edit', ['record' => $cycle]) : OrderCycleResource::getUrl('create'),
             'cyclesUrl' => OrderCycleResource::getUrl('index'),
             'ordersUrl' => $cycle
@@ -104,14 +104,5 @@ class CurrentOrderCycleWidget extends Widget
                 'color' => 'gray',
             ],
         };
-    }
-
-    private function statusColor(?OrderCycle $cycle): string
-    {
-        if (! $cycle) {
-            return 'gray';
-        }
-
-        return $cycle->status->color();
     }
 }

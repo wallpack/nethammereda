@@ -139,6 +139,31 @@ class OrderCycleResourceTest extends TestCase
     }
 
     #[Test]
+    public function future_open_cycle_table_status_shows_upcoming_without_changing_database_status(): void
+    {
+        $this->actingAsAdmin();
+        $now = CarbonImmutable::create(2026, 6, 1, 10, 0, 0, config('lunch.business_timezone'));
+        $this->travelTo($now);
+
+        $cycle = OrderCycle::query()->create([
+            'title' => 'Future Week',
+            'starts_at' => $now->addDay(),
+            'closes_at' => $now->addDays(4),
+            'status' => OrderCycleStatus::Open,
+        ]);
+
+        Livewire::test(ListOrderCycles::class)
+            ->assertSee('Future Week')
+            ->assertSee('Скоро откроется')
+            ->assertDontSee('Не выбран');
+
+        $this->assertDatabaseHas('order_cycles', [
+            'id' => $cycle->id,
+            'status' => OrderCycleStatus::Open->value,
+        ]);
+    }
+
+    #[Test]
     public function order_cycle_edit_form_and_table_use_same_business_timezone(): void
     {
         $this->actingAsAdmin();
@@ -168,6 +193,54 @@ class OrderCycleResourceTest extends TestCase
         $expectedDeadline = $deadlineUtc->setTimezone($businessTimezone)->format('d.m.Y, H:i');
 
         $this->assertSame($expectedDeadline, (string) $tableColumn->formatState($deadlineUtc));
+    }
+
+    #[Test]
+    public function order_cycle_form_accepts_valid_four_digit_year_dates(): void
+    {
+        $this->actingAsAdmin();
+
+        Livewire::test(CreateOrderCycle::class)
+            ->fillForm([
+                'title' => 'Valid Year Week',
+                'starts_at' => '2026-06-01 00:00:00',
+                'closes_at' => '2026-06-05 12:00:00',
+                'status' => OrderCycleStatus::Open->value,
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('order_cycles', [
+            'title' => 'Valid Year Week',
+            'status' => OrderCycleStatus::Open->value,
+        ]);
+    }
+
+    #[Test]
+    public function order_cycle_form_rejects_five_digit_year_dates_on_create_and_update(): void
+    {
+        $this->actingAsAdmin();
+        $cycle = $this->createCycle(OrderCycleStatus::Open);
+
+        Livewire::test(CreateOrderCycle::class)
+            ->fillForm([
+                'title' => 'Invalid Year Week',
+                'starts_at' => '20266-06-01 00:00:00',
+                'closes_at' => '20266-06-05 12:00:00',
+                'status' => OrderCycleStatus::Open->value,
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['starts_at', 'closes_at']);
+
+        Livewire::test(EditOrderCycle::class, ['record' => $cycle->id])
+            ->fillForm([
+                'title' => $cycle->title,
+                'starts_at' => '20266-06-01 00:00:00',
+                'closes_at' => '20266-06-05 12:00:00',
+                'status' => OrderCycleStatus::Open->value,
+            ])
+            ->call('save')
+            ->assertHasFormErrors(['starts_at', 'closes_at']);
     }
 
     #[Test]
