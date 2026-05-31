@@ -264,12 +264,6 @@ const cartStatusDetailText = computed(() => {
     return '';
 });
 
-const cartOpensAtLabel = computed(() => {
-    const opensAt = cycle.value?.opens_at_display || cycle.value?.opens_at_display_full;
-
-    return opensAt ? readableDateTimeLabel(opensAt) : '';
-});
-
 const cartOpensDateLabel = computed(() => {
     const opensAt = cycle.value?.opens_at_display || cycle.value?.opens_at_display_full;
 
@@ -291,22 +285,6 @@ const disabledCheckoutLabel = computed(() => {
 
     return '';
 });
-
-const disabledCheckoutHelper = computed(() => {
-    if (cycleEffectiveState.value === 'upcoming') {
-        return cartOpensAtLabel.value ? `Оформить заказ можно с ${cartOpensAtLabel.value}.` : '';
-    }
-
-    if (cycleEffectiveState.value === 'closed' || cycleEffectiveState.value === 'draft') {
-        return 'Новый цикл появится позже.';
-    }
-
-    return '';
-});
-
-const emptyCartDetail = computed(() => (
-    cycleEffectiveState.value === 'upcoming' ? disabledCheckoutHelper.value : ''
-));
 
 const mobileOrderStatusText = computed(() => {
     if (loading.value) {
@@ -1237,8 +1215,6 @@ onBeforeUnmount(() => {
                             :status-line="cartStatusBadgeText"
                             :status-detail="cartStatusDetailText"
                             :disabled-checkout-label="disabledCheckoutLabel"
-                            :disabled-checkout-helper="disabledCheckoutHelper"
-                            :empty-state-detail="emptyCartDetail"
                             :can-edit-order="canEditOrder"
                             :can-reopen-order="canReopenSubmittedOrder"
                             :loading="loading"
@@ -1300,8 +1276,6 @@ onBeforeUnmount(() => {
                             :status-line="cartStatusBadgeText"
                             :status-detail="cartStatusDetailText"
                             :disabled-checkout-label="disabledCheckoutLabel"
-                            :disabled-checkout-helper="disabledCheckoutHelper"
-                            :empty-state-detail="emptyCartDetail"
                             :is-authenticated="isAuthenticated"
                             :can-edit-order="isAuthenticated ? canEditOrder : false"
                             :can-reopen-order="isAuthenticated ? canReopenSubmittedOrder : false"
@@ -1349,8 +1323,6 @@ onBeforeUnmount(() => {
                 :status-line="cartStatusBadgeText"
                 :status-detail="cartStatusDetailText"
                 :disabled-checkout-label="disabledCheckoutLabel"
-                :disabled-checkout-helper="disabledCheckoutHelper"
-                :empty-state-detail="emptyCartDetail"
                 :can-edit-order="canEditOrder"
                 :can-reopen-order="canReopenSubmittedOrder"
                 :loading="loading"

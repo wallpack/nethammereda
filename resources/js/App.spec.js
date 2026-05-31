@@ -678,7 +678,9 @@ describe('catalog auth UX', () => {
         expect(upcomingDetail?.textContent).toBe('Откроется 01.06 в 00:00');
         expect(upcomingStatus?.textContent).not.toBe('Скоро');
         expect(document.querySelector('[data-testid="order-panel-disabled-checkout-button"]')?.textContent).toContain('Заказы откроются 01.06');
-        expect(document.querySelector('[data-testid="order-panel-disabled-checkout-helper"]')?.textContent).toBe('Оформить заказ можно с 01.06 в 00:00.');
+        expect(document.querySelector('[data-testid="order-panel-disabled-checkout-helper"]')).toBeNull();
+        expect(document.querySelector('[data-testid="order-panel-empty-state-detail"]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Оформить заказ можно с 01.06 в 00:00.');
         expect(document.body.textContent).not.toContain('Приём заказов закрыт.');
         expect(buttonByAriaLabel(`Добавить в заказ: ${menuItem.title}`)?.disabled).toBe(true);
 
@@ -713,7 +715,8 @@ describe('catalog auth UX', () => {
         expect(status?.textContent).toBe('Приём закрыт');
         expect(disabledButton?.textContent).toContain('Приём заказов закрыт');
         expect(disabledButton?.hasAttribute('disabled')).toBe(true);
-        expect(document.querySelector('[data-testid="order-panel-disabled-checkout-helper"]')?.textContent).toBe('Новый цикл появится позже.');
+        expect(document.querySelector('[data-testid="order-panel-disabled-checkout-helper"]')).toBeNull();
+        expect(document.body.textContent).not.toContain('Новый цикл появится позже.');
         expect(buttonByText('Оформить заказ')).toBeFalsy();
         expect(document.querySelector('.week-status')).toBeNull();
         expect(document.querySelector('[data-testid="menu-status-strip"]')).toBeNull();

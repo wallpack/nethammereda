@@ -105,7 +105,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(upcoming.text()).not.toContain('Скоро откроется ·');
     });
 
-    it('shows calm disabled checkout copy for upcoming and closed ordering states', () => {
+    it('shows calm disabled checkout copy without helper text for upcoming and closed ordering states', () => {
         const commonOrder = {
             id: 15,
             status: 'draft',
@@ -146,13 +146,15 @@ describe('OrderPanel cart-only UX', () => {
 
         expect(upcomingButton.text()).toContain('Заказы откроются 01.06');
         expect(upcomingButton.attributes('disabled')).toBeDefined();
-        expect(upcoming.get('[data-testid="order-panel-disabled-checkout-helper"]').text()).toBe('Оформить заказ можно с 01.06 в 00:00.');
+        expect(upcoming.find('[data-testid="order-panel-disabled-checkout-helper"]').exists()).toBe(false);
+        expect(upcoming.text()).not.toContain('Оформить заказ можно с 01.06 в 00:00.');
         expect(closedButton.text()).toContain('Приём заказов закрыт');
         expect(closedButton.attributes('disabled')).toBeDefined();
-        expect(closed.get('[data-testid="order-panel-disabled-checkout-helper"]').text()).toBe('Новый цикл появится позже.');
+        expect(closed.find('[data-testid="order-panel-disabled-checkout-helper"]').exists()).toBe(false);
+        expect(closed.text()).not.toContain('Новый цикл появится позже.');
     });
 
-    it('keeps the empty cart centered while explaining upcoming ordering', () => {
+    it('keeps the upcoming empty cart centered without duplicate ordering helper', () => {
         const wrapper = mountPanel({
             panelTitle: 'Корзина',
             compactCart: true,
@@ -173,7 +175,8 @@ describe('OrderPanel cart-only UX', () => {
         expect(emptyState.classes()).toContain('justify-center');
         expect(emptyState.text()).toContain('Корзина пуста');
         expect(emptyState.text()).toContain('Добавьте блюда из каталога.');
-        expect(emptyState.get('[data-testid="order-panel-empty-state-detail"]').text()).toBe('Оформить заказ можно с 01.06 в 00:00.');
+        expect(emptyState.find('[data-testid="order-panel-empty-state-detail"]').exists()).toBe(false);
+        expect(emptyState.text()).not.toContain('Оформить заказ можно с 01.06 в 00:00.');
     });
 
     it('shows a real checkout CTA button instead of zero total for unauthenticated guests', async () => {

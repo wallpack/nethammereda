@@ -48,14 +48,6 @@ const props = defineProps({
         type: String,
         default: '',
     },
-    disabledCheckoutHelper: {
-        type: String,
-        default: '',
-    },
-    emptyStateDetail: {
-        type: String,
-        default: '',
-    },
     canEditOrder: {
         type: Boolean,
         default: false,
@@ -167,7 +159,6 @@ watch(() => props.menuItemsById, () => {
             <ShoppingBag aria-hidden="true" class="size-7 text-slate-300" />
             <p class="customer-title mt-3 text-balance text-base leading-5">Корзина пуста</p>
             <p class="customer-muted mt-1 text-pretty text-sm leading-6">Добавьте блюда из каталога.</p>
-            <p v-if="emptyStateDetail" data-testid="order-panel-empty-state-detail" class="customer-muted mt-1 max-w-[15rem] text-pretty text-xs leading-5">{{ emptyStateDetail }}</p>
         </div>
 
         <div
@@ -433,11 +424,6 @@ watch(() => props.menuItemsById, () => {
                     >
                         {{ disabledCheckoutLabel }}
                     </Button>
-                    <p
-                        v-if="disabledCheckoutHelper"
-                        data-testid="order-panel-disabled-checkout-helper"
-                        :class="compactCart ? 'mt-2 text-center text-xs leading-5 text-slate-500' : 'mt-2 text-center text-xs leading-5 text-slate-500'"
-                    >{{ disabledCheckoutHelper }}</p>
                 </template>
             </template>
         </div>
