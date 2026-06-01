@@ -198,6 +198,8 @@ watch(() => props.menuItemsById, () => {
                             'size-full object-contain',
                             compactCart ? 'rounded-[1rem] p-1' : 'rounded-[1rem] p-1',
                         ]"
+                        width="96"
+                        height="96"
                         loading="lazy"
                         decoding="async"
                         @error="markOrderItemImageFailed(item)"
@@ -245,7 +247,7 @@ watch(() => props.menuItemsById, () => {
                         data-testid="order-panel-item-weight"
                         :class="[
                             'tabular-nums',
-                            compactCart ? 'mt-px text-[13px] font-semibold leading-[15px] text-[#a6a6a6]' : 'mt-1 text-xs font-semibold text-[#a6a6a6]',
+                            compactCart ? 'mt-px text-[13px] font-semibold leading-[15px] text-[#737373]' : 'mt-1 text-xs font-semibold text-[#737373]',
                         ]"
                     >
                         {{ orderItemWeight(item) || 'Порция' }}
@@ -350,7 +352,7 @@ watch(() => props.menuItemsById, () => {
                     <div :class="['gap-1', compactCart ? 'grid justify-items-center' : 'flex items-center justify-between']">
                         <p
                             data-testid="order-panel-total-label"
-                            :class="compactCart ? 'text-center text-[12px] font-semibold leading-4 text-[#a0a0a0]' : 'text-[12px] font-semibold leading-4 text-[#a0a0a0]'"
+                            :class="compactCart ? 'text-center text-[12px] font-semibold leading-4 text-[#737373]' : 'text-[12px] font-semibold leading-4 text-[#737373]'"
                         >Итого</p>
                         <strong
                             data-testid="order-panel-total-price"

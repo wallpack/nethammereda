@@ -167,6 +167,24 @@ const renderGroups = computed(() => {
     ];
 });
 
+const itemImageIndexById = computed(() => {
+    const indexes = new Map();
+    let index = 0;
+
+    renderGroups.value.forEach((group) => {
+        group.items.forEach((item) => {
+            if (!item.image_display_url && !item.image_url) {
+                return;
+            }
+
+            indexes.set(item.id, index);
+            index += 1;
+        });
+    });
+
+    return indexes;
+});
+
 const emptyTitle = computed(() => {
     if (props.favoritesOnly && props.favoritesCount === 0) {
         return 'В избранном пока ничего нет.';
@@ -197,6 +215,7 @@ const clearFiltersLabel = computed(() => props.favoritesOnly && props.favoritesC
 
 const orderItemFor = (menuItemId) => props.orderItemByMenuItem.get(menuItemId) ?? null;
 const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
+const imageIndexFor = (menuItemId) => itemImageIndexById.value.get(menuItemId) ?? 9999;
 </script>
 
 <template>
@@ -309,6 +328,7 @@ const isFavorite = (menuItemId) => props.favoriteIds.has(menuItemId);
                                 :can-edit-order="canEditOrder"
                                 :disabled-reason="disabledReason"
                                 :action-loading="actionLoading"
+                                :item-index="imageIndexFor(item.id)"
                                 @toggle-favorite="emit('toggle-favorite', $event)"
                                 @add-item="emit('add-item', $event)"
                                 @change-quantity="(...args) => emit('change-quantity', ...args)"

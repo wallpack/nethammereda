@@ -85,6 +85,35 @@ describe('MenuItemCard UI', () => {
         expect(imageArea.classes()).not.toContain('bg-slate-50');
         expect(image.exists()).toBe(true);
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
+        expect(image.attributes('loading')).toBe('lazy');
+        expect(image.attributes('decoding')).toBe('async');
+        expect(image.attributes('width')).toBe('900');
+        expect(image.attributes('height')).toBe('900');
+    });
+
+    it('prioritizes only the first likely LCP image', () => {
+        const priority = mountCard({
+            item: {
+                ...baseItem,
+                image_display_url: '/storage/menu-items/manual/11/soup.png',
+            },
+            itemIndex: 0,
+        });
+        const belowFold = mountCard({
+            item: {
+                ...baseItem,
+                image_display_url: '/storage/menu-items/manual/11/soup.png',
+            },
+            itemIndex: 8,
+        });
+
+        const priorityImage = priority.find(`img[alt="${baseItem.title}"]`);
+        const belowFoldImage = belowFold.find(`img[alt="${baseItem.title}"]`);
+
+        expect(priorityImage.attributes('loading')).toBe('eager');
+        expect(priorityImage.attributes('fetchpriority')).toBe('high');
+        expect(belowFoldImage.attributes('loading')).toBe('lazy');
+        expect(belowFoldImage.attributes('fetchpriority')).toBeUndefined();
     });
 
     it('uses cart-matched title and meta typography in strict image-title-meta-control order', () => {
@@ -109,7 +138,7 @@ describe('MenuItemCard UI', () => {
         expect(meta.classes()).toContain('text-[13px]');
         expect(meta.classes()).toContain('leading-[15px]');
         expect(meta.classes()).toContain('font-semibold');
-        expect(meta.classes()).toContain('text-[#a6a6a6]');
+        expect(meta.classes()).toContain('text-[#737373]');
         expect(meta.text()).toBe('300 г');
     });
 

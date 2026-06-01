@@ -175,6 +175,8 @@ const summaryCards = computed(() => {
                                 :src="fridgeItemImage(item)"
                                 :alt="item.title_snapshot"
                                 class="size-full rounded-[1rem] object-contain p-1"
+                                width="64"
+                                height="64"
                                 loading="lazy"
                                 decoding="async"
                             />

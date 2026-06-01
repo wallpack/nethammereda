@@ -404,7 +404,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(imageWrap.classes().join(' ')).toContain('bg-slate-50');
         expect(title.classes()).toContain('text-[#595959]');
         expect(title.classes()).toContain('font-semibold');
-        expect(weight.classes()).toContain('text-[#a6a6a6]');
+        expect(weight.classes()).toContain('text-[#737373]');
         expect(weight.classes()).toContain('font-semibold');
         expect(actions.classes().join(' ')).toContain('grid-cols-[auto_minmax(0,1fr)_auto_auto]');
         expect(stepper.classes()).toContain('h-8');
@@ -478,6 +478,10 @@ describe('OrderPanel cart-only UX', () => {
         expect(imageWrapClasses).not.toContain('bg-white');
         expect(imageWrapClasses).not.toContain('blue');
         expect(image.attributes('src')).toBe('/storage/menu-items/manual/11/soup.png');
+        expect(image.attributes('loading')).toBe('lazy');
+        expect(image.attributes('decoding')).toBe('async');
+        expect(image.attributes('width')).toBe('96');
+        expect(image.attributes('height')).toBe('96');
         expect(image.classes().join(' ')).not.toContain('blue');
         expect(title.text()).toContain('Суп с курицей');
         expect(title.classes()).toContain('text-[14px]');
@@ -490,7 +494,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(weight.classes()).toContain('text-[13px]');
         expect(weight.classes()).toContain('font-semibold');
         expect(weight.classes()).toContain('leading-[15px]');
-        expect(weight.classes()).toContain('text-[#a6a6a6]');
+        expect(weight.classes()).toContain('text-[#737373]');
         expect(actions.classes()).toContain('grid-cols-[auto_1fr_auto]');
         expect(actions.classes()).toContain('items-center');
         expect(stepper.text()).toContain('2');
@@ -527,7 +531,7 @@ describe('OrderPanel cart-only UX', () => {
         expect(totalLabel.classes()).toContain('text-center');
         expect(totalLabel.classes()).toContain('text-[12px]');
         expect(totalLabel.classes()).toContain('font-semibold');
-        expect(totalLabel.classes()).toContain('text-[#a0a0a0]');
+        expect(totalLabel.classes()).toContain('text-[#737373]');
         expect(totalPrice.classes()).toContain('block');
         expect(totalPrice.classes()).toContain('text-center');
         expect(totalPrice.classes()).toContain('text-[32px]');

@@ -34,6 +34,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    itemIndex: {
+        type: Number,
+        default: 9999,
+    },
 });
 
 const emit = defineEmits(['toggle-favorite', 'add-item', 'change-quantity']);
@@ -64,6 +68,10 @@ const minusButtonDisabled = computed(() => !props.orderItem || controlsDisabled.
 const plusButtonDisabled = computed(() => controlsDisabled.value);
 const displayTitle = computed(() => menuItemDisplayTitle(props.item));
 const displayMeta = computed(() => menuItemDisplayMeta(props.item));
+const isFirstCatalogImage = computed(() => props.itemIndex === 0);
+const isInitialCatalogImage = computed(() => props.itemIndex >= 0 && props.itemIndex < 4);
+const imageLoading = computed(() => (isInitialCatalogImage.value ? 'eager' : 'lazy'));
+const imageFetchPriority = computed(() => (isFirstCatalogImage.value ? 'high' : null));
 const formatStepperPrice = (value) => {
     const amount = Math.round(Number(value) || 0);
 
@@ -90,8 +98,11 @@ const plusButtonLabel = computed(() => (props.orderItem
                         :src="imageSrc"
                         :alt="displayTitle"
                         class="size-full scale-[1.12] object-contain p-1 sm:p-1.5 max-[430px]:scale-[1.05] max-[430px]:p-1"
-                        loading="lazy"
+                        width="900"
+                        height="900"
+                        :loading="imageLoading"
                         decoding="async"
+                        :fetchpriority="imageFetchPriority"
                         @error="imageFailed = true"
                     />
                     <div v-else class="flex size-full flex-col items-center justify-center gap-1.5 px-3 text-center text-slate-400/90 max-[430px]:gap-1 max-[430px]:px-1.5">
@@ -131,7 +142,7 @@ const plusButtonLabel = computed(() => (props.orderItem
                 >
                     {{ displayTitle }}
                 </h3>
-                <p data-testid="menu-item-meta" class="mt-1 min-h-[15px] min-w-0 truncate text-[13px] font-semibold leading-[15px] tabular-nums text-[#a6a6a6] max-[430px]:hidden">
+                <p data-testid="menu-item-meta" class="mt-1 min-h-[15px] min-w-0 truncate text-[13px] font-semibold leading-[15px] tabular-nums text-[#737373] max-[430px]:hidden">
                     <span v-if="displayMeta">{{ displayMeta }}</span>
                     <span v-else aria-hidden="true">&nbsp;</span>
                 </p>
